@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Typography, matched to render.com: light, tightly tracked display headings
+   (Roobert 300) and 400/500 UI text (PP Neue Montreal). */
+@layer utilities {
+  .font-display { font-weight: 300; }
+}
+@layer base {
+  html { font-feature-settings: "ss01", "cv11"; text-rendering: optimizeLegibility; }
+  body { font-size: 16px; line-height: 24px; }
+  button, [role="button"], label { font-weight: 500; }
+  code, kbd, pre, samp { font-family: theme("fontFamily.mono"); }
+}
+
+/*
+ * Design-token theme system.
+ *
+ * Every themeable color in the app (canvas/raised surfaces, text, and the
+ * translucent "overlay" used for borders / hover states / dividers) is a
+ * CSS custom property here, referenced from tailwind.config.ts as
+ * `rgb(var(--x) / <alpha-value>)`. Components then use ordinary Tailwind
+ * classes (`bg-canvas`, `text-ink-muted`, `border-overlay/10`) and never
+ * hardcode a hex or `white/black` value.
+ *
+ * Consequence: switching `data-theme` on <html> re-themes the entire app
+ * — navbar, cards, buttons, borders, shadows, icons — in one place,
+ * instead of requiring every component to know about every theme.
+ * Semantic accent colors (the WPM speed bands) intentionally stay
+ * constant across themes since they carry meaning (slow/medium/fast/
+ * extreme), not decoration.
+ */
+:root,
+:root[data-theme="dark"] {
+  --canvas: 11 12 14;
+  --canvas-raised: 20 21 24;
+  --ink: 237 238 240;
+  --ink-muted: 154 156 163;
+  --ink-faint: 91 93 100;
+  --overlay: 255 255 255;
+  --shadow-color: 0 0 0;
+}
+
+:root[data-theme="light"] {
+  --canvas: 251 251 250;
+  --canvas-raised: 242 242 240;
+  --ink: 22 23 26;
+  --ink-muted: 96 98 105;
+  --ink-faint: 148 150 157;
+  --overlay: 15 15 15;
+  --shadow-color: 20 20 20;
+}
+
+:root[data-theme="sepia"] {
+  --canvas: 244 236 216;
+  --canvas-raised: 236 226 200;
+  --ink: 43 36 23;
+  --ink-muted: 107 94 68;
+  --ink-faint: 156 141 110;
+  --overlay: 43 36 23;
+  --shadow-color: 90 74 40;
+}
+
+html,
+body {
+  background-color: rgb(var(--canvas));
+  color: rgb(var(--ink));
+  overscroll-behavior: none;
+  scroll-behavior: smooth;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Used only by the reading-practice screen's real scroll viewport
+ * (components/Reader/Reader.tsx) — its `scrollTop` is driven entirely by
+ * useReadingEngine's timed auto-scroll, never by the reader's own
+ * scrollbar/wheel/touch input, so a visible scrollbar handle there would
+ * be misleading chrome for a control nothing actually drives by hand. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee, .animate-marquee-reverse { animation: none; }
+}

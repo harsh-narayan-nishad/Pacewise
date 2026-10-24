@@ -1,0 +1,21 @@
+/** Public surface of the per-user session layer — see docs/OOP_ARCHITECTURE.md. */
+export * from "@/lib/session/types";
+export * from "@/lib/session/dateKey";
+export * from "@/lib/session/storage/KeyValueStore";
+export * from "@/lib/session/UserNamespace";
+export * from "@/lib/session/UserScopedRepository";
+export * from "@/lib/session/UserSession";
+export * from "@/lib/session/SessionManager";
+export * from "@/lib/session/LegacyDataMigrator";
+export * from "@/lib/session/identity/IdentityProvider";
+export * from "@/lib/session/identity/DevStoreIdentityProvider";
+export * from "@/lib/session/analytics/DailyActivityEntry";
+export * from "@/lib/session/analytics/LifetimeStatsCalculator";
+export * from "@/lib/session/repositories/HistoryRepository";
+export * from "@/lib/session/repositories/StreakRepository";
+export * from "@/lib/session/repositories/DailyActivityRepository";
+export * from "@/lib/session/repositories/BookmarkRepository";
+export * from "@/lib/session/repositories/AchievementRepository";
+export * from "@/lib/session/repositories/CustomStoryRepository";
+export * from "@/lib/session/repositories/SearchHistoryRepository";
+export { sessionManager } from "@/lib/session/composition";

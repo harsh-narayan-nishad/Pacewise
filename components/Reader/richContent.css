@@ -1,0 +1,40 @@
+/* Reader styling for stories written in the rich editor. Colours come from the
+   site's theme tokens so dark / light / sepia all stay readable. */
+.sr-rich > * { margin: 0 0 2.5rem; }
+.sr-rich p, .sr-rich li { overflow-wrap: anywhere; }
+.sr-rich h1, .sr-rich h2, .sr-rich h3, .sr-rich h4, .sr-rich h5, .sr-rich h6 { font-weight: 700; line-height: 1.25; }
+.sr-rich h1 { font-size: 1.9em; } .sr-rich h2 { font-size: 1.55em; } .sr-rich h3 { font-size: 1.3em; } .sr-rich h4 { font-size: 1.1em; }
+.sr-rich h5 { font-size: 1em; } .sr-rich h6 { font-size: .9em; text-transform: uppercase; letter-spacing: .04em; }
+.sr-rich .sr-title { font-size: 2.4em; font-weight: 700; line-height: 1.1; }
+.sr-rich .sr-subtitle { font-size: 1.3em; opacity: .7; }
+.sr-rich blockquote { border-left: 3px solid rgb(var(--overlay) / .25); padding-left: 1rem; opacity: .85; }
+.sr-rich ul, .sr-rich ol { padding-left: 1.6em; }
+.sr-rich ul { list-style: disc; } .sr-rich ol { list-style: decimal; }
+.sr-rich ul.sr-check { list-style: none; padding-left: 0; }
+.sr-rich ul.sr-check > li::before { content: "\2610\00a0"; }
+.sr-rich ul.sr-check > li[data-checked="true"]::before { content: "\2611\00a0"; }
+.sr-rich li { margin-bottom: .4em; }
+.sr-rich a { text-decoration: underline; opacity: .9; }
+.sr-rich hr { border: 0; border-top: 1px solid rgb(var(--overlay) / .2); }
+.sr-rich hr.sr-pagebreak { visibility: hidden; margin: 0; }
+.sr-rich table { border-collapse: collapse; max-width: 100%; }
+.sr-rich td, .sr-rich th { border: 1px solid rgb(var(--overlay) / .3); padding: .4em .7em; vertical-align: top; }
+.sr-rich th { background: rgb(var(--overlay) / .08); }
+.sr-rich table.sr-noborder td, .sr-rich table.sr-noborder th { border-color: transparent; }
+.sr-rich figure { text-align: center; }
+.sr-rich figure[data-align="left"] { float: left; max-width: 55%; margin: .3rem 1.5rem 1rem 0; }
+.sr-rich figure[data-align="right"] { float: right; max-width: 55%; margin: .3rem 0 1rem 1.5rem; }
+.sr-rich img { max-width: 100%; height: auto; border-radius: 6px; }
+.sr-rich figcaption { font-size: .8em; opacity: .65; margin-top: .4rem; }
+.sr-rich .sr-img-missing { display: inline-block; padding: .3em .7em; border: 1px dashed rgb(var(--overlay) / .3); border-radius: 6px; font-size: .8em; opacity: .7; }
+.sr-rich .sr-math { font-family: "Cambria Math", "STIX Two Math", serif; }
+.sr-rich section.sr-footnotes { font-size: .8em; opacity: .75; }
+.sr-rich pre.sr-code { position: relative; overflow-x: auto; margin-left: 0; padding: 2.1rem 1rem 1rem; border-radius: 10px; background: #0f1115; color: #d6d9e0; font: 0.85em/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 4; white-space: pre !important; word-break: normal; overflow-wrap: normal; letter-spacing: 0; text-wrap: nowrap; font-variant-ligatures: none; text-align: left; }
+.sr-rich pre.sr-code::before { content: attr(data-lang); position: absolute; top: .5rem; left: 1rem; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; }
+.sr-rich pre.sr-code code { font: inherit; }
+.sr-tk-keyword { color: #c792ea; } .sr-tk-string { color: #c3e88d; } .sr-tk-comment { color: #7f8a9a; font-style: italic; } .sr-tk-number { color: #f78c6c; }
+.sr-tk-type { color: #ffcb6b; } .sr-tk-func { color: #82aaff; } .sr-tk-punct { color: #89ddff; } .sr-tk-tag { color: #f07178; } .sr-tk-attr { color: #ffcb6b; }
+.sr-rich::after { content: ""; display: block; clear: both; }
+
+.sr-rich pre.sr-code code { display: block; min-width: max-content; white-space: inherit; }
+.sr-rich p.sr-lines { white-space: pre-line; }

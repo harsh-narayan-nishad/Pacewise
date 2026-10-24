@@ -1,0 +1,30 @@
+/* Hide the native scrollbar while reading mode is open (the left rail replaces it). */
+html.sr-reading-mode { scrollbar-width: none; scroll-behavior: auto; }
+html.sr-reading-mode::-webkit-scrollbar { display: none; }
+
+/* Toggle switch (from the supplied "checkbox-wrapper-35" design), themed. */
+.sr-switch .switch { display: none; }
+.sr-switch .switch + label { align-items: center; color: rgb(var(--ink-muted)); cursor: pointer; display: flex; font-size: 12px; line-height: 15px; position: relative; user-select: none; white-space: nowrap; }
+.sr-switch .switch + label::before, .sr-switch .switch + label::after { content: ""; display: block; }
+.sr-switch .switch + label::before { background-color: rgb(var(--overlay) / 0.3); border-radius: 500px; height: 15px; margin-right: 8px; transition: background-color 0.125s ease-out; width: 25px; }
+.sr-switch .switch + label::after { background-color: #fff; border-radius: 13px; box-shadow: 0 3px 1px 0 rgba(37,34,71,.05), 0 2px 2px 0 rgba(37,34,71,.1), 0 3px 3px 0 rgba(37,34,71,.05); height: 13px; left: 1px; position: absolute; top: 1px; transition: transform 0.125s ease-out; width: 13px; }
+.sr-switch .switch + label .switch-x-text { display: block; margin-right: .3em; }
+.sr-switch .switch + label .switch-x-toggletext { display: block; font-weight: bold; height: 15px; overflow: hidden; position: relative; width: 22px; color: rgb(var(--ink)); }
+.sr-switch .switch + label .switch-x-unchecked, .sr-switch .switch + label .switch-x-checked { left: 0; position: absolute; top: 0; transition: transform 0.125s ease-out, opacity 0.125s ease-out; }
+.sr-switch .switch + label .switch-x-unchecked { opacity: 1; transform: none; }
+.sr-switch .switch + label .switch-x-checked { opacity: 0; transform: translate3d(0, 100%, 0); }
+.sr-switch .switch + label .switch-x-hiddenlabel { position: absolute; visibility: hidden; }
+.sr-switch .switch:checked + label::before { background-color: #E8B84B; }
+.sr-switch .switch:checked + label::after { transform: translate3d(10px, 0, 0); }
+.sr-switch .switch:checked + label .switch-x-unchecked { opacity: 0; transform: translate3d(0, -100%, 0); }
+.sr-switch .switch:checked + label .switch-x-checked { opacity: 1; transform: none; }
+.sr-switch .switch:focus-visible + label::before { outline: 2px solid #7FC97F; outline-offset: 2px; }
+
+/* Article typography (Substack-style: slab headings, roomy body). */
+.sr-article .sr-article-title, .sr-article .sr-rich h1, .sr-article .sr-rich h2, .sr-article .sr-rich h3 { font-family: "Roboto Slab", "Source Serif 4", Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
+.sr-article .sr-rich { font-size: 1.25rem; line-height: 1.75; }
+.sr-article .sr-rich p, .sr-article .sr-rich li { margin-block: 0.9em; }
+.sr-article .sr-rich h2 { font-size: 2rem; line-height: 1.2; margin-top: 2em; }
+.sr-article .sr-rich h3 { font-size: 1.5rem; line-height: 1.25; margin-top: 1.6em; }
+.sr-article .sr-rich ul { list-style: disc; padding-left: 1.6em; }
+.sr-article .sr-rich ol { list-style: decimal; padding-left: 1.6em; }

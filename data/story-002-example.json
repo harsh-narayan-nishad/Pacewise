@@ -1,0 +1,43 @@
+{
+  "id": "story-002",
+  "title": "The Last Notebook",
+  "description": "A field biologist finds one final entry worth writing before the expedition ends.",
+  "difficulty": "Beginner",
+  "tags": ["fiction", "nature"],
+  "estimatedWPM": 180,
+  "story": [
+    { "paragraph": "Mara had filled eleven notebooks over four years of fieldwork, and this, the twelfth, had only one page left. She had been saving it, half-consciously, for something worth the space." },
+    { "paragraph": "The tracking collar's last signal had come from a ridge nobody on the team had bothered to survey, since the terrain there was judged too steep for the animals they were studying. It was, of course, exactly where the missing wolf had gone." },
+    { "paragraph": "She wrote the coordinates first, then a single line beneath them: some animals leave the map on purpose. She closed the notebook and did not open it again that season." }
+  ],
+  "questions": [
+    {
+      "question": "How many notebooks had Mara filled before this one?",
+      "options": ["Four", "Eleven", "Twelve", "Two"],
+      "correctAnswer": 1,
+      "explanation": "The text says she had filled eleven notebooks over four years."
+    },
+    {
+      "question": "Why had the ridge not been surveyed by the team?",
+      "options": [
+        "It was outside the study area",
+        "It was judged too steep for the animals being studied",
+        "It was privately owned land",
+        "Nobody remembered it existed"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The terrain was judged too steep for the animals the team was studying."
+    },
+    {
+      "question": "What did Mara write on the last page?",
+      "options": [
+        "A description of the wolf",
+        "The coordinates and a one-line reflection",
+        "A resignation letter",
+        "Nothing — she left it blank"
+      ],
+      "correctAnswer": 1,
+      "explanation": "She wrote the coordinates and the line 'some animals leave the map on purpose.'"
+    }
+  ]
+}

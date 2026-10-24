@@ -1,0 +1,80 @@
+{
+  "id": "story-001",
+  "title": "The Lighthouse Keeper's Last Winter",
+  "description": "A veteran lighthouse keeper faces the storm of her career on the coast.",
+  "level": "Intermediate",
+  "difficulty": "Intermediate",
+  "tags": ["fiction", "short-story", "coastal"],
+  "estimatedReadingTime": 4,
+  "estimatedWPM": 200,
+  "story": [
+    { "paragraph": "Elena had kept the lighthouse for eleven years, long enough to know every groan in its iron staircase and every mood of the sea beyond the rocks. The automated systems could have replaced her twice over, but the coastal authority kept her on out of something between tradition and mercy, and she had never asked which." },
+    { "paragraph": "That winter arrived early and mean, stripping the gulls from the cliffs before the first snow even settled. She watched the barometer fall a full inch in a single afternoon, and something in her chest tightened the way it always did before a real storm, not the theatrical squalls tourists photographed from the mainland, but the kind that rearranged the coastline overnight." },
+    { "paragraph": "On the third night, a fishing trawler lost its bearings in the whiteout, its radio crackling with a captain's voice gone thin with fear. Elena climbed the tower two steps at a time, her lungs burning, and threw the manual override the authority had told her, a decade ago, she would probably never need." },
+    { "paragraph": "The beam swung out across the water, steady and enormous, cutting a corridor of light through snow that seemed determined to swallow it. She held the lever herself for six hours, because the motor's whine sounded wrong and she did not trust it to hold without her hand there as a witness." },
+    { "paragraph": "By dawn the trawler had found the harbor, its crew of four stumbling onto the dock with the particular gratitude of men who had already begun composing their goodbyes. Elena climbed down from the tower alone, as she always did, and put the kettle on, because the sea did not care that she was tired, and neither, really, did she." }
+  ],
+  "questions": [
+    {
+      "question": "How long had Elena been keeping the lighthouse?",
+      "options": ["Five years", "Eleven years", "Twenty years", "One winter"],
+      "correctAnswer": 1,
+      "explanation": "The text states she had kept the lighthouse for eleven years."
+    },
+    {
+      "question": "Why did the coastal authority keep Elena on despite automation?",
+      "options": [
+        "She was cheaper than machines",
+        "A mix of tradition and mercy",
+        "The equipment was broken",
+        "She owned the lighthouse"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The passage says she was kept on 'out of something between tradition and mercy.'"
+    },
+    {
+      "question": "What warned Elena that a serious storm was coming?",
+      "options": [
+        "A radio broadcast",
+        "The gulls leaving early and the barometer dropping",
+        "A message from the trawler",
+        "Her own dream"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Gulls stripped from the cliffs early and the barometer fell a full inch, signaling a serious storm."
+    },
+    {
+      "question": "What happened to the fishing trawler?",
+      "options": [
+        "It sank near the rocks",
+        "It lost its bearings in the whiteout",
+        "It never left the harbor",
+        "It was towed in by another boat"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The trawler lost its bearings in the whiteout snowstorm."
+    },
+    {
+      "question": "Why did Elena hold the override lever herself for six hours?",
+      "options": [
+        "She enjoyed the view",
+        "The motor sounded wrong and she wanted to be a witness to it holding",
+        "She was ordered to by the authority",
+        "The automatic system was destroyed"
+      ],
+      "correctAnswer": 1,
+      "explanation": "She distrusted the motor's odd whine and wanted her hand there as a witness."
+    },
+    {
+      "question": "How did the story end for Elena?",
+      "options": [
+        "She collapsed from exhaustion",
+        "She was rescued alongside the crew",
+        "She climbed down alone and made tea",
+        "She retired from lighthouse keeping"
+      ],
+      "correctAnswer": 2,
+      "explanation": "She climbed down alone, as always, and put the kettle on."
+    }
+  ]
+}

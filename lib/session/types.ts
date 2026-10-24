@@ -1,0 +1,65 @@
+/**
+ * Plain data shapes shared by the per-user session layer. These are the
+ * *serialized* forms — what actually lands in storage — kept separate from
+ * the classes that behave on top of them (see DailyActivityEntry,
+ * LifetimeStatsCalculator) so a stored row never carries methods.
+ */
+
+export interface SearchHistoryEntry {
+  term: string;
+  date: string; // ISO timestamp
+}
+
+/** One aggregated row per calendar day (local time), keyed by `toDateKey`. */
+export interface DailyActivity {
+  date: string; // YYYY-MM-DD
+  minutes: number;
+  sessions: number;
+  /** Count of completed reading sessions that day. */
+  storiesCompletedCount: number;
+  wpmSum: number;
+  wpmSamples: number;
+  // Break / efficiency trend fields, kept as running sum + sample-count
+  // pairs so daily averages are cheap to derive without raw arrays.
+  breakMs: number;
+  breakCount: number;
+  effectiveWpmSum: number;
+  effectiveWpmSamples: number;
+  reductionPercentSum: number;
+  reductionPercentSamples: number;
+}
+
+/** What one finished reading session contributes to a day's aggregate. */
+export interface RecordSessionInput {
+  minutes: number;
+  wpm: number;
+  completed: boolean;
+  breakMs?: number;
+  breakCount?: number;
+  effectiveWpm?: number;
+  reductionPercent?: number;
+}
+
+export interface StreakState {
+  count: number;
+  lastReadDate: string | null;
+}
+
+export interface QuizStats {
+  attemptCount: number;
+  avgAccuracy: number;
+  avgTimePerQuestionMs: number;
+}
+
+export interface LifetimeStats {
+  currentStreak: number;
+  longestStreak: number;
+  totalActiveDays: number;
+  totalMinutes: number;
+  totalStoriesCompleted: number;
+  totalBreakMs: number;
+  avgBreakMs: number;
+  avgEffectiveWpm: number;
+  avgReductionPercent: number;
+  readingEfficiency: number;
+}
