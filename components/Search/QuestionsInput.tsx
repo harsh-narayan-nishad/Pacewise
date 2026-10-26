@@ -11,12 +11,16 @@ interface Props {
   value: StoryQuestion[];
   /** `valid` is false only while the JSON pane holds text that doesn't parse. */
   onChange: (questions: StoryQuestion[], valid: boolean) => void;
+  /** "form" = the large underlined style of the Add story modal. Default is the compact original. */
+  variant?: "default" | "form";
 }
 
 type Mode = "manual" | "json";
 
-const field =
+const fieldDefault =
   "w-full rounded-md border border-overlay/15 bg-canvas px-2.5 py-1.5 text-xs text-ink outline-none focus-visible:border-accent-medium";
+const fieldForm =
+  "w-full border-0 border-b border-ink/40 bg-transparent px-0 pb-2 pt-3 text-lg text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-accent-medium";
 
 /**
  * Quiz questions for a story, entered either one by one or as JSON (typed,
@@ -26,7 +30,9 @@ const field =
  * question list immediately; invalid JSON keeps the last good list and
  * lists exactly what is wrong.
  */
-export function QuestionsInput({ value, onChange }: Props) {
+export function QuestionsInput({ value, onChange, variant = "default" }: Props) {
+  const form = variant === "form";
+  const field = form ? fieldForm : fieldDefault;
   const [mode, setMode] = useState<Mode>("manual");
   const [jsonText, setJsonText] = useState("");
   const [issues, setIssues] = useState<string[]>([]);
@@ -83,10 +89,10 @@ export function QuestionsInput({ value, onChange }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-ink-muted">
-          Quiz questions <span className="text-ink-faint">({complete} added)</span>
+        <p className={form ? "text-xl font-medium text-ink" : "text-xs font-medium text-ink-muted"}>
+          Quiz questions <span className={form ? "ml-2 text-sm font-normal text-ink-muted" : "text-ink-faint"}>({complete} added)</span>
         </p>
-        <div className="flex gap-1 rounded-lg bg-overlay/5 p-0.5" role="tablist" aria-label="How to add questions">
+        <div className={form ? "flex gap-1 rounded-full bg-overlay/[0.06] p-1" : "flex gap-1 rounded-lg bg-overlay/5 p-0.5"} role="tablist" aria-label="How to add questions">
           {(
             [
               ["manual", "One by one", FormInput],
@@ -99,7 +105,7 @@ export function QuestionsInput({ value, onChange }: Props) {
               role="tab"
               aria-selected={mode === id}
               onClick={() => switchTo(id)}
-              className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+              className={`flex items-center gap-1 transition-colors ${form ? "rounded-full px-4 py-2 text-sm" : "rounded-md px-2 py-1 text-xs"} ${
                 mode === id ? "bg-canvas text-ink shadow-sm" : "text-ink-muted hover:text-ink"
               }`}
             >
@@ -115,7 +121,7 @@ export function QuestionsInput({ value, onChange }: Props) {
       {mode === "manual" ? (
         <>
           {value.map((q, qi) => (
-            <div key={qi} className="space-y-1.5 rounded-lg border border-overlay/10 p-2.5">
+            <div key={qi} className={form ? "space-y-4 rounded-3xl border border-overlay/15 p-5 sm:p-7" : "space-y-1.5 rounded-lg border border-overlay/10 p-2.5"}>
               <div className="flex items-center gap-1.5">
                 <input
                   value={q.question}
@@ -140,6 +146,7 @@ export function QuestionsInput({ value, onChange }: Props) {
                     type="radio"
                     name={`correct-${qi}`}
                     aria-label={`Option ${oi + 1} is correct`}
+                    className={form ? "h-5 w-5 shrink-0 cursor-pointer accent-accent-medium" : undefined}
                     checked={q.correctAnswer === oi}
                     onChange={() => update(qi, { correctAnswer: oi })}
                   />
@@ -152,14 +159,14 @@ export function QuestionsInput({ value, onChange }: Props) {
                 </div>
               ))}
               <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => update(qi, { options: [...q.options, ""] })} className="text-xs text-ink-muted hover:text-ink">
+                <button type="button" onClick={() => update(qi, { options: [...q.options, ""] })} className={form ? "text-base text-ink-muted hover:text-ink" : "text-xs text-ink-muted hover:text-ink"}>
                   + option
                 </button>
                 <input value={q.explanation} onChange={(e) => update(qi, { explanation: e.target.value })} placeholder="Explanation" className={`${field} flex-1`} />
               </div>
             </div>
           ))}
-          <button type="button" onClick={() => onChange([...value, emptyQuestion()], true)} className="text-xs font-medium text-ink-muted hover:text-ink">
+          <button type="button" onClick={() => onChange([...value, emptyQuestion()], true)} className={form ? "text-base font-medium text-ink-muted hover:text-ink" : "text-xs font-medium text-ink-muted hover:text-ink"}>
             + Add question
           </button>
         </>

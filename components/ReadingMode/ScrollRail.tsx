@@ -12,9 +12,12 @@ interface Item { id: number; title: string; y: number }
  * (one per section), the current one longer and darker. Hovering opens the
  * section list; clicking a dash glides to that section.
  */
-export function ScrollRail({ bodyRef, deps }: { bodyRef: React.RefObject<HTMLElement>; deps: unknown }) {
+export function ScrollRail({ bodyRef, deps, side = "left", accent, alwaysOpen = false }: { bodyRef: React.RefObject<HTMLElement>; deps: unknown; side?: "left" | "right"; accent?: string; alwaysOpen?: boolean }) {
+  const right = side === "right";
   const [items, setItems] = useState<Item[]>([]);
   const [active, setActive] = useState(0);
+  // alwaysOpen: the section list stays shown (on wide screens) until a dash is clicked, which hides/shows it.
+  const [listOpen, setListOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 1024);
 
   useEffect(() => {
     const body = bodyRef.current;
@@ -62,17 +65,17 @@ export function ScrollRail({ bodyRef, deps }: { bodyRef: React.RefObject<HTMLEle
   const go = (y: number) => inertiaScrollTo(Math.max(0, y - 96));
 
   return (
-    <nav aria-label="Sections" className="group fixed left-1 top-1/2 z-30 -translate-y-1/2 sm:left-3">
-      <ul className="flex flex-col gap-0 py-3 pl-1 pr-5 sm:pl-2 sm:pr-6">
+    <nav aria-label="Sections" className={`group fixed top-1/2 z-30 -translate-y-1/2 ${right ? "right-1 sm:right-3" : "left-1 sm:left-3"}`}>
+      <ul className={`flex flex-col gap-0 py-3 ${right ? "items-end pl-5 pr-1 sm:pl-6 sm:pr-2" : "pl-1 pr-5 sm:pl-2 sm:pr-6"}`}>
         {Array.from({ length: ticks }, (_, k) => (
           <li key={k}>
-            <button onClick={() => go(items[groupStart(k)].y)} aria-label={`Go to ${items[groupStart(k)].title}`} aria-current={k === activeTick} className="flex h-3.5 w-6 items-center sm:w-8">
-              <span className={`block h-[2px] rounded-full transition-all duration-200 ${k === activeTick ? "w-5 bg-ink sm:w-6" : "w-3 bg-ink-faint/70 hover:bg-ink-muted sm:w-4"}`} />
+            <button onClick={() => { go(items[groupStart(k)].y); if (alwaysOpen) setListOpen((v) => !v); }} aria-label={`Go to ${items[groupStart(k)].title}`} aria-current={k === activeTick} className={`flex h-3.5 w-6 items-center sm:w-8 ${right ? "justify-end" : ""}`}>
+              <span style={k === activeTick && accent ? { backgroundColor: accent } : undefined} className={`block h-[2px] rounded-full transition-all duration-200 ${k === activeTick ? `w-5 sm:w-6 ${accent ? "" : "bg-ink"}` : "w-3 bg-ink-faint/70 hover:bg-ink-muted sm:w-4"}`} />
             </button>
           </li>
         ))}
       </ul>
-      <div className="pointer-events-none absolute left-8 top-1/2 w-[min(16rem,calc(100vw-3.5rem))] -translate-y-1/2 rounded-xl border border-overlay/10 bg-canvas-raised/95 p-2 opacity-0 shadow-themed backdrop-blur-xl transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 sm:left-10">
+      <div className={`${alwaysOpen && listOpen ? "" : "pointer-events-none"} absolute top-1/2 w-[min(16rem,calc(100vw-3.5rem))] -translate-y-1/2 rounded-xl border border-overlay/10 bg-canvas-raised/95 p-2 shadow-themed backdrop-blur-xl transition-opacity duration-150 ${alwaysOpen ? (listOpen ? "pointer-events-auto opacity-100" : "opacity-0") : "opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"} ${right ? "right-8 sm:right-10" : "left-8 sm:left-10"}`}>
         <ul className="max-h-[60vh] overflow-y-auto overscroll-contain">
           {items.map((it, i) => (
             <li key={it.id}>

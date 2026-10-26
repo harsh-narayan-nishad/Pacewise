@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, UserCheck, UserPlus } from "lucide-react";
+import { ArrowLeft, Camera, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { getAllStories } from "@/lib/storyLibrary";
 import { getContentAuthorId } from "@/lib/devData/contentMeta";
 import { devDataStore } from "@/lib/devData/store";
 import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
+import { ROUTES } from "@/lib/routes";
+import { Avatar } from "@/components/ui/Avatar";
+import { useAvatarUpload } from "@/components/Profile/useAvatarUpload";
 
 interface UserProfileProps {
   userId: string;
@@ -30,6 +33,7 @@ export function UserProfile({ userId }: UserProfileProps) {
   const router = useRouter();
   const currentUser = useCurrentUser();
   useDevStoreVersion();
+  const photo = useAvatarUpload(currentUser?.id);
 
   const user = devDataStore.findUserById(userId);
   const allStories = useMemo(() => getAllStories(), []);
@@ -68,9 +72,7 @@ export function UserProfile({ userId }: UserProfileProps) {
 
       <Card className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-canvas">
-            <User className="h-5 w-5" />
-          </div>
+          <Avatar userId={userId} size={64} />
           <div>
             <h1 className="font-display text-xl text-ink">{user.name}</h1>
             <p className="text-sm text-ink-muted">
@@ -79,6 +81,23 @@ export function UserProfile({ userId }: UserProfileProps) {
             </p>
           </div>
         </div>
+
+        {isSelf && (
+          <div className="flex flex-col items-end gap-1">
+            <input ref={photo.inputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => void photo.onFile(e.target.files?.[0])} />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={photo.choose} disabled={photo.busy}>
+                <Camera className="h-4 w-4" /> {photo.busy ? "Uploading…" : "Change photo"}
+              </Button>
+              {devDataStore.getAvatar(userId) && (
+                <Button variant="ghost" size="icon" onClick={photo.remove} aria-label="Remove profile photo">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {photo.error && <p className="text-xs text-accent-extreme">{photo.error}</p>}
+          </div>
+        )}
 
         {!isSelf && currentUser && (
           <Button
@@ -90,6 +109,20 @@ export function UserProfile({ userId }: UserProfileProps) {
           </Button>
         )}
       </Card>
+
+      {isSelf && (
+        <nav aria-label="Your pages" className="mb-8 flex flex-wrap gap-2">
+          {[
+            ["Dashboard", ROUTES.dashboard],
+            ["Reading history", ROUTES.readingHistory],
+            ["Analytics", ROUTES.analytics],
+            ["Past test attempts", ROUTES.history],
+            ["Settings", ROUTES.settings],
+          ].map(([label, href]) => (
+            <Button key={href} size="sm" variant="outline" onClick={() => router.push(href)}>{label}</Button>
+          ))}
+        </nav>
+      )}
 
       <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-ink-muted">
         Content posted by {isSelf ? "you" : user.name}

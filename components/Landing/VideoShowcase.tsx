@@ -45,6 +45,7 @@ export function VideoShowcase() {
 
   return (
     <section aria-labelledby="video-h" className="text-center">
+      <div className="mx-auto max-w-6xl px-6 sm:px-8">
       <h2 id="video-h" className="font-display text-3xl leading-tight text-ink sm:text-5xl">Read faster. Remember more.</h2>
       <p className="mx-auto mt-5 max-w-xl text-lg text-ink-muted">{t.caption}</p>
 
@@ -62,8 +63,10 @@ export function VideoShowcase() {
           </button>
         ))}
       </div>
+      </div>
 
-      <div className="relative mt-6">
+      {/* Wide 16:9 stage, like the Apple product page: nearly the full width of the screen. */}
+      <div className="relative mx-auto mt-6 w-full max-w-[1750px] px-[4%] sm:px-[5%]">
         <div className="relative aspect-video overflow-hidden rounded-[28px] bg-[#1d2b27] sm:rounded-[40px]">
           {failed ? (
             <div aria-hidden className="absolute inset-0 animate-pulse bg-gradient-to-br from-[#1d2b27] via-[#3f5646] to-[#4a3b58]" />

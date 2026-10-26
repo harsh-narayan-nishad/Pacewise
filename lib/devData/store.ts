@@ -112,6 +112,8 @@ class DevDataStore {
   private playlists: DevPlaylist[] = [];
   private playlistRelationships: DevPlaylistRelationship[] = [];
   private follows: DevFollow[] = [];
+  /** userId -> profile photo (small JPEG data URL, see lib/avatar.ts). */
+  private avatars: Record<string, string> = {};
 
   private currentUserId: string | null = null;
 
@@ -163,6 +165,7 @@ class DevDataStore {
         playlists: this.playlists,
         playlistRelationships: this.playlistRelationships,
         follows: this.follows,
+        avatars: this.avatars,
         currentUserId: this.currentUserId,
         counters: this.counters,
       };
@@ -197,6 +200,7 @@ class DevDataStore {
         playlists: DevPlaylist[];
         playlistRelationships: DevPlaylistRelationship[];
         follows: DevFollow[];
+        avatars: Record<string, string>;
         currentUserId: string | null;
         counters: Record<string, number>;
       }>;
@@ -217,6 +221,7 @@ class DevDataStore {
       this.playlists = saved.playlists ?? this.playlists;
       this.playlistRelationships = saved.playlistRelationships ?? this.playlistRelationships;
       this.follows = saved.follows ?? this.follows;
+      this.avatars = saved.avatars ?? this.avatars;
       this.counters = saved.counters ?? this.counters;
       // Only restore "logged in" state if that user id still exists (the
       // seeded user list is fixed, so this only ever fails if someone
@@ -290,6 +295,23 @@ class DevDataStore {
     this.currentUserId = user.id;
     this.touch();
     return { ok: true, user };
+  }
+
+  /** The user's profile photo, if they uploaded one. */
+  getAvatar(userId: string): string | null {
+    return this.avatars[userId] ?? null;
+  }
+
+  /** Sets (or, with null, removes) a user's profile photo. A user can only change their own. */
+  setAvatar(userId: string, dataUrl: string | null): boolean {
+    if (userId !== this.currentUserId || !this.findUserById(userId)) return false;
+    if (dataUrl) this.avatars = { ...this.avatars, [userId]: dataUrl };
+    else {
+      const { [userId]: _removed, ...rest } = this.avatars;
+      this.avatars = rest;
+    }
+    this.touch();
+    return true;
   }
 
   logout(): void {

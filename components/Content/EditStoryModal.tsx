@@ -1,123 +1,97 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Braces, FileText, Loader2, Trash2, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoryData, StoryQuestion } from "@/types";
-import { ThumbnailPicker } from "@/components/Search/ThumbnailPicker";
+import { FloatingField, SectionHeading } from "@/components/Search/StoryFormParts";
+import { StoryCoverPicker } from "@/components/Search/StoryCoverPicker";
 import { QuestionsInput } from "@/components/Search/QuestionsInput";
 import { StoryTextEditor, clearEditorDraft } from "@/components/Editor/StoryTextEditor";
 import { RichDocument } from "@/lib/editor/model/RichDocument";
 import { docFromStory, storyPartsFromDoc } from "@/lib/editor/storyBridge";
-import { loadStory, StoryValidationError } from "@/lib/stories";
 import { storage } from "@/lib/storage";
+import { deleteThumbnailVideo } from "@/lib/thumbnailVideo";
 
 interface EditStoryModalProps {
   story: StoryData;
   onClose: () => void;
-  /** Called after a save or delete actually lands in storage, so the
-   *  caller (StoryCard/Dashboard) can refresh whatever list it's showing
-   *  rather than this modal reaching into that state itself. */
   onSaved: (story: StoryData) => void;
   onDeleted: (id: string) => void;
 }
 
-type Mode = "form" | "json";
+const emptyQuestion: StoryQuestion = { question: "", options: ["", ""], correctAnswer: 0, explanation: "" };
 
 /**
- * Lets the owner of an uploaded/custom story (see `isCustomStory` in
- * lib/storyLibrary.ts — only a story the current browser itself added via
- * the "Add story" flow is editable/deletable at all, matching "content the
- * user uploaded") either edit it through plain fields ("Normal" tab) or
- * hand-edit its full JSON ("JSON" tab) — both write back through the same
- * `storage.saveCustomStory`, so either tab produces an identical result.
- * Deleting goes through `storage.removeCustomStory`.
+ * Edit an uploaded story. Deliberately the same design as the landing page's
+ * "Add your own story" modal (shared FloatingField / SectionHeading /
+ * StoryCoverPicker / QuestionsInput), pre-filled with the story's values.
+ * Only the owner can reach it (callers gate on isCustomStory).
  */
 export function EditStoryModal({ story, onClose, onSaved, onDeleted }: EditStoryModalProps) {
-  const [mode, setMode] = useState<Mode>("form");
   const [title, setTitle] = useState(story.title);
   const [description, setDescription] = useState(story.description ?? "");
   const [thumbnail, setThumbnail] = useState<string | undefined>(story.thumbnail);
-  const [tags, setTags] = useState(story.tags?.join(", ") ?? "");
-  // Rich editor replaces the paragraphs textarea; `story.story` is derived from it on save.
-  const initialDoc = React.useMemo(() => (story.media ? null : docFromStory(story)), [story]);
+  const [thumbnailVideo, setThumbnailVideo] = useState<string | undefined>(story.thumbnailVideo);
+  const [videoPoster, setVideoPoster] = useState<string | undefined>(undefined);
+  const initialDoc = useMemo(() => (story.media ? null : docFromStory(story)), [story]);
   const [richDoc, setRichDoc] = useState<RichDocument | null>(initialDoc);
-  const [questions, setQuestions] = useState<StoryQuestion[]>(() => (story.questions?.length ? story.questions : [{ question: "", options: ["", ""], correctAnswer: 0, explanation: "" }]));
+  const [questions, setQuestions] = useState<StoryQuestion[]>(() => (story.questions?.length ? story.questions : [{ ...emptyQuestion }]));
   const [questionsValid, setQuestionsValid] = useState(true);
-  const draftSlot = `edit-story:${story.title}`;
-  const [json, setJson] = useState(() => JSON.stringify(story, null, 2));
-  const [error, setError] = useState<string | string[] | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const draftSlot = `edit-story:${story.id ?? story.title}`;
 
-  function saveFromForm() {
-    if (!title.trim()) {
-      setError("Title can't be empty.");
-      return;
-    }
-    if (!story.media && !questionsValid) {
-      setError("Fix the questions JSON first (see the errors under the question box).");
-      return;
-    }
+  // The video that was saved with the story must outlive Cancel; only a replaced
+  // or removed one is deleted, and only once the edit is actually saved.
+  const originalVideo = story.thumbnailVideo;
+
+  function save() {
+    if (!title.trim()) return setErrors(["Title can't be empty."]);
+    if (!story.media && !questionsValid) return setErrors(["Fix the questions first (see the messages under the question box)."]);
+    const parts = !story.media && richDoc ? storyPartsFromDoc(richDoc) : null;
+    if (parts && parts.story.length === 0) return setErrors(["At least one paragraph is required."]);
+
     const updated: StoryData = {
       ...story,
       title: title.trim(),
       description: description.trim() || undefined,
-      thumbnail,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-      ...(story.media || !richDoc ? {} : (({ story: st, richDocument }) => ({ story: st, richDocument }))(storyPartsFromDoc(richDoc))),
+      thumbnail: thumbnail ?? videoPoster,
+      thumbnailVideo,
+      ...(parts ? { story: parts.story, richDocument: parts.richDocument } : {}),
       ...(story.media ? {} : { questions: questions.filter((q) => q.question.trim() && q.options.every((o) => o.trim())) }),
     };
-    if (!updated.media && updated.story.length === 0) {
-      setError("At least one paragraph is required.");
-      return;
-    }
-    clearEditorDraft(draftSlot);
-    persist(updated);
-  }
-
-  function saveFromJson() {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(json);
-    } catch {
-      setError("That isn't valid JSON — check for a missing comma or bracket.");
-      return;
-    }
-    try {
-      const loaded = loadStory(parsed);
-      persist({ ...loaded, id: story.id });
-    } catch (e) {
-      if (e instanceof StoryValidationError) {
-        setError(e.issues);
-      } else {
-        setError("Could not load that story JSON.");
-      }
-    }
-  }
-
-  function persist(updated: StoryData) {
     setSaving(true);
-    setError(null);
-    window.setTimeout(() => {
-      storage.saveCustomStory(updated);
-      setSaving(false);
-      onSaved(updated);
-      onClose();
-    }, 150);
+    setErrors([]);
+    storage.saveCustomStory(updated);
+    if (originalVideo && originalVideo !== thumbnailVideo) void deleteThumbnailVideo(originalVideo);
+    clearEditorDraft(draftSlot);
+    setSaving(false);
+    onSaved(updated);
+    onClose();
   }
 
-  function handleDelete() {
+  function cancel() {
+    // A video picked during this edit but never saved would otherwise stay in storage.
+    if (thumbnailVideo && thumbnailVideo !== originalVideo) void deleteThumbnailVideo(thumbnailVideo);
+    onClose();
+  }
+
+  function remove() {
     if (!story.id) return;
     storage.removeCustomStory(story.id);
+    void deleteThumbnailVideo(originalVideo);
+    if (thumbnailVideo && thumbnailVideo !== originalVideo) void deleteThumbnailVideo(thumbnailVideo);
     onDeleted(story.id);
     onClose();
   }
+
+  if (!mounted) return null;
 
   return createPortal(
     <AnimatePresence>
@@ -126,10 +100,8 @@ export function EditStoryModal({ story, onClose, onSaved, onDeleted }: EditStory
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(var(--shadow-color))]/60 p-4"
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
+        className="fixed inset-0 z-modal-backdrop flex items-start justify-center overflow-y-auto bg-[rgb(var(--shadow-color))]/60 px-4 py-10"
+        onMouseDown={(e) => { if (e.target === e.currentTarget) cancel(); }}
       >
         <motion.div
           key="panel"
@@ -138,145 +110,76 @@ export function EditStoryModal({ story, onClose, onSaved, onDeleted }: EditStory
           initial={{ opacity: 0, y: 12, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.98 }}
-          className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-overlay/10 bg-canvas-raised shadow-themed"
+          transition={{ type: "spring", stiffness: 300, damping: 28 }}
+          className="relative w-full max-w-4xl rounded-[32px] border border-overlay/10 bg-canvas-raised px-6 pb-10 pt-8 shadow-themed sm:px-14 sm:pb-14 sm:pt-10"
         >
-          <div className="flex items-center justify-between border-b border-overlay/10 px-5 py-3.5">
-            <span className="text-sm font-medium text-ink">Edit story</span>
-            <button onClick={onClose} aria-label="Close" className="text-ink-faint hover:text-ink">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <button onClick={cancel} aria-label="Close" className="absolute right-5 top-5 rounded-full p-2 text-ink transition-colors hover:bg-overlay/10 sm:right-8 sm:top-8">
+            <X className="h-6 w-6" />
+          </button>
 
-          <div className="flex gap-1 border-b border-overlay/10 px-5 pt-2.5">
-            <button
-              onClick={() => setMode("form")}
-              className={`flex items-center gap-1.5 rounded-t-lg px-3 py-2 text-sm transition-colors ${
-                mode === "form" ? "border-b-2 border-ink text-ink" : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5" /> Normal
-            </button>
-            <button
-              onClick={() => setMode("json")}
-              className={`flex items-center gap-1.5 rounded-t-lg px-3 py-2 text-sm transition-colors ${
-                mode === "json" ? "border-b-2 border-ink text-ink" : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              <Braces className="h-3.5 w-3.5" /> JSON
-            </button>
-          </div>
+          <h2 className="mb-10 mt-6 text-center font-display text-4xl leading-tight tracking-[-0.03em] text-ink sm:mb-14 sm:text-5xl">
+            Edit your story
+          </h2>
 
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {error && (
-              <div className="mb-3 rounded-lg border border-accent-extreme/30 bg-accent-extreme/5 px-3 py-2 text-xs text-accent-extreme">
-                {Array.isArray(error) ? (
-                  <ul className="list-disc space-y-0.5 pl-4">
-                    {error.map((e, i) => (
-                      <li key={i}>{e}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  error
-                )}
-              </div>
+          {errors.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-accent-extreme/30 bg-accent-extreme/10 p-4 text-sm text-accent-extreme">
+              <ul className="list-inside list-disc space-y-0.5">{errors.map((e) => <li key={e}>{e}</li>)}</ul>
+            </div>
+          )}
+
+          <div className="space-y-12">
+            <FloatingField id="edit-title" label="Story title *" value={title} onChange={setTitle} />
+
+            {!story.media && (
+              <section>
+                <SectionHeading note="* Required">Your story</SectionHeading>
+                <StoryTextEditor initial={initialDoc} draftSlot={draftSlot} onChange={setRichDoc} />
+              </section>
             )}
 
-            {mode === "form" ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs text-ink-muted">Title</label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-lg border border-overlay/15 bg-canvas px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-                  />
-                </div>
-                <ThumbnailPicker value={thumbnail} onChange={setThumbnail} />
-                <div>
-                  <label className="mb-1 block text-xs text-ink-muted">Tags (comma-separated)</label>
-                  <input
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    className="w-full rounded-lg border border-overlay/15 bg-canvas px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-                  />
-                </div>
-                {!story.media && (
-                  <div>
-                    <label className="mb-1 block text-xs text-ink-muted">Story text</label>
-                    <StoryTextEditor initial={initialDoc} draftSlot={draftSlot} onChange={setRichDoc} />
-                    <div className="mt-4">
-                      <div>
-                                        <label className="mb-1 block text-xs text-ink-muted">Description</label>
-                                        <textarea
-                                          value={description}
-                                          onChange={(e) => setDescription(e.target.value)}
-                                          rows={2}
-                                          className="w-full resize-none rounded-lg border border-overlay/15 bg-canvas px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-                                        />
-                                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <QuestionsInput
-                        value={questions}
-                        onChange={(qs, valid) => {
-                          setQuestions(qs);
-                          setQuestionsValid(valid);
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {story.media && (
-                  <div>
-                                    <label className="mb-1 block text-xs text-ink-muted">Description</label>
-                                    <textarea
-                                      value={description}
-                                      onChange={(e) => setDescription(e.target.value)}
-                                      rows={2}
-                                      className="w-full resize-none rounded-lg border border-overlay/15 bg-canvas px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-                                    />
-                                  </div>
-                )}
-                {story.media && (
-                  <p className="text-xs text-ink-faint">
-                    This is an uploaded PDF/image story — its pages aren't editable here, only the title, thumbnail, description
-                    and tags.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <textarea
-                value={json}
-                onChange={(e) => setJson(e.target.value)}
-                rows={18}
-                spellCheck={false}
-                className="w-full resize-y rounded-lg border border-overlay/15 bg-canvas px-3 py-2 font-mono text-xs text-ink outline-none focus-visible:border-accent-medium"
+            <section>
+              <SectionHeading>Cover</SectionHeading>
+              <StoryCoverPicker
+                photo={thumbnail}
+                onPhoto={setThumbnail}
+                video={thumbnailVideo}
+                videoPoster={videoPoster}
+                onVideo={(v, poster) => { setThumbnailVideo(v); setVideoPoster(poster); }}
               />
-            )}
-          </div>
+            </section>
 
-          <div className="flex items-center justify-between border-t border-overlay/10 px-5 py-3.5">
-            {confirmingDelete ? (
-              <div className="flex items-center gap-2 text-xs text-ink-muted">
-                Delete this story permanently?
-                <Button size="sm" variant="outline" onClick={() => setConfirmingDelete(false)}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleDelete} className="!bg-accent-extreme !text-canvas">
-                  Delete
-                </Button>
-              </div>
+            <FloatingField id="edit-description" label="Short description (optional) — shown on the story card" value={description} onChange={setDescription} multiline />
+
+            {!story.media ? (
+              <section>
+                <QuestionsInput
+                  variant="form"
+                  value={questions}
+                  onChange={(qs, valid) => { setQuestions(qs); setQuestionsValid(valid); }}
+                />
+              </section>
             ) : (
-              <button
-                onClick={() => setConfirmingDelete(true)}
-                className="flex items-center gap-1.5 text-xs text-ink-faint transition-colors hover:text-accent-extreme"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete story
-              </button>
+              <p className="text-sm text-ink-muted">
+                This is an uploaded PDF/image story — its pages can't be edited here, only the title, cover and description.
+              </p>
             )}
-            <Button size="sm" onClick={mode === "form" ? saveFromForm : saveFromJson} disabled={saving}>
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save changes"}
-            </Button>
+
+            <div className="flex flex-col-reverse items-center justify-between gap-4 sm:flex-row">
+              {confirmingDelete ? (
+                <div className="flex items-center gap-2 text-sm text-ink-muted">
+                  Delete this story permanently?
+                  <Button size="sm" variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
+                  <Button size="sm" onClick={remove} className="!bg-accent-extreme !text-canvas">Delete</Button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmingDelete(true)} className="flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-accent-extreme">
+                  <Trash2 className="h-4 w-4" /> Delete story
+                </button>
+              )}
+              <Button size="lg" className="w-full sm:w-auto sm:min-w-[260px]" onClick={save} disabled={saving || !title.trim()}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
+              </Button>
+            </div>
           </div>
         </motion.div>
       </motion.div>

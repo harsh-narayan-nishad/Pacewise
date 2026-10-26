@@ -21,12 +21,17 @@ import type { ReadingHistoryEntry, StoryData } from "@/types";
  */
 export function PlatformShowcase() {
   return (
-    <div className="relative z-10 mx-auto w-full max-w-6xl space-y-28 px-6 pb-32 pt-12 sm:space-y-40 sm:px-8">
-      <VideoShowcase />
-      <AudienceMarquee />
-      <Topics />
-      <Performance />
-    </div>
+    <>
+      {/* Full-bleed on the page background, so the landing's guide lines don't run through the video. */}
+      <div className="relative z-10 bg-canvas pb-28 pt-12 sm:pb-40">
+        <VideoShowcase />
+      </div>
+      <div className="relative z-10 mx-auto w-full max-w-6xl space-y-28 overflow-x-clip px-6 pb-32 sm:space-y-40 sm:px-8">
+        <AudienceMarquee />
+        <Topics />
+        <Performance />
+      </div>
+    </>
   );
 }
 

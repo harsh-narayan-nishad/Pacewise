@@ -8,6 +8,8 @@ import { PlatformShowcase } from "@/components/Landing/PlatformShowcase";
 import { ContentFeed } from "@/components/Search/ContentFeed";
 import DotField from "@/components/DotField";
 import { useThemeName } from "@/lib/useThemeName";
+import { LandingBackground } from "@/components/Landing/LandingBackground";
+import { themeFilter, useLandingTheme } from "@/lib/landingTheme";
 import { BRAND_HEADLINE, BRAND_TAGLINE } from "@/lib/brand";
 
 /** Per-theme colours for the dot-grid background (a canvas can't read CSS variables). */
@@ -49,6 +51,7 @@ export function SearchLanding() {
   useInertiaScroll(true);
   const theme = useThemeName();
   const dotFieldPalette = DOT_FIELD_PALETTES[theme];
+  const [bg] = useLandingTheme();
 
   return (
     <div className="relative w-full">
@@ -61,7 +64,8 @@ export function SearchLanding() {
       <div className="relative flex min-h-[calc(100vh-56px)] w-full flex-col items-center justify-center overflow-hidden px-6 py-24">
         {/* Twinkling dot-grid background (hero only, behind everything). It no longer reacts to
             the mouse: cursorRadius 0 switches the cursor bulge off; the sparkle stays. */}
-        <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="pointer-events-none absolute inset-0 z-0" style={{ filter: themeFilter(bg) }}>
+          {bg.mode !== "dots" ? <LandingBackground theme={bg} /> : (
           <DotField
             dotRadius={dotFieldPalette.dotRadius}
             dotSpacing={16}
@@ -76,6 +80,8 @@ export function SearchLanding() {
             gradientTo={dotFieldPalette.gradientTo}
             glowColor={dotFieldPalette.glowColor}
           />
+          )}
+          {bg.dim > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: bg.dim }} />}
         </div>
 
         {/* Hero frame: two horizontal lines across the full width, with a small

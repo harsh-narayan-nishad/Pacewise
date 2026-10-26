@@ -13,6 +13,7 @@ Aimed at top-paying SDE roles (the ~₹2.5 Cr band: Staff-leaning SDE-2/SDE-3 at
 | 07 | [Auth & Security](07-auth-security.md) | Sessions, JWT, OAuth, OWASP |
 | 08 | [Testing, CI/CD & Deployment](08-testing-deployment.md) | Production ownership |
 | 09 | [Behavioral & Project Walkthrough](09-behavioral-projects.md) | Leadership principles, impact, depth in your own work |
+| 11 | [This release: ownership, routing, photos](11-this-release.md) | Defending real design decisions |
 | 10 | [Study Plan](10-study-plan.md) | 8-week schedule and how the levels are scored |
 
 How to use: cover the answer, say yours out loud, then compare. For every Medium/Hard question, also state the **trade-off** and the **failure mode** — that is what separates senior answers from mid-level ones.

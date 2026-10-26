@@ -95,14 +95,22 @@ export class SessionManager {
   findCustomStoryAnywhere(id: string): StoryData | undefined {
     const own = this.active().customStories.findById(id);
     if (own) return own;
+    const ownerId = this.findCustomStoryOwner(id);
+    return ownerId ? this.sessionFor(ownerId).customStories.findById(id) : undefined;
+  }
+
+  /** The id of the user whose personal library holds the uploaded story `id`
+   *  (undefined for built-in stories). This is what makes "who posted this?"
+   *  truthful: an upload belongs to whoever's library it lives in. */
+  findCustomStoryOwner(id: string): string | undefined {
+    if (this.active().customStories.findById(id)) return this.resolveUserId();
     const userIds = new Set<string>();
     this.store.keys().forEach((key) => {
       const parsed = UserNamespace.parse(key);
       if (parsed && parsed.feature === "customStories") userIds.add(parsed.userId);
     });
     for (const userId of Array.from(userIds)) {
-      const found = this.sessionFor(userId).customStories.findById(id);
-      if (found) return found;
+      if (this.sessionFor(userId).customStories.findById(id)) return userId;
     }
     return undefined;
   }

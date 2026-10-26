@@ -1,6 +1,7 @@
 import { devDataStore } from "@/lib/devData/store";
 import { createDefaultKeyValueStore } from "@/lib/session/storage/KeyValueStore";
 import { DevStoreIdentityProvider } from "@/lib/session/identity/DevStoreIdentityProvider";
+import { registerCustomStoryOwnerResolver } from "@/lib/devData/contentMeta";
 import { SessionManager } from "@/lib/session/SessionManager";
 
 /**
@@ -13,3 +14,5 @@ export const sessionManager = new SessionManager(
   createDefaultKeyValueStore(),
   new DevStoreIdentityProvider(devDataStore)
 );
+
+registerCustomStoryOwnerResolver((id) => sessionManager.findCustomStoryOwner(id));

@@ -841,28 +841,6 @@ unique, timed-looking, and visibly non-production
 `user-003`, and `user-005` are the four the brief specifically requires as
 available share-test recipients — all four are included.
 
-| ID | Name | Username | Password | Interests |
-|---|---|---|---|---|
-| user-001 | Dinesh Kushwaha | dinesh.kushwaha | `4walnut.zebra` | technology, fiction, adventure |
-| user-002 | Harsh Narayan Nishad | harsh.nishad | `@7141spider` | fiction, technology, nature |
-| user-003 | Aashwi | aashwi | `.Ribbon_Lemon` | nature, art, mystery, science |
-| user-004 | Sushama | sushama | `Eagle8522*` | mystery, drama, adventure, history |
-| user-005 | Samriddhi | samriddhi | `29sunnyGinger&` | adventure, nature, technology, coastal |
-| user-006 | Akhilesh Saini | akhilesh.saini | `ZEBRA_58_MOVIE&` | coastal, nature, science, short-story |
-| user-007 | Akash Nishad | akash.nishad | `summer76marble_` | fiction, biology, history |
-| user-008 | Janhavi | janhavi | `&Flower879` | drama, short-story, coastal |
-| user-009 | User 9 | user9 | `&5Planet` | biology, fiction |
-| user-010 | User 10 | user10 | `Apple39` | drama, nature |
-| user-011 | User 11 | user11 | `Jersey39#` | art, mystery |
-| user-012 | User 12 | user12 | `%8Yellow.Ladder` | fiction, adventure |
-| user-013 | User 13 | user13 | `#jersey68` | nature, technology |
-| user-014 | User 14 | user14 | `FEATHER_YELLOW` | mystery, science |
-| user-015 | User 15 | user15 | `Movie-Nickel7?` | adventure, history |
-| user-016 | User 16 | user16 | `!8bottle` | technology, coastal |
-| user-017 | User 17 | user17 | `@river.cherry4` | science, short-story |
-| user-018 | User 18 | user18 | `&6quartzlemon` | history, biology |
-| user-019 | User 19 | user19 | `@2989schoolSunny` | coastal, drama |
-| user-020 | User 20 | user20 | `$ginger472` | short-story, art |
 
 **7. Credential handling & limitations**
 

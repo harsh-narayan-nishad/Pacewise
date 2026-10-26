@@ -14,7 +14,10 @@ import { getContentAuthorId } from "@/lib/devData/contentMeta";
 import { devDataStore } from "@/lib/devData/store";
 import { useDevStoreVersion } from "@/lib/devData/useDevStore";
 import { StoryData } from "@/types";
+import { ROUTES } from "@/lib/routes";
 import { safeThumbnail } from "@/lib/thumbnail";
+import { isVideoRef } from "@/lib/thumbnailVideo";
+import { HoverCoverVideo } from "@/components/Search/HoverCoverVideo";
 
 type Cover =
   | { kind: "tilt"; bg: string; card: string; ink: string; shape: string; shape2: string }
@@ -47,6 +50,8 @@ function coverTitle(title: string): string {
 
 interface StoryCardProps {
   story: StoryData;
+  /** When set, the arrow button starts auto-scroll reading (/reader) instead of opening the story page. */
+  arrowStartsReader?: boolean;
 }
 
 /**
@@ -60,13 +65,14 @@ interface StoryCardProps {
  * this card no longer owns any of that logic itself, so there's exactly
  * one implementation of each action to keep correct.
  */
-export function StoryCard({ story: initialStory }: StoryCardProps) {
+export function StoryCard({ story: initialStory, arrowStartsReader = false }: StoryCardProps) {
   const router = useRouter();
   const dispatch = useReadingDispatch();
   useDevStoreVersion();
   const [story, setStory] = useState(initialStory);
   const [editing, setEditing] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [coverHover, setCoverHover] = useState(false);
   const storyId = story.id ?? story.title;
   const authorId = getContentAuthorId(storyId);
   const author = devDataStore.findUserById(authorId);
@@ -81,7 +87,14 @@ export function StoryCard({ story: initialStory }: StoryCardProps) {
   function openStory() {
     dispatch({ type: "LOAD_STORY", story });
     storage.addSearchHistory(story.title);
-    router.push("/");
+    router.push(ROUTES.story(story.id ?? story.title));
+  }
+
+  function startReader() {
+    dispatch({ type: "LOAD_STORY", story });
+    dispatch({ type: "PLAY" });
+    storage.addSearchHistory(story.title);
+    router.push("/reader");
   }
 
   const level = story.difficulty ?? story.level;
@@ -98,13 +111,18 @@ export function StoryCard({ story: initialStory }: StoryCardProps) {
         aria-label={`Read ${story.title}`}
         className="relative block aspect-[3/2] w-full overflow-hidden text-left [container-type:inline-size]"
         style={{ background: cover.bg }}
+        onMouseEnter={() => setCoverHover(true)}
+        onMouseLeave={() => setCoverHover(false)}
+        onFocus={() => setCoverHover(true)}
+        onBlur={() => setCoverHover(false)}
       >
+        {coverHover && isVideoRef(story.thumbnailVideo) && <HoverCoverVideo videoRef={story.thumbnailVideo} />}
         {thumb ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-            <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-            <span className="absolute inset-x-[8%] bottom-[8%] line-clamp-3 pb-[0.12em] font-display text-[11.5cqw] !font-medium leading-[0.97] tracking-[-0.05em] text-white">
+            <span aria-hidden className="absolute inset-0 z-[2] bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            <span className="absolute inset-x-[8%] bottom-[8%] z-[2] line-clamp-3 pb-[0.12em] font-display text-[11.5cqw] !font-medium leading-[0.97] tracking-[-0.05em] text-white">
               {coverTitle(story.title)}
             </span>
           </>
@@ -113,7 +131,7 @@ export function StoryCard({ story: initialStory }: StoryCardProps) {
             <span aria-hidden className="absolute -right-[6%] top-[6%] h-[88%] w-[62%] rotate-[3deg] rounded-[5cqw]" style={{ background: cover.shape }} />
             <span aria-hidden className="absolute bottom-[-8%] right-[8%] h-[34%] w-[30%] rounded-t-[50%]" style={{ background: cover.shape2 }} />
             <span
-              className="absolute left-[7%] top-[28%] flex max-w-[56%] -rotate-[4deg] items-center rounded-[4cqw] px-[5cqw] py-[3.5cqw] shadow-[0_2cqw_6cqw_-2cqw_rgba(0,0,0,0.25)] transition-transform duration-300 group-hover:-rotate-[2deg]"
+              className="absolute left-[7%] top-[28%] z-[2] flex max-w-[56%] -rotate-[4deg] items-center rounded-[4cqw] px-[5cqw] py-[3.5cqw] shadow-[0_2cqw_6cqw_-2cqw_rgba(0,0,0,0.25)] transition-transform duration-300 group-hover:-rotate-[2deg]"
               style={{ background: cover.card, color: cover.ink }}
             >
               <span className="line-clamp-3 pb-[0.1em] font-display text-[10.5cqw] !font-medium leading-[0.98] tracking-[-0.05em]">{coverTitle(story.title)}</span>
@@ -123,7 +141,7 @@ export function StoryCard({ story: initialStory }: StoryCardProps) {
           <>
             <span aria-hidden className="absolute inset-0" style={{ background: cover.shape }} />
             <span aria-hidden className="absolute -right-[10%] -top-[18%] h-[80%] w-[55%] rotate-[18deg] rounded-[6cqw]" style={{ background: cover.shape2 }} />
-            <span className="absolute inset-x-[8%] bottom-[8%] line-clamp-3 pb-[0.12em] font-display text-[11.5cqw] !font-medium leading-[0.97] tracking-[-0.05em]" style={{ color: cover.ink }}>
+            <span className="absolute inset-x-[8%] bottom-[8%] z-[2] line-clamp-3 pb-[0.12em] font-display text-[11.5cqw] !font-medium leading-[0.97] tracking-[-0.05em]" style={{ color: cover.ink }}>
               {coverTitle(story.title)}
             </span>
           </>
@@ -141,8 +159,8 @@ export function StoryCard({ story: initialStory }: StoryCardProps) {
             {story.description && <p className="mt-2 line-clamp-2 text-sm text-ink-muted">{story.description}</p>}
           </div>
           <button
-            onClick={openStory}
-            aria-label="Open story"
+            onClick={arrowStartsReader ? startReader : openStory}
+            aria-label={arrowStartsReader ? "Start auto-scroll reading" : "Open story"}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-overlay/15 text-ink transition-colors hover:bg-ink hover:text-canvas"
           >
             <ArrowUpRight className="h-4 w-4" />

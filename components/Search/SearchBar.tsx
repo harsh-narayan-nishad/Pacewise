@@ -417,9 +417,44 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceActive]);
 
+  // Drag & drop anywhere on the landing page behaves exactly like the upload button.
+  const [dragging, setDragging] = useState(false);
+  const processFileRef = useRef(processFile);
+  processFileRef.current = processFile;
+  useEffect(() => {
+    if (size !== "default") return;
+    const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    let depth = 0;
+    const enter = (e: DragEvent) => { if (!hasFiles(e)) return; e.preventDefault(); depth += 1; setDragging(true); };
+    const over = (e: DragEvent) => { if (hasFiles(e)) e.preventDefault(); };
+    const leave = (e: DragEvent) => { if (!hasFiles(e)) return; depth = Math.max(0, depth - 1); if (depth === 0) setDragging(false); };
+    const drop = (e: DragEvent) => {
+      if (!hasFiles(e) || e.defaultPrevented) return;
+      e.preventDefault();
+      depth = 0;
+      setDragging(false);
+      processFileRef.current(e.dataTransfer?.files?.[0]);
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragover", over);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("drop", drop);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragover", over);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("drop", drop);
+    };
+  }, [size]);
+
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
+    processFile(file);
+  }
+
+  // One path for both the upload button and drag & drop: story .json, PDF or image.
+  function processFile(file: File | undefined) {
     if (!file) return;
 
     // PDF/image branch: parsed entirely client-side (see
@@ -694,6 +729,15 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {dragging && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-[150] flex items-center justify-center bg-canvas/60 backdrop-blur-md">
+          <div className="rounded-[32px] border-2 border-dashed border-ink/40 px-12 py-10 text-center">
+            <div className="font-display text-3xl tracking-[-0.03em] text-ink">Drop to upload</div>
+            <div className="mt-1 text-sm text-ink-muted">A story .json, a PDF or an image</div>
+          </div>
+        </div>
+      )}
 
       <AddStoryModal
         open={addStoryOpen}

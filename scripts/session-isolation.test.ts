@@ -377,4 +377,17 @@ test("a user's own tokens are never replaced by adoption", () => {
   assert.equal(ts.getAccessToken(), "mine");
 });
 
+test("an uploaded story's owner is whoever's library holds it", () => {
+  const store = new MemoryKeyValueStore();
+  const id = new FakeIdentity();
+  const mgr = new SessionManager(store, id);
+  id.signIn("user-a");
+  mgr.active().customStories.save(story("custom-1"));
+  id.signIn("user-b");
+  assert.equal(mgr.findCustomStoryOwner("custom-1"), "user-a");
+  mgr.active().customStories.save(story("custom-2"));
+  assert.equal(mgr.findCustomStoryOwner("custom-2"), "user-b");
+  assert.equal(mgr.findCustomStoryOwner("story-001"), undefined);
+});
+
 console.log(`\n${passed} tests passed${process.exitCode ? " (with failures)" : ""}`);

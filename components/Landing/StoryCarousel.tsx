@@ -12,10 +12,10 @@ import type { StoryData } from "@/types";
 const MAX_CARDS = 7;
 
 function Card({ story }: { story: StoryData }) {
-  // The original story card, unchanged, just placed in a carousel slide.
+  // The original story card, placed in a carousel slide; its arrow starts auto-scroll reading.
   return (
     <li className="w-[82vw] max-w-[440px] shrink-0 snap-start sm:w-[420px]">
-      <StoryCard story={story} />
+      <StoryCard story={story} arrowStartsReader />
     </li>
   );
 }
@@ -79,6 +79,9 @@ export function StoryCarousel() {
         >
           {stories.map((s) => <Card key={s.id ?? s.title} story={s} />)}
         </ul>
+        {/* Glass covers outside the two vertical guide lines, between the cards and the arrows. */}
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[max(0px,calc((100%-72rem)/2))] bg-canvas/30 backdrop-blur-md" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-[max(0px,calc((100%-72rem)/2))] bg-canvas/30 backdrop-blur-md" />
         <button type="button" onClick={() => page(-1)} aria-label="Previous stories" disabled={!canPrev} className={`${arrow} left-4 sm:left-6 ${canPrev ? "" : "pointer-events-none opacity-0"}`}>
           <ChevronLeft className="h-5 w-5" />
         </button>

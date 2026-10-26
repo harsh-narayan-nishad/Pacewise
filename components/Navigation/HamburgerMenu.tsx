@@ -5,11 +5,12 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { resetAllAppData } from "@/lib/resetApp";
-import { ChevronDown, Clock, Globe, ListMusic, Lock, Menu, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Globe, Lock, LogOut, Menu, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage, SearchHistoryEntry } from "@/lib/storage";
 import { getAllStories, searchStories, clearCustomStories } from "@/lib/storyLibrary";
 import { groupByDateBucket } from "@/lib/dateGroups";
+import { ThemePanel } from "@/components/Navigation/ThemePanel";
 import { Pagination } from "@/components/ui/Pagination";
 import { devDataStore } from "@/lib/devData/store";
 import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
@@ -35,6 +36,24 @@ import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
  * shared across users), so it's left exactly as it was: per-browser, via
  * the existing `lib/storage.ts`.
  */
+/** A large display-type row with a divider and chevron, like the Samsung mobile menu. */
+function BigRow({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex w-full items-center justify-between py-3 text-left"
+    >
+      <span className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-4xl">{label}</span>
+      <span className="flex items-center gap-4">
+        <span aria-hidden className="h-9 w-px bg-overlay/15" />
+        <ChevronRight className={`h-5 w-5 text-ink transition-transform ${open ? "rotate-90" : ""}`} />
+      </span>
+    </button>
+  );
+}
+
 export function HamburgerMenu() {
   const router = useRouter();
   const dispatch = useReadingDispatch();
@@ -50,6 +69,9 @@ export function HamburgerMenu() {
   const [confirmingClearStories, setConfirmingClearStories] = useState(false);
   const [confirmingResetAll, setConfirmingResetAll] = useState(false);
   const [resetting, setResetting] = useState(false);
+  // Samsung-style menu: two big accordion rows (Playlists / Search history) and a search pill.
+  const [section, setSection] = useState<"playlists" | "history" | "theme" | null>(null);
+  const [menuQuery, setMenuQuery] = useState("");
 
   const allStories = useMemo(() => getAllStories(), [open]);
   const storyById = useMemo(() => new Map(allStories.map((s, i) => [s.id ?? `story-${i}`, s])), [allStories]);
@@ -120,7 +142,7 @@ export function HamburgerMenu() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-modal-backdrop bg-[rgb(var(--shadow-color))]/50 backdrop-blur-sm"
+                  className="fixed inset-0 z-modal-backdrop bg-[rgb(var(--shadow-color))]/50"
                   onClick={() => setOpen(false)}
                 />
                 <motion.div
@@ -130,29 +152,44 @@ export function HamburgerMenu() {
                   animate={{ x: 0 }}
                   exit={{ x: "-100%" }}
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  className="fixed inset-y-0 left-0 z-drawer flex w-[88vw] max-w-sm flex-col border-r border-overlay/10 bg-canvas shadow-themed"
+                  className="fixed inset-y-0 left-0 z-drawer flex w-[92vw] max-w-md flex-col border-r border-overlay/10 bg-canvas shadow-themed"
                 >
-                  <div className="flex items-center justify-between border-b border-overlay/10 px-5 py-4">
-                    <span className="text-sm font-semibold text-ink">Menu</span>
+                  <div className="flex items-center gap-4 px-6 pb-2 pt-5">
+                    <form
+                      className="flex min-w-0 flex-1 items-center gap-3 rounded-full bg-overlay/[0.06] px-4 py-3"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const term = menuQuery.trim();
+                        if (term) runHistoryTerm(term);
+                      }}
+                    >
+                      <Search className="h-4 w-4 shrink-0 text-ink-muted" />
+                      <input
+                        value={menuQuery}
+                        onChange={(e) => setMenuQuery(e.target.value)}
+                        placeholder="Search stories"
+                        aria-label="Search stories"
+                        className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
+                      />
+                    </form>
                     <button
                       onClick={() => setOpen(false)}
                       aria-label="Close menu"
-                      className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-overlay/5 hover:text-ink"
+                      className="shrink-0 rounded-full p-2 text-ink transition-colors hover:bg-overlay/10"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-6 w-6" />
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-5 py-4">
+                  <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-muted">Your library</div>
                     {/* --- Playlists --- */}
-                    <div className="mb-6">
-                      <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-ink-muted">
-                        <ListMusic className="h-3.5 w-3.5" /> Playlists
-                      </div>
+                    <BigRow label="Playlists" open={section === "playlists"} onToggle={() => setSection(section === "playlists" ? null : "playlists")} />
+                    <div className={section === "playlists" ? "mb-4 mt-2" : "hidden"}>
 
                       {currentUser && (
                         <form
-                          className="mb-3 flex gap-1.5"
+                          className="mb-4 flex gap-2"
                           onSubmit={(e) => {
                             e.preventDefault();
                             const trimmed = newPlaylistName.trim();
@@ -165,15 +202,16 @@ export function HamburgerMenu() {
                             value={newPlaylistName}
                             onChange={(e) => setNewPlaylistName(e.target.value)}
                             placeholder="New playlist name"
-                            className="min-w-0 flex-1 rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-1.5 text-sm text-ink outline-none focus-visible:border-accent-medium"
+                            aria-label="New playlist name"
+                            maxLength={60}
+                            className="h-12 min-w-0 flex-1 rounded-full border border-overlay/15 bg-transparent px-5 text-base text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent-medium"
                           />
                           <button
                             type="submit"
                             disabled={!newPlaylistName.trim()}
-                            aria-label="Create playlist"
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink text-canvas disabled:opacity-40"
+                            className="inline-flex h-12 shrink-0 items-center gap-1.5 rounded-full bg-ink px-5 text-sm font-medium text-canvas transition-colors hover:bg-ink/90 disabled:pointer-events-none disabled:opacity-40"
                           >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-4 w-4" /> Create
                           </button>
                         </form>
                       )}
@@ -262,12 +300,19 @@ export function HamburgerMenu() {
                       )}
                     </div>
 
+                    {/* --- Past test attempts (moved here from the story page) --- */}
+                    <BigRow label="Past test attempts" open={false} onToggle={() => { setOpen(false); router.push("/history"); }} />
+
+                    {/* --- Add theme: landing-page background --- */}
+                    <BigRow label="Add theme" open={section === "theme"} onToggle={() => setSection(section === "theme" ? null : "theme")} />
+                    <div className={section === "theme" ? "mb-4 mt-2" : "hidden"}>
+                      {section === "theme" && <ThemePanel />}
+                    </div>
+
                     {/* --- Search history --- */}
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-ink-muted">
-                          <Clock className="h-3.5 w-3.5" /> Search history
-                        </div>
+                    <BigRow label="Search history" open={section === "history"} onToggle={() => setSection(section === "history" ? null : "history")} />
+                    <div className={section === "history" ? "mb-4 mt-2" : "hidden"}>
+                      <div className="mb-2 flex items-center justify-end">
                         {history.length > 0 &&
                           (confirmingClear ? (
                             <div className="flex items-center gap-1.5">
@@ -339,7 +384,7 @@ export function HamburgerMenu() {
                     </div>
 
                     {/* --- Danger zone: clear every uploaded story --- */}
-                    <div className="border-t border-overlay/10 pt-3">
+                    <div className="mt-6 border-t border-overlay/10 pt-5">
                       {confirmingClearStories ? (
                         <div className="flex items-center justify-between gap-2 text-xs">
                           <span className="text-ink-muted">Delete all stories you've uploaded from this browser?</span>
@@ -361,15 +406,15 @@ export function HamburgerMenu() {
                       ) : (
                         <button
                           onClick={() => setConfirmingClearStories(true)}
-                          className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-accent-extreme"
+                          className="flex items-center gap-2 text-base text-ink transition-colors hover:text-accent-extreme"
                         >
-                          <Trash2 className="h-3.5 w-3.5" /> Clear all uploaded stories
+                          <Trash2 className="h-4 w-4" /> Clear all uploaded stories
                         </button>
                       )}
                     </div>
 
                     {/* --- Danger zone: wipe all app data and start completely fresh --- */}
-                    <div className="pt-3">
+                    <div className="pt-4">
                       {confirmingResetAll ? (
                         <div className="flex items-center justify-between gap-2 text-xs">
                           <span className="text-ink-muted">Erase ALL data and cache and start fresh? This signs you out and can't be undone.</span>
@@ -392,12 +437,23 @@ export function HamburgerMenu() {
                       ) : (
                         <button
                           onClick={() => setConfirmingResetAll(true)}
-                          className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-accent-extreme"
+                          className="flex items-center gap-2 text-base text-ink transition-colors hover:text-accent-extreme"
                         >
-                          <RotateCcw className="h-3.5 w-3.5" /> Reset data
+                          <RotateCcw className="h-4 w-4" /> Reset everything (clear all data &amp; cache)
                         </button>
                       )}
                     </div>
+                    {currentUser && (
+                      <div className="mt-6 border-t border-overlay/10 pt-5 text-base text-ink-muted">Signed in as <span className="text-ink">{currentUser.name}</span></div>
+                    )}
+                    {currentUser && (
+                      <button
+                        onClick={() => { setOpen(false); devDataStore.logout(); }}
+                        className="mt-4 flex items-center gap-2 text-base text-accent-extreme transition-opacity hover:opacity-80"
+                      >
+                        <LogOut className="h-4 w-4" /> Log out
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               </>

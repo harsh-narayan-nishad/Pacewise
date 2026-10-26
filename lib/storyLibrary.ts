@@ -1,3 +1,4 @@
+import { deleteThumbnailVideo } from "@/lib/thumbnailVideo";
 import { StoryData } from "@/types";
 import { loadStory, normalizeStory } from "@/lib/stories";
 import { storage } from "@/lib/storage";
@@ -62,6 +63,7 @@ export function addCustomStory(raw: unknown): StoryData {
 }
 
 export function removeCustomStory(id: string): void {
+  void deleteThumbnailVideo(storage.getCustomStories().find((s) => s.id === id)?.thumbnailVideo);
   storage.removeCustomStory(id);
 }
 
@@ -70,6 +72,7 @@ export function removeCustomStory(id: string): void {
  *  (data/stories.json etc.) are untouched; only localStorage-backed
  *  custom ones are. */
 export function clearCustomStories(): void {
+  storage.getCustomStories().forEach((s) => void deleteThumbnailVideo(s.thumbnailVideo));
   storage.clearCustomStories();
 }
 

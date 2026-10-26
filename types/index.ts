@@ -64,6 +64,8 @@ export interface StoryData {
   richDocument?: unknown;
   /** Optional custom cover picture (downscaled JPEG data URL, see lib/thumbnail.ts). */
   thumbnail?: string;
+  /** Optional hover video for the card: a reference id into IndexedDB (see lib/thumbnailVideo.ts). */
+  thumbnailVideo?: string;
 }
 
 export type ReadingPhase = "dashboard" | "reading" | "completed" | "questions" | "results";

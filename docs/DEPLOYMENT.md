@@ -56,3 +56,6 @@ Set in `next.config.js` (nosniff, frame options, referrer policy, permissions po
 ## Troubleshooting
 - **`Cannot find module '.next/server/middleware-manifest.json'` and every page is a 500:** a stale `.next` folder (usually left by a failed `npm run build`) is being reused by `next dev`. `npm run dev` now clears it automatically; manually: stop the server, `rm -rf .next`, start again.
 - Use Node 20 LTS (`nvm use`), and keep the project in a folder path without spaces or brackets (not `speed-reader-frontend (3)`); both avoid odd dev-server failures.
+
+## Browser storage used by the app
+`localStorage` (stories, history, per-user sessions, theme settings), IndexedDB `speed-reader-media` (story hover videos) and `speed-reader-backgrounds` (landing theme uploads). Nothing is sent to a server unless `NEXT_PUBLIC_API_URL` is set.

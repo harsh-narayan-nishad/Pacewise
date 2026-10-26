@@ -37,7 +37,20 @@ function hashToIndex(id: string, mod: number): number {
   return hash % mod;
 }
 
+/** Looks up which user uploaded a custom story. Registered by the composition
+ *  root (lib/session/composition.ts) so this module never imports the session
+ *  layer, which itself depends on the dev store that imports this file. */
+type OwnerResolver = (contentId: string) => string | undefined;
+let customStoryOwnerResolver: OwnerResolver = () => undefined;
+
+export function registerCustomStoryOwnerResolver(resolver: OwnerResolver): void {
+  customStoryOwnerResolver = resolver;
+}
+
 export function getContentAuthorId(contentId: string): string {
+  // An uploaded story always belongs to the person whose library holds it.
+  const uploader = customStoryOwnerResolver(contentId);
+  if (uploader) return uploader;
   if (EXPLICIT_AUTHORS[contentId]) return EXPLICIT_AUTHORS[contentId];
   // Authors come from the original 20 accounts only, so adding more demo
   // accounts never re-assigns who "wrote" existing content.

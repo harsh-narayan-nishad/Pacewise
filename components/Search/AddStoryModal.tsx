@@ -8,7 +8,9 @@ import { StoryData, StoryQuestion } from "@/types";
 import { StoryValidationError } from "@/lib/stories";
 import { addCustomStory } from "@/lib/storyLibrary";
 import { Button } from "@/components/ui/button";
-import { ThumbnailPicker } from "@/components/Search/ThumbnailPicker";
+import { StoryCoverPicker } from "@/components/Search/StoryCoverPicker";
+import { deleteThumbnailVideo } from "@/lib/thumbnailVideo";
+import { FloatingField, SectionHeading } from "@/components/Search/StoryFormParts";
 import { QuestionsInput } from "@/components/Search/QuestionsInput";
 import { StoryTextEditor, clearEditorDraft } from "@/components/Editor/StoryTextEditor";
 import { RichDocument } from "@/lib/editor/model/RichDocument";
@@ -43,6 +45,8 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState<string | undefined>(undefined);
+  const [thumbnailVideo, setThumbnailVideo] = useState<string | undefined>(undefined);
+  const [videoPoster, setVideoPoster] = useState<string | undefined>(undefined);
   // The story text now lives in the rich editor (lib/editor); the plain
   // paragraphs the reader needs are derived from it on submit.
   const [richDoc, setRichDoc] = useState<RichDocument | null>(null);
@@ -60,6 +64,8 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
   useEffect(() => setMounted(true), []);
 
   function reset() {
+    setThumbnailVideo(undefined);
+    setVideoPoster(undefined);
     setTitle("");
     setDescription("");
     setThumbnail(undefined);
@@ -72,6 +78,8 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
   }
 
   function handleClose() {
+    // A video chosen but never saved with a story would otherwise stay in storage.
+    void deleteThumbnailVideo(thumbnailVideo);
     reset();
     onClose();
   }
@@ -87,7 +95,9 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
       level: DEFAULT_LEVEL,
       estimatedWPM: DEFAULT_WPM,
       estimatedReadingTime: Math.max(1, Math.round(parts.wordCount / DEFAULT_WPM)),
-      thumbnail,
+      // Photo is the cover; with only a video, its first frame is.
+      thumbnail: thumbnail ?? videoPoster,
+      thumbnailVideo,
       tags: [],
       story: paragraphs,
       richDocument: parts.richDocument,
@@ -128,7 +138,7 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-modal-backdrop flex items-start justify-center overflow-y-auto bg-[rgb(var(--shadow-color))]/60 px-4 py-10 backdrop-blur-sm"
+          className="fixed inset-0 z-modal-backdrop flex items-start justify-center overflow-y-auto bg-[rgb(var(--shadow-color))]/60 px-4 py-10"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) handleClose();
           }}
@@ -138,21 +148,22 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="w-full max-w-3xl rounded-2xl border border-overlay/10 bg-canvas-raised p-5 shadow-themed"
+            className="relative w-full max-w-4xl rounded-[32px] border border-overlay/10 bg-canvas-raised px-6 pb-10 pt-8 shadow-themed sm:px-14 sm:pb-14 sm:pt-10"
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink">Add your own story</h2>
-              <button
-                onClick={handleClose}
-                aria-label="Close"
-                className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-overlay/5 hover:text-ink"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            <button
+              onClick={handleClose}
+              aria-label="Close"
+              className="absolute right-5 top-5 rounded-full p-2 text-ink transition-colors hover:bg-overlay/10 sm:right-8 sm:top-8"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            <h2 className="mb-10 mt-6 text-center font-display text-4xl leading-tight tracking-[-0.03em] text-ink sm:mb-14 sm:text-5xl">
+              Add your own story
+            </h2>
 
             {errors.length > 0 && (
-              <div className="mb-3 rounded-lg border border-accent-extreme/30 bg-accent-extreme/10 p-3 text-xs text-accent-extreme">
+              <div className="mb-6 rounded-2xl border border-accent-extreme/30 bg-accent-extreme/10 p-4 text-sm text-accent-extreme">
                 <ul className="list-inside list-disc space-y-0.5">
                   {errors.map((e) => (
                     <li key={e}>{e}</li>
@@ -161,30 +172,35 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
               </div>
             )}
 
-            <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Story title"
-                  className="w-full rounded-lg border border-overlay/15 bg-canvas px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-                />
-                <ThumbnailPicker value={thumbnail} onChange={setThumbnail} />
+            <div className="space-y-12">
+              <FloatingField id="story-title" label="Story title *" value={title} onChange={setTitle} />
+
+              <section>
+                <SectionHeading note="* Required">Your story</SectionHeading>
                 <StoryTextEditor
                   key={editorKey}
                   draftSlot={DRAFT_SLOT}
                   onChange={setRichDoc}
                   placeholder="Write or paste your story here. Use the ribbon for formatting, code blocks, images and tables."
                 />
+              </section>
 
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Short description (optional) — shown on the story card"
-                  rows={2}
-                  className="w-full resize-none rounded-lg border border-overlay/15 bg-canvas px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
+              <section>
+                <SectionHeading>Cover</SectionHeading>
+                <StoryCoverPicker
+                  photo={thumbnail}
+                  onPhoto={setThumbnail}
+                  video={thumbnailVideo}
+                  videoPoster={videoPoster}
+                  onVideo={(v, poster) => { setThumbnailVideo(v); setVideoPoster(poster); }}
                 />
+              </section>
 
+              <FloatingField id="story-description" label="Short description (optional) — shown on the story card" value={description} onChange={setDescription} multiline />
+
+              <section>
                 <QuestionsInput
+                  variant="form"
                   key={questionsKey}
                   value={questions}
                   onChange={(qs, valid) => {
@@ -192,10 +208,13 @@ export function AddStoryModal({ open, onClose, onCreated }: AddStoryModalProps) 
                     setQuestionsValid(valid);
                   }}
                 />
+              </section>
 
-                <Button className="w-full" onClick={submitForm} disabled={!title.trim() || !richDoc || richDoc.stats.words === 0 || !questionsValid}>
+              <div className="flex justify-center">
+                <Button size="lg" className="w-full sm:w-auto sm:min-w-[260px]" onClick={submitForm} disabled={!title.trim() || !richDoc || richDoc.stats.words === 0 || !questionsValid}>
                   Add story
                 </Button>
+              </div>
             </div>
           </motion.div>
         </motion.div>
