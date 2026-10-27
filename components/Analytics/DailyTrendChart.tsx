@@ -10,9 +10,13 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceDot,
   Dot,
 } from "recharts";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
+import { PagerPill } from "@/components/Analytics/PagerPill";
+import { BRAND_BLUE } from "@/lib/brand";
 import { DailyActivity, storage } from "@/lib/storage";
 import { formatShortDuration } from "@/lib/wpmCalculator";
 import SpinnerLoader from "@/components/ui/loaders/SpinnerLoader";
@@ -39,6 +43,7 @@ interface TrendPoint {
  */
 export function DailyTrendChart() {
   const [activity, setActivity] = useState<Record<string, DailyActivity> | null>(null);
+  const [slide, setSlide] = useState(-1); // -1 = the latest plotted day
 
   useEffect(() => {
     setActivity(storage.getDailyActivity());
@@ -103,32 +108,47 @@ export function DailyTrendChart() {
     return <Dot key={`dot-${index}`} cx={cx} cy={cy} r={4} fill={color} stroke="rgb(var(--canvas))" strokeWidth={1.5} />;
   };
 
+  // The pager steps through the most recent days; the chart highlights the one in view.
+  const recent = points.slice(-6);
+  const activeIdx = slide < 0 || slide >= recent.length ? recent.length - 1 : slide;
+  const active = recent[activeIdx];
+  const prevOfActive = points[points.length - recent.length + activeIdx - 1];
+  const delta = prevOfActive ? active.effectiveWpm - prevOfActive.effectiveWpm : null;
+
   return (
-    <Card className="min-w-0">
-      <div className="mb-1 flex items-baseline justify-between">
-        <div className="text-sm text-ink-muted">Daily pace fluctuation</div>
-        <div className="text-xs text-ink-muted">
-          Avg <span className="font-mono text-ink">{average}</span> wpm
+    <section aria-label="Daily pace" className="min-w-0">
+      <div className="mb-4 flex items-baseline justify-between gap-3 px-1">
+        <h3 className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Daily pace.</h3>
+        <span className="shrink-0 text-sm sm:text-base" style={{ color: BRAND_BLUE }}>
+          Average {average} wpm
+        </span>
+      </div>
+      <div className="min-w-0 rounded-[32px] border border-overlay/10 bg-canvas-raised px-4 pb-8 pt-8 sm:px-10 sm:pt-12">
+        <motion.div key={activeIdx} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mx-auto max-w-xl text-center" aria-live="polite">
+          <p className="font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink sm:text-4xl">
+            {active.label}. {active.effectiveWpm} wpm.
+          </p>
+          <p className="mt-1 font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink-muted sm:text-4xl">
+            {delta === null ? "Your first plotted day." : delta === 0 ? "Same as the day before." : `${delta > 0 ? "Up" : "Down"} ${Math.abs(delta)} from the day before.`}
+          </p>
+        </motion.div>
+
+        <div className="mt-8">
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={points} margin={{ top: 10, right: 12, bottom: 4, left: 4 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgb(var(--overlay) / 0.08)" />
+              <XAxis dataKey="label" stroke="rgb(var(--ink-muted))" fontSize={11} tickMargin={8} tickLine={false} axisLine={false} />
+              <YAxis stroke="rgb(var(--ink-muted))" fontSize={11} width={40} tickMargin={6} allowDecimals={false} tickLine={false} axisLine={false} />
+              <ReferenceLine y={average} stroke="rgb(var(--ink-muted))" strokeDasharray="4 4" strokeOpacity={0.5} />
+              <Tooltip content={<TrendTooltip />} />
+              <Line type="monotone" dataKey="effectiveWpm" stroke="rgb(var(--ink-muted))" strokeWidth={2} dot={renderDot} activeDot={{ r: 6 }} />
+              <ReferenceDot x={active.label} y={active.effectiveWpm} r={9} fill="none" stroke={BRAND_BLUE} strokeWidth={2} ifOverflow="extendDomain" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={240}>
-        <LineChart data={points} margin={{ top: 10, right: 12, bottom: 4, left: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--overlay) / 0.08)" />
-          <XAxis dataKey="label" stroke="rgb(var(--ink-muted))" fontSize={11} tickMargin={8} />
-          <YAxis stroke="rgb(var(--ink-muted))" fontSize={11} width={40} tickMargin={6} allowDecimals={false} />
-          <ReferenceLine y={average} stroke="rgb(var(--ink-muted))" strokeDasharray="4 4" strokeOpacity={0.5} />
-          <Tooltip content={<TrendTooltip />} />
-          <Line
-            type="monotone"
-            dataKey="effectiveWpm"
-            stroke="rgb(var(--ink-muted))"
-            strokeWidth={2}
-            dot={renderDot}
-            activeDot={{ r: 6 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </Card>
+      <PagerPill count={recent.length} index={activeIdx} onSelect={setSlide} labels={recent.map((p) => p.label)} />
+    </section>
   );
 }
 

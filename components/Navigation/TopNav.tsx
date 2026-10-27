@@ -12,6 +12,7 @@ import { HamburgerMenu } from "@/components/Navigation/HamburgerMenu";
 import { NotificationBell } from "@/components/Navigation/NotificationBell";
 import { SearchBar } from "@/components/Search/SearchBar";
 import { MobileSearchSheet } from "@/components/Search/MobileSearchSheet";
+import { isPublicPath } from "@/lib/publicRoutes";
 import GlassSurface from "@/components/ui/GlassSurface";
 import { useIdleDim } from "@/components/ReadingMode/useIdleDim";
 import { remainingMs } from "@/lib/readingMode/progress";
@@ -68,6 +69,9 @@ export function TopNav() {
     dispatch({ type: "CLEAR_STORY" });
     router.push("/");
   }
+
+  // Public pages (shared notes) have their own header and no account menu.
+  if (isPublicPath(pathname)) return null;
 
   return (
     // overflow-visible is explicit (not just the default) on both the bar

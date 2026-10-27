@@ -24,6 +24,11 @@ export function StoryPage() {
       story={state.story}
       selectedWpm={state.selectedWpm}
       streak={streak}
+      onQuizOnly={() => {
+        // Just the quiz, without reading the story first.
+        dispatch({ type: "GO_TO_QUESTIONS", quizQuestionCount: Math.min(5, state.story!.questions.length), quizOnly: true });
+        router.push("/questions");
+      }}
       onStart={() => {
         // Reading mode was chosen before starting: open the free-scroll article, no practice session.
         if (state.readingMode) {

@@ -26,8 +26,13 @@ export function PlatformShowcase() {
       <div className="relative z-10 bg-canvas pb-28 pt-12 sm:pb-40">
         <VideoShowcase />
       </div>
+      {/* Full-bleed on the page background too: the guide lines stop above this section. */}
+      <div className="relative z-10 overflow-x-clip bg-canvas pb-28 sm:pb-40">
+        <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
+          <AudienceMarquee />
+        </div>
+      </div>
       <div className="relative z-10 mx-auto w-full max-w-6xl space-y-28 overflow-x-clip px-6 pb-32 sm:space-y-40 sm:px-8">
-        <AudienceMarquee />
         <Topics />
         <Performance />
       </div>

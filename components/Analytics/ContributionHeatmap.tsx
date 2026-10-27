@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { DailyActivity, storage, toDateKey } from "@/lib/storage";
 import { formatShortDuration } from "@/lib/wpmCalculator";
+import { PagerPill } from "@/components/Analytics/PagerPill";
+import { BRAND_BLUE } from "@/lib/brand";
 import SpinnerLoader from "@/components/ui/loaders/SpinnerLoader";
 
 type Level = 0 | 1 | 2 | 3;
@@ -105,6 +108,7 @@ export function ContributionHeatmap() {
   // apply their own ~0.5–1.5s hover delay before a `title` tooltip appears,
   // which can't be shortened from CSS/HTML. Rendering our own tooltip on
   // `onMouseEnter` shows it the instant the pointer lands on a cell.
+  const [slide, setSlide] = useState(0);
   const [hovered, setHovered] = useState<{ day: DayCell; x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -175,26 +179,31 @@ export function ContributionHeatmap() {
     );
   }
 
-  const statRows: [string, string | number][] = [
-    ["Current streak", `${stats.currentStreak} ${stats.currentStreak === 1 ? "day" : "days"}`],
-    ["Longest streak", `${stats.longestStreak} ${stats.longestStreak === 1 ? "day" : "days"}`],
-    ["Total active days", stats.totalActiveDays],
-    ["Total reading time", formatShortDuration(stats.totalMinutes * 60_000)],
+  const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
+  const slides: { label: string; line1: string; line2: string }[] = [
+    { label: "Current streak", line1: `${days(stats.currentStreak)} in a row.`, line2: stats.currentStreak > 0 ? "Keep it going today." : "Read today to start a new streak." },
+    { label: "Longest streak", line1: `Longest streak: ${days(stats.longestStreak)}.`, line2: stats.longestStreak > stats.currentStreak ? "Can you beat it?" : "You are on your best run." },
+    { label: "Active days", line1: `${stats.totalActiveDays} active ${stats.totalActiveDays === 1 ? "day" : "days"}.`, line2: "Every square below is a day you showed up." },
+    { label: "Total reading time", line1: `${formatShortDuration(stats.totalMinutes * 60_000)} of reading.`, line2: "Across every story you have read." },
   ];
+  const current = slides[slide];
 
   const gridTemplateColumns = `repeat(${weeks.length}, ${CELL_PX}px)`;
 
   return (
-    <Card>
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {statRows.map(([label, value]) => (
-          <div key={label}>
-            <div className="text-lg font-medium text-ink">{value}</div>
-            <div className="text-xs text-ink-muted">{label}</div>
-          </div>
-        ))}
+    <section aria-label="Consistency">
+      <div className="mb-4 flex items-baseline justify-between gap-3 px-1">
+        <h3 className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Consistency.</h3>
+        <span className="shrink-0 text-sm sm:text-base" style={{ color: BRAND_BLUE }}>Last {MONTHS_TO_SHOW} months</span>
       </div>
+      <div className="rounded-[32px] border border-overlay/10 bg-canvas-raised px-4 pb-8 pt-8 sm:px-10 sm:pt-12">
+      <motion.div key={slide} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mx-auto max-w-xl text-center" aria-live="polite">
+        <p className="font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink sm:text-4xl">{current.line1}</p>
+        <p className="mt-1 font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink-muted sm:text-4xl">{current.line2}</p>
+      </motion.div>
 
+      <div className="mt-8 flex justify-center">
+        <div className="max-w-full">
       <div className="overflow-x-auto pb-2">
         <div className="inline-flex flex-col gap-2">
           {/* Month labels — same grid template + gap as the day grid below,
@@ -258,13 +267,18 @@ export function ContributionHeatmap() {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-1.5 text-xs text-ink-muted">
+        </div>
+      </div>
+      <div className="mt-5 flex items-center justify-center gap-1.5 text-xs text-ink-muted">
         <span>No activity</span>
         {([0, 1, 2, 3] as Level[]).map((l) => (
           <span key={l} className={`h-[11px] w-[11px] rounded-[2px] ${LEVEL_CLASS[l]}`} title={LEVEL_LABEL[l]} />
         ))}
         <span>High</span>
       </div>
+
+      </div>
+      <PagerPill count={slides.length} index={slide} onSelect={setSlide} labels={slides.map((x) => x.label)} />
 
       {hovered && (
         <div
@@ -279,6 +293,6 @@ export function ContributionHeatmap() {
           ))}
         </div>
       )}
-    </Card>
+    </section>
   );
 }

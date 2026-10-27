@@ -12,10 +12,12 @@ interface ResultCardProps {
   selectedWpm: number;
   actualWpm: number;
   readingDurationMs: number;
+  /** Quiz taken without reading: the reading/speed rows do not apply. */
+  quizOnly?: boolean;
   onRestart: () => void;
 }
 
-export function ResultCard({ result, selectedWpm, actualWpm, readingDurationMs, onRestart }: ResultCardProps) {
+export function ResultCard({ result, selectedWpm, actualWpm, readingDurationMs, quizOnly = false, onRestart }: ResultCardProps) {
   const rating = performanceRating(result.accuracy);
   const ratingColor =
     rating === "Excellent" ? "text-accent-medium" : rating === "Good" ? "text-accent-slow" : rating === "Average" ? "text-accent-fast" : "text-accent-extreme";
@@ -28,9 +30,13 @@ export function ResultCard({ result, selectedWpm, actualWpm, readingDurationMs, 
     ["Accuracy", `${result.accuracy.toFixed(0)}%`],
     ["Avg time / question", formatDuration(result.avgTimePerQuestionMs)],
     ["Total test time", formatDuration(result.totalTimeMs)],
-    ["Reading time", formatDuration(readingDurationMs)],
-    ["Selected WPM", selectedWpm],
-    ["Actual WPM", Math.round(actualWpm)],
+    ...(quizOnly
+      ? []
+      : ([
+          ["Reading time", formatDuration(readingDurationMs)],
+          ["Selected WPM", selectedWpm],
+          ["Actual WPM", Math.round(actualWpm)],
+        ] as [string, string | number][])),
   ];
 
   return (

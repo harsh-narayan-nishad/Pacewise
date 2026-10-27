@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bookmark, Clock, Flame, Gauge, Search, TrendingUp, BookCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BRAND_BLUE } from "@/lib/brand";
 import { storage } from "@/lib/storage";
 import { getAllStories } from "@/lib/storyLibrary";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
@@ -48,29 +49,30 @@ export function HomeDashboard() {
     : [];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 pb-24 pt-24">
+    <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-24 sm:px-6">
       <h1 className="font-display mb-2 text-4xl text-ink sm:text-5xl">{user ? `Welcome back, ${user.name.split(" ")[0]}` : "Dashboard"}</h1>
       <p className="mb-10 text-lg text-ink-muted">Your reading progress at a glance.</p>
 
       <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {tiles.map(({ icon: Icon, label, value }) => (
-          <Card key={label} className="p-4">
-            <Icon className="mb-3 h-4 w-4 text-ink-muted" />
-            <div className="font-display text-2xl text-ink">{value}</div>
-            <div className="mt-1 text-xs uppercase text-ink-muted">{label}</div>
-          </Card>
+          <div key={label} className="flex flex-col items-center rounded-[32px] border border-overlay/10 bg-canvas-raised px-3 py-6 text-center">
+            <Icon className="mb-3 h-5 w-5 text-ink-muted" />
+            <div className="font-display text-3xl leading-none tracking-[-0.03em] text-ink">{value}</div>
+            <div className="mt-2 text-xs text-ink-muted">{label}</div>
+          </div>
         ))}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section>
-          <h2 className="font-display mb-3 text-2xl text-ink">Recent sessions</h2>
+        <section className="rounded-[32px] border border-overlay/10 bg-canvas-raised px-4 pb-6 pt-8 sm:px-6">
+          <h2 className="font-display mb-1 text-center text-3xl tracking-[-0.03em] text-ink sm:text-4xl">Recent sessions</h2>
+          <p className="mb-5 text-center text-base" style={{ color: BRAND_BLUE }}>{recent.length ? `${recent.length} latest` : "Start reading"}</p>
           {recent.length === 0 ? (
             <Card className="text-sm text-ink-muted">Nothing read yet. Pick a story to begin.</Card>
           ) : (
             <div className="space-y-2">
               {recent.map((r) => (
-                <button key={r.id} onClick={() => openByTitle(r.title)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-overlay/10 bg-canvas-raised/60 px-4 py-3 text-left transition-colors hover:border-overlay/25">
+                <button key={r.id} onClick={() => openByTitle(r.title)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-overlay/10 bg-canvas px-4 py-3.5 text-left transition-colors hover:border-overlay/25">
                   <span className="line-clamp-1 text-sm text-ink">{r.title}</span>
                   <span className="shrink-0 font-mono text-xs text-ink-muted">{Math.round(r.wpm)} wpm · {Math.round(r.accuracy)}%</span>
                 </button>
@@ -79,14 +81,15 @@ export function HomeDashboard() {
           )}
         </section>
 
-        <section>
-          <h2 className="font-display mb-3 text-2xl text-ink">Saved stories</h2>
+        <section className="rounded-[32px] border border-overlay/10 bg-canvas-raised px-4 pb-6 pt-8 sm:px-6">
+          <h2 className="font-display mb-1 text-center text-3xl tracking-[-0.03em] text-ink sm:text-4xl">Saved stories</h2>
+          <p className="mb-5 text-center text-base" style={{ color: BRAND_BLUE }}>{saved.length ? `${saved.length} saved` : "Nothing saved yet"}</p>
           {saved.length === 0 ? (
             <Card className="flex items-center gap-2 text-sm text-ink-muted"><Bookmark className="h-4 w-4" /> Bookmark a story to find it here.</Card>
           ) : (
             <div className="space-y-2">
               {saved.map((s) => (
-                <button key={s.title} onClick={() => open(s)} className="flex w-full items-center gap-3 rounded-xl border border-overlay/10 bg-canvas-raised/60 px-4 py-3 text-left transition-colors hover:border-overlay/25">
+                <button key={s.title} onClick={() => open(s)} className="flex w-full items-center gap-3 rounded-2xl border border-overlay/10 bg-canvas px-4 py-3.5 text-left transition-colors hover:border-overlay/25">
                   <Bookmark className="h-4 w-4 shrink-0 text-ink-muted" />
                   <span className="line-clamp-1 text-sm text-ink">{s.title}</span>
                 </button>

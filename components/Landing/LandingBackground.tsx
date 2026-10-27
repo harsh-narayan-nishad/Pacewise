@@ -50,8 +50,6 @@ export function LandingBackground({ theme }: { theme: LandingTheme }) {
       {theme.mode === "media" && item && item.kind === "video" && (
         <video src={urlFor(item)} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline aria-hidden />
       )}
-      {/* Melts the bottom edge into the page so the next section starts cleanly. */}
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-canvas" />
     </>
   );
 }

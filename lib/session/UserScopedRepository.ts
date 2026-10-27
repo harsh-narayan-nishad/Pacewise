@@ -25,8 +25,8 @@ import { UserNamespace } from "@/lib/session/UserNamespace";
  */
 export abstract class UserScopedRepository<T> {
   constructor(
-    private readonly store: KeyValueStore,
-    private readonly namespace: UserNamespace
+    protected readonly store: KeyValueStore,
+    protected readonly namespace: UserNamespace
   ) {}
 
   protected abstract feature(): string;

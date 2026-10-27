@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ResultCard } from "@/components/ResultCard/ResultCard";
 import { ReadingEfficiencyReport } from "@/components/ResultCard/ReadingEfficiencyReport";
@@ -60,8 +60,29 @@ export default function ResultsPage() {
   const finalReductionPercent = wpmReductionPercent(state.selectedWpm, finalEffectiveWpm);
   const activeReadingMs = state.breakStats ? Math.max(0, readingDurationMs - state.breakStats.totalBreakMs) : readingDurationMs;
 
+  const quizOnlyRecorded = useRef(false);
   useEffect(() => {
     if (!state.story) return;
+    if (state.quizOnly) {
+      // No reading happened: log the quiz attempt itself (speed 0 = "not a reading session"), nothing else.
+      if (!quizOnlyRecorded.current) {
+        quizOnlyRecorded.current = true;
+        storage.addHistoryEntry({
+          id: crypto.randomUUID(),
+          title: state.story.title,
+          date: new Date().toISOString(),
+          wpm: 0,
+          accuracy: result.accuracy,
+          wordCount: 0,
+          totalQuestions: result.total,
+          correctAnswers: result.correct,
+          quizTotalTimeMs: result.totalTimeMs,
+          avgTimePerQuestionMs: result.avgTimePerQuestionMs,
+        });
+      }
+      setHistory(storage.getHistory());
+      return;
+    }
     const existing = storage.getHistory();
     const latest = existing[0];
     if (latest && latest.title === state.story.title && latest.accuracy === 0) {
@@ -102,6 +123,7 @@ export default function ResultsPage() {
         selectedWpm={state.selectedWpm}
         actualWpm={actualWpm}
         readingDurationMs={readingDurationMs}
+        quizOnly={state.quizOnly}
         onRestart={() => {
           dispatch({ type: "RESET_TO_DASHBOARD" });
           router.push("/");

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, Trash2, UserCheck, UserPlus } from "lucide-react";
+import { ArrowLeft, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,26 @@ import { getAllStories } from "@/lib/storyLibrary";
 import { getContentAuthorId } from "@/lib/devData/contentMeta";
 import { devDataStore } from "@/lib/devData/store";
 import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
-import { ROUTES } from "@/lib/routes";
+import { HomeDashboard } from "@/components/Dashboard/HomeDashboard";
+import { TestAttemptsPanel } from "@/components/Account/TestAttemptsPanel";
+import { ReadingHistoryPanel } from "@/components/Account/ReadingHistoryPanel";
+import { AnalyticsPanel } from "@/components/Account/AnalyticsPanel";
+import { NotesView } from "@/components/Notes/NotesView";
+import { ProfileQr } from "@/components/Profile/ProfileQr";
+import { SettingsPanel } from "@/components/Account/SettingsPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAvatarUpload } from "@/components/Profile/useAvatarUpload";
+
+type ProfileTab = "dashboard" | "notes" | "readingHistory" | "analytics" | "attempts" | "settings";
+
+const TABS: { id: ProfileTab; label: string }[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "notes", label: "Notes" },
+  { id: "readingHistory", label: "Reading history" },
+  { id: "analytics", label: "Analytics" },
+  { id: "attempts", label: "Past test attempts" },
+  { id: "settings", label: "Settings" },
+];
 
 interface UserProfileProps {
   userId: string;
@@ -34,6 +51,8 @@ export function UserProfile({ userId }: UserProfileProps) {
   const currentUser = useCurrentUser();
   useDevStoreVersion();
   const photo = useAvatarUpload(currentUser?.id);
+  /** null = the default "content posted by you" grid. */
+  const [tab, setTab] = useState<ProfileTab | null>(null);
 
   const user = devDataStore.findUserById(userId);
   const allStories = useMemo(() => getAllStories(), []);
@@ -61,7 +80,7 @@ export function UserProfile({ userId }: UserProfileProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="mx-auto max-w-5xl px-6 py-10 sm:px-8"
+      className="mx-auto max-w-5xl px-4 py-8 sm:px-8 sm:py-10"
     >
       <button
         onClick={() => router.back()}
@@ -72,7 +91,13 @@ export function UserProfile({ userId }: UserProfileProps) {
 
       <Card className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Avatar userId={userId} size={64} />
+          {isSelf ? (
+            <button type="button" onClick={photo.choose} disabled={photo.busy} title="Change photo" aria-label="Change profile photo" className="rounded-full transition-opacity hover:opacity-80">
+              <Avatar userId={userId} size={64} />
+            </button>
+          ) : (
+            <Avatar userId={userId} size={64} />
+          )}
           <div>
             <h1 className="font-display text-xl text-ink">{user.name}</h1>
             <p className="text-sm text-ink-muted">
@@ -83,19 +108,17 @@ export function UserProfile({ userId }: UserProfileProps) {
         </div>
 
         {isSelf && (
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex items-start gap-3">
             <input ref={photo.inputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => void photo.onFile(e.target.files?.[0])} />
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={photo.choose} disabled={photo.busy}>
-                <Camera className="h-4 w-4" /> {photo.busy ? "Uploading…" : "Change photo"}
-              </Button>
+            <div className="flex flex-col items-end gap-1">
               {devDataStore.getAvatar(userId) && (
                 <Button variant="ghost" size="icon" onClick={photo.remove} aria-label="Remove profile photo">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+              {photo.error && <p className="text-xs text-accent-extreme">{photo.error}</p>}
             </div>
-            {photo.error && <p className="text-xs text-accent-extreme">{photo.error}</p>}
+            <ProfileQr userId={userId} />
           </div>
         )}
 
@@ -112,31 +135,47 @@ export function UserProfile({ userId }: UserProfileProps) {
 
       {isSelf && (
         <nav aria-label="Your pages" className="mb-8 flex flex-wrap gap-2">
-          {[
-            ["Dashboard", ROUTES.dashboard],
-            ["Reading history", ROUTES.readingHistory],
-            ["Analytics", ROUTES.analytics],
-            ["Past test attempts", ROUTES.history],
-            ["Settings", ROUTES.settings],
-          ].map(([label, href]) => (
-            <Button key={href} size="sm" variant="outline" onClick={() => router.push(href)}>{label}</Button>
+          {TABS.map(({ id, label }) => (
+            <Button key={id} size="sm" variant={tab === id ? "primary" : "outline"} aria-pressed={tab === id} onClick={() => setTab(tab === id ? null : id)}>
+              {label}
+            </Button>
           ))}
         </nav>
       )}
 
       <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-ink-muted">
-        Content posted by {isSelf ? "you" : user.name}
+        {isSelf && tab ? TABS.find((t) => t.id === tab)?.label : <>Content posted by {isSelf ? "you" : user.name}</>}
       </h2>
 
-      {authoredStories.length === 0 ? (
-        <p className="text-sm text-ink-muted">No content from this user yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {authoredStories.map((story) => (
-            <StoryCard key={story.id ?? story.title} story={story} />
-          ))}
-        </div>
-      )}
+      {isSelf && tab === "dashboard" && <HomeDashboard />}
+      {isSelf && tab === "notes" && <NotesPanel userId={userId} />}
+      {isSelf && tab === "readingHistory" && <ReadingHistoryPanel />}
+      {isSelf && tab === "analytics" && <AnalyticsPanel />}
+      {isSelf && tab === "attempts" && <TestAttemptsPanel showHeading={false} />}
+      {isSelf && tab === "settings" && <SettingsPanel />}
+
+      {!(isSelf && tab) &&
+        (authoredStories.length === 0 ? (
+          <p className="text-sm text-ink-muted">No content from this user yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {authoredStories.map((story) => (
+              <StoryCard key={story.id ?? story.title} story={story} />
+            ))}
+          </div>
+        ))}
     </motion.div>
+  );
+}
+
+/** The Notes tab: the notes plus this person's own shareable link. */
+function NotesPanel({ userId }: { userId: string }) {
+  return (
+    <div>
+      <p className="mb-6 text-ink-muted">
+        Anyone can open these without signing in: scan your QR code at the top of this page, or use <button type="button" className="underline underline-offset-4 hover:text-ink" onClick={() => window.open(`/notes/${encodeURIComponent(userId)}`, "_blank")}>your notes link</button>.
+      </p>
+      <NotesView />
+    </div>
   );
 }

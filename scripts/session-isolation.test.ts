@@ -390,4 +390,24 @@ test("an uploaded story's owner is whoever's library holds it", () => {
   assert.equal(mgr.findCustomStoryOwner("story-001"), undefined);
 });
 
+test("a PDF too big for storage is still credited to the person who uploaded it", () => {
+  class TinyQuotaStore extends MemoryKeyValueStore {
+    setItem(key: string, value: string): void {
+      if (key.includes("customStories") && value.length > 500) throw new Error("QuotaExceededError");
+      super.setItem(key, value);
+    }
+  }
+  const store = new TinyQuotaStore();
+  const id = new FakeIdentity();
+  const mgr = new SessionManager(store, id);
+  id.signIn("user-a");
+  const big: StoryData = { ...story("media-1"), description: "x".repeat(2000) };
+  mgr.active().customStories.save(big);
+  assert.equal(mgr.active().customStories.findById("media-1"), undefined); // did not fit
+  id.signIn("user-b");
+  assert.equal(mgr.findCustomStoryOwner("media-1"), "user-a"); // ...but the owner is remembered
+  mgr.active().customStories.remove("media-1"); // someone else's remove must not erase the claim
+  assert.equal(mgr.findCustomStoryOwner("media-1"), "user-a");
+});
+
 console.log(`\n${passed} tests passed${process.exitCode ? " (with failures)" : ""}`);

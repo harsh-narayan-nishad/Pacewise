@@ -41,6 +41,8 @@ export interface ReadingState {
   fonts: FontSettings;
   answers: QuestionAnswer[];
   quizQuestionCount: number;
+  /** True when the quiz was started without reading the story first. */
+  quizOnly: boolean;
   settingsPanelOpen: boolean;
   breakStats: BreakStats | null;
   /** Chosen BEFORE a session starts: Start opens the free-scroll article view (/read) instead of the auto-scroll reader. */
@@ -60,7 +62,7 @@ type Action =
   | { type: "SET_PROGRESS"; progress: number; paragraphIndex: number }
   | { type: "SAMPLE_WPM"; wpm: number }
   | { type: "COMPLETE" }
-  | { type: "GO_TO_QUESTIONS"; quizQuestionCount: number }
+  | { type: "GO_TO_QUESTIONS"; quizQuestionCount: number; quizOnly?: boolean }
   | { type: "ANSWER_QUESTION"; answer: QuestionAnswer }
   | { type: "GO_TO_RESULTS" }
   | { type: "UPDATE_FONTS"; fonts: Partial<FontSettings> }
@@ -94,6 +96,7 @@ const initialState: ReadingState = {
   fonts: defaultFonts,
   answers: [],
   quizQuestionCount: 5,
+  quizOnly: false,
   settingsPanelOpen: false,
   breakStats: null,
   readingMode: false,
@@ -145,7 +148,7 @@ function reducer(state: ReadingState, action: Action): ReadingState {
     case "COMPLETE":
       return { ...state, isPlaying: false, phase: "completed", finishedAt: Date.now(), progress: 1 };
     case "GO_TO_QUESTIONS":
-      return { ...state, phase: "questions", quizQuestionCount: action.quizQuestionCount, answers: [] };
+      return { ...state, phase: "questions", quizQuestionCount: action.quizQuestionCount, quizOnly: action.quizOnly ?? false, answers: [] };
     case "ANSWER_QUESTION": {
       const others = state.answers.filter((a) => a.questionIndex !== action.answer.questionIndex);
       return { ...state, answers: [...others, action.answer] };

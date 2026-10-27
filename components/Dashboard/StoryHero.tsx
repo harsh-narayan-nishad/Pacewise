@@ -15,11 +15,13 @@ interface Props {
   wpm: number;
   eyebrow: string;
   onStart: () => void;
+  /** Offered when the story has questions: take the quiz without reading. */
+  onQuizOnly?: () => void;
   onReadBelow: () => void;
 }
 
 /** Full-screen story intro: the uploaded video (poster = thumbnail) behind a big title and a "start" pill. */
-export function StoryHero({ story, words, minutes, wpm, eyebrow, onStart, onReadBelow }: Props) {
+export function StoryHero({ story, words, minutes, wpm, eyebrow, onStart, onReadBelow, onQuizOnly }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const [src, setSrc] = useState<string | null>(null);
   const [playing, setPlaying] = useState(true);
@@ -72,6 +74,9 @@ export function StoryHero({ story, words, minutes, wpm, eyebrow, onStart, onRead
             {words.toLocaleString()} words · {minutes} min at {wpm} wpm
           </span>
           <button onClick={onReadBelow} className="text-sm text-white/70 transition-colors hover:text-white sm:text-base">Read below ↓</button>
+          {onQuizOnly && (
+            <button onClick={onQuizOnly} className="text-sm text-white/70 transition-colors hover:text-white sm:text-base">Quiz only</button>
+          )}
           <Button onClick={onStart} className="h-11 px-6 text-base text-white hover:opacity-90" style={{ backgroundColor: BRAND_BLUE }}>
             Start reading
           </Button>

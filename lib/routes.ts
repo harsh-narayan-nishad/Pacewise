@@ -9,4 +9,5 @@ export const ROUTES = {
   results: "/results",
   story: (id: string) => `/story/${encodeURIComponent(id)}`,
   profile: (userId: string) => `/profile/${userId}`,
+  notes: (userId: string) => `/notes/${encodeURIComponent(userId)}`,
 } as const;

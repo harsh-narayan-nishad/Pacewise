@@ -103,14 +103,16 @@ export class SessionManager {
    *  (undefined for built-in stories). This is what makes "who posted this?"
    *  truthful: an upload belongs to whoever's library it lives in. */
   findCustomStoryOwner(id: string): string | undefined {
-    if (this.active().customStories.findById(id)) return this.resolveUserId();
+    const mine = this.active().customStories;
+    if (mine.findById(id) || mine.claimedIds().includes(id)) return this.resolveUserId();
     const userIds = new Set<string>();
     this.store.keys().forEach((key) => {
       const parsed = UserNamespace.parse(key);
-      if (parsed && parsed.feature === "customStories") userIds.add(parsed.userId);
+      if (parsed && (parsed.feature === "customStories" || parsed.feature === "customStoryClaims")) userIds.add(parsed.userId);
     });
     for (const userId of Array.from(userIds)) {
-      if (this.sessionFor(userId).customStories.findById(id)) return userId;
+      const theirs = this.sessionFor(userId).customStories;
+      if (theirs.findById(id) || theirs.claimedIds().includes(id)) return userId;
     }
     return undefined;
   }

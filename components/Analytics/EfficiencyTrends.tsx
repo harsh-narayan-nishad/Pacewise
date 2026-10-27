@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { PagerPill } from "@/components/Analytics/PagerPill";
+import { BRAND_BLUE } from "@/lib/brand";
 import { storage, DailyActivity } from "@/lib/storage";
 import { formatClock } from "@/lib/wpmCalculator";
 
@@ -16,6 +18,7 @@ import { formatClock } from "@/lib/wpmCalculator";
  */
 export function EfficiencyTrends() {
   const [days, setDays] = useState<DailyActivity[] | null>(null);
+  const [slide, setSlide] = useState(0);
 
   useEffect(() => {
     const all = storage.getDailyActivity();
@@ -63,17 +66,29 @@ export function EfficiencyTrends() {
     ["Reading consistency", `${consistency}/100`],
   ];
 
+  const [label, value] = rows[Math.min(slide, rows.length - 1)];
+
   return (
-    <Card>
-      <div className="mb-3 text-sm text-ink-muted">Efficiency trends</div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <div className="text-sm font-medium text-ink">{value}</div>
-            <div className="text-xs text-ink-muted">{label}</div>
-          </div>
-        ))}
+    <section aria-label="Efficiency trends">
+      <div className="mb-4 flex items-baseline justify-between gap-3 px-1">
+        <h3 className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Efficiency.</h3>
+        <span className="shrink-0 text-sm sm:text-base" style={{ color: BRAND_BLUE }}>{trendLabel}</span>
       </div>
-    </Card>
+      <div className="rounded-[32px] border border-overlay/10 bg-canvas-raised px-4 pb-8 pt-8 sm:px-10 sm:pt-12">
+        <motion.div key={slide} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mx-auto max-w-xl text-center" aria-live="polite">
+          <p className="font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink sm:text-4xl">{label}.</p>
+          <p className="mt-1 font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink-muted [overflow-wrap:anywhere] sm:text-4xl">{value}</p>
+        </motion.div>
+        <dl className="mt-10 grid grid-cols-2 gap-x-4 gap-y-6 text-center sm:grid-cols-3">
+          {rows.map(([l, v], i) => (
+            <button key={l} type="button" onClick={() => setSlide(i)} className={`rounded-2xl px-2 py-3 transition-colors hover:bg-overlay/5 ${i === slide ? "bg-overlay/[0.06]" : ""}`}>
+              <dd className="text-base font-medium text-ink sm:text-lg">{v}</dd>
+              <dt className="mt-0.5 text-xs text-ink-muted">{l}</dt>
+            </button>
+          ))}
+        </dl>
+      </div>
+      <PagerPill count={rows.length} index={slide} onSelect={setSlide} labels={rows.map(([l]) => l)} />
+    </section>
   );
 }

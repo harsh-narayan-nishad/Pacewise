@@ -73,7 +73,7 @@ export function useInertiaScroll(enabled: boolean): void {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName))) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) || t.closest?.('[role="listbox"]'))) return;
       if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
       const vh = window.innerHeight;
       let dy: number | null = null;

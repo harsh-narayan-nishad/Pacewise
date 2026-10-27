@@ -21,12 +21,20 @@ const AUDIENCES: Audience[] = [
   { label: "Lifelong learners", icon: BookMarked, hue: "#365A44", lead: "Read more of what you love.", text: "Keep a library of your own notes, share it, and let your streak keep you coming back." },
 ];
 
+/** Image for a card: public/audiences/<slug>.jpg (e.g. "Doctors & NEET" -> doctors-neet.jpg). */
+const imageFor = (label: string) => `/audiences/${label.toLowerCase().replace(/&/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.jpg`;
+
 function Card({ a, wide }: { a: Audience; wide: boolean }) {
   const Icon = a.icon;
+  const [hasImage, setHasImage] = useState(true);
   return (
     <li className={`shrink-0 snap-start ${wide ? "w-[min(88vw,43rem)]" : "w-[min(74vw,23rem)]"}`}>
       {/* Same height for every card; only the width changes (as on apple.com). */}
       <div className="relative flex h-[28rem] items-center justify-center overflow-hidden rounded-[28px] bg-[#1d1d1f] sm:h-[36rem]">
+        {hasImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageFor(a.label)} alt="" onError={() => setHasImage(false)} className="absolute inset-0 z-10 h-full w-full object-cover" />
+        )}
         <span aria-hidden className="absolute -bottom-24 h-72 w-72 rounded-full opacity-30 blur-3xl" style={{ background: a.hue }} />
         <span
           aria-hidden

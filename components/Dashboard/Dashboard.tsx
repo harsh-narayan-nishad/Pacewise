@@ -23,9 +23,10 @@ interface DashboardProps {
   selectedWpm: number;
   streak: number;
   onStart: () => void;
+  onQuizOnly?: () => void;
 }
 
-export function Dashboard({ story: initialStory, selectedWpm, streak, onStart }: DashboardProps) {
+export function Dashboard({ story: initialStory, selectedWpm, streak, onStart, onQuizOnly }: DashboardProps) {
   const router = useRouter();
   const dispatch = useReadingDispatch();
   const [story, setStory] = useState(initialStory);
@@ -67,6 +68,7 @@ export function Dashboard({ story: initialStory, selectedWpm, streak, onStart }:
         wpm={selectedWpm}
         eyebrow={`${streak} day streak`}
         onStart={onStart}
+        onQuizOnly={story.questions.length > 0 ? onQuizOnly : undefined}
         onReadBelow={readBelow}
       />
 
