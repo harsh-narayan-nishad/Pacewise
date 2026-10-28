@@ -6,8 +6,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isPublicPath } from "@/lib/publicRoutes";
 import { motion } from "framer-motion";
-import { BookOpenText, LogIn } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { devDataStore } from "@/lib/devData/store";
 import { useCurrentUser } from "@/lib/devData/useDevStore";
@@ -41,6 +40,11 @@ import { ApiError } from "@/lib/api/client";
  * always starts identical on server and client — avoiding a hydration
  * mismatch — and then updates a moment later with whatever was saved.
  */
+// One look for every field on the sign-in screens: small label above, underlined input (as in the story forms).
+const FIELD = "mt-1 block w-full border-0 border-b border-ink/40 bg-transparent pb-2 pt-1 text-lg text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent-medium";
+const LABEL = "block text-sm text-ink-muted";
+const PANEL = "w-full max-w-md rounded-[32px] border border-overlay/10 bg-canvas-raised p-6 sm:p-10";
+
 export function DevLoginGate({ children }: { children: React.ReactNode }) {
   const currentUser = useCurrentUser();
   const pathname = usePathname();
@@ -57,7 +61,7 @@ export function DevLoginGate({ children }: { children: React.ReactNode }) {
   if (currentUser || isPublicPath(pathname)) return <>{children}</>;
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-canvas px-6 py-12">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-canvas px-4 py-12 sm:px-6">
       <DemoLoginCard
         userId={userId}
         setUserId={setUserId}
@@ -114,60 +118,38 @@ function DemoLoginCard({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="w-full max-w-sm"
-    >
-      <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-ink text-canvas">
-          <BookOpenText className="h-6 w-6" />
-        </div>
-        <h1 className="mb-1 font-display text-2xl text-ink">{BRAND_NAME}</h1>
-        <p className="text-sm text-ink-muted">Sign in with a development demo account</p>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={PANEL}>
+      <div className="mb-8 text-center">
+        <h1 className="font-display text-4xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">{BRAND_NAME}</h1>
+        <p className="mt-2 text-base text-ink-muted">Sign in with a development demo account.</p>
       </div>
 
-      <Card>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <label className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-            Demo account
-            <select
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-            >
-              {SEED_USERS.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.id})
-                </option>
-              ))}
-            </select>
-          </label>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <label className={LABEL}>
+          Demo account
+          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={FIELD}>
+            {SEED_USERS.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.id})
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <label className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-            Demo password
-            <PasswordInput
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Demo password"
-              autoComplete="off"
-              className="mt-1.5 w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-            />
-          </label>
+        <label className={LABEL}>
+          Demo password
+          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Demo password" autoComplete="off" className={FIELD} />
+        </label>
 
-          {error && <p className="text-sm text-accent-extreme">{error}</p>}
+        {error && <p className="text-sm text-accent-extreme">{error}</p>}
 
-          <Button type="submit" size="md" disabled={submitting} className="mt-1 w-full">
-            <LogIn className="h-4 w-4" />
-            {submitting ? "Signing in…" : "Sign in"}
-          </Button>
+        <Button type="submit" size="lg" disabled={submitting} className="w-full">
+          <LogIn className="h-4 w-4" />
+          {submitting ? "Signing in…" : "Sign in"}
+        </Button>
 
-          <p className="mt-1 text-center text-xs text-ink-faint">
-            Development credentials — see README.md for the full list. Not real accounts.
-          </p>
-        </form>
-      </Card>
+        <p className="text-center text-sm text-ink-faint">Development credentials. See README.md for the full list. Not real accounts.</p>
+      </form>
     </motion.div>
   );
 }
@@ -198,14 +180,14 @@ function BackendAuthCard() {
 
   if (user) {
     return (
-      <Card className="w-full max-w-sm">
-        <p className="text-sm text-ink">
+      <div className={PANEL}>
+        <p className="text-base text-ink">
           Backend account connected: <span className="font-medium">{user.name}</span> (@{user.username})
         </p>
-        <Button size="sm" className="mt-3" onClick={() => void logout()}>
+        <Button size="md" variant="outline" className="mt-4" onClick={() => void logout()}>
           Disconnect backend account
         </Button>
-      </Card>
+      </div>
     );
   }
 
@@ -228,75 +210,60 @@ function BackendAuthCard() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <div className="mb-3 flex gap-2 text-xs font-medium uppercase tracking-wide">
-        <button
-          type="button"
-          onClick={() => setMode("login")}
-          className={mode === "login" ? "text-ink" : "text-ink-faint"}
-        >
-          Backend login
-        </button>
-        <span className="text-ink-faint">/</span>
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={mode === "signup" ? "text-ink" : "text-ink-faint"}
-        >
-          Create backend account
-        </button>
+    <div className={PANEL}>
+      <div className="mb-6 flex justify-center gap-2" role="tablist" aria-label="Backend account">
+        {(["login", "signup"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => setMode(m)}
+            className={`rounded-full px-5 py-2 text-sm transition-colors ${mode === m ? "bg-ink text-canvas" : "border border-overlay/15 text-ink-muted hover:text-ink"}`}
+          >
+            {m === "login" ? "Backend login" : "Create backend account"}
+          </button>
+        ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {mode === "signup" && (
           <>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
-              className="w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-            />
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-            />
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              type="email"
-              className="w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-            />
+            <label className={LABEL}>
+              Full name
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={FIELD} />
+            </label>
+            <label className={LABEL}>
+              Username
+              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className={FIELD} />
+            </label>
+            <label className={LABEL}>
+              Email
+              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" className={FIELD} />
+            </label>
           </>
         )}
         {mode === "login" && (
-          <input
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Email or username"
-            className="w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-          />
+          <label className={LABEL}>
+            Email or username
+            <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or username" className={FIELD} />
+          </label>
         )}
-        <PasswordInput
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          className="w-full rounded-lg border border-overlay/15 bg-canvas-raised px-3 py-2 text-sm text-ink outline-none focus-visible:border-accent-medium"
-        />
+        <label className={LABEL}>
+          Password
+          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className={FIELD} />
+        </label>
 
         {error && <p className="text-sm text-accent-extreme">{error}</p>}
 
-        <Button type="submit" size="sm" disabled={submitting} className="w-full">
+        <Button type="submit" size="lg" disabled={submitting} className="w-full">
           {submitting ? "Working…" : mode === "signup" ? "Create account" : "Log in"}
         </Button>
 
-        <p className="text-center text-xs text-ink-faint">
-          Optional — connects a real account on speed-reader-backend for synced reading history and your own
-          stories.
+        <p className="text-center text-sm text-ink-faint">
+          Optional. Connects a real account on speed-reader-backend for synced reading history and your own stories.
         </p>
       </form>
-    </Card>
+    </div>
   );
 }

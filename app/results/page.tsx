@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ResultCard } from "@/components/ResultCard/ResultCard";
 import { ReadingEfficiencyReport } from "@/components/ResultCard/ReadingEfficiencyReport";
 import { QuestionTimingBreakdown } from "@/components/ResultCard/QuestionTimingBreakdown";
-import { Analytics } from "@/components/Analytics/Analytics";
+import { Analytics, TrendTiles } from "@/components/Analytics/Analytics";
 import { useReadingState, useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage } from "@/lib/storage";
 import { QuizResult, ReadingHistoryEntry } from "@/types";
@@ -27,23 +27,25 @@ export default function ResultsPage() {
     const total = state.quizQuestionCount;
     let correct = 0;
     let skipped = 0;
-    let totalTime = 0;
+    let answeredTime = 0;
     state.answers.forEach((a) => {
-      totalTime += a.timeSpentMs;
+      answeredTime += a.timeSpentMs;
       if (a.selectedOption === null) skipped += 1;
       else if (state.story && state.story.questions[a.questionIndex].correctAnswer === a.selectedOption) correct += 1;
     });
     const wrong = total - correct - skipped;
+    // The whole test: from "Begin quiz" to Done / Finish (falls back to the sum of per-question time).
+    const totalTime = state.quizStartedAt && state.quizFinishedAt ? Math.max(0, state.quizFinishedAt - state.quizStartedAt) : answeredTime;
     return {
       total,
       correct,
       wrong: Math.max(0, wrong),
       skipped,
       accuracy: total > 0 ? (correct / total) * 100 : 0,
-      avgTimePerQuestionMs: state.answers.length ? totalTime / state.answers.length : 0,
+      avgTimePerQuestionMs: total > 0 ? totalTime / total : 0,
       totalTimeMs: totalTime,
     };
-  }, [state.answers, state.quizQuestionCount, state.story]);
+  }, [state.answers, state.quizQuestionCount, state.story, state.quizStartedAt, state.quizFinishedAt]);
 
   const quizQuestions = useMemo(
     () => state.story?.questions.slice(0, state.quizQuestionCount) ?? [],
@@ -59,6 +61,15 @@ export default function ResultsPage() {
   const finalEffectiveWpm = computeEffectiveWpm(wordCount, readingDurationMs);
   const finalReductionPercent = wpmReductionPercent(state.selectedWpm, finalEffectiveWpm);
   const activeReadingMs = state.breakStats ? Math.max(0, readingDurationMs - state.breakStats.totalBreakMs) : readingDurationMs;
+
+  const quizStartedIso = state.quizStartedAt ? new Date(state.quizStartedAt).toISOString() : undefined;
+  const testTimeRecorded = useRef(false);
+  useEffect(() => {
+    // Add this test's duration to today's activity (shown when hovering a day in the consistency tracker), once.
+    if (!state.story || testTimeRecorded.current || result.totalTimeMs <= 0) return;
+    testTimeRecorded.current = true;
+    storage.recordTestTime(result.totalTimeMs);
+  }, [state.story, result.totalTimeMs]);
 
   const quizOnlyRecorded = useRef(false);
   useEffect(() => {
@@ -78,6 +89,7 @@ export default function ResultsPage() {
           correctAnswers: result.correct,
           quizTotalTimeMs: result.totalTimeMs,
           avgTimePerQuestionMs: result.avgTimePerQuestionMs,
+          quizStartedAt: quizStartedIso,
         });
       }
       setHistory(storage.getHistory());
@@ -92,6 +104,7 @@ export default function ResultsPage() {
         correctAnswers: result.correct,
         quizTotalTimeMs: result.totalTimeMs,
         avgTimePerQuestionMs: result.avgTimePerQuestionMs,
+        quizStartedAt: quizStartedIso,
       });
     }
     setHistory(storage.getHistory());
@@ -117,41 +130,48 @@ export default function ResultsPage() {
   if (!state.story) return <PageLoader />;
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-24 pt-10 sm:px-8 sm:pt-14">
       <ResultCard
         result={result}
         selectedWpm={state.selectedWpm}
         actualWpm={actualWpm}
         readingDurationMs={readingDurationMs}
         quizOnly={state.quizOnly}
+        quizStartedAt={state.quizStartedAt}
         onRestart={() => {
           dispatch({ type: "RESET_TO_DASHBOARD" });
           router.push("/");
         }}
       />
 
+      {history.length > 0 && (
+        <TrendTiles
+          history={history}
+          actions={[
+            { label: "View analytics", href: "/analytics", primary: true },
+            { label: "Past test attempts", href: "/history" },
+          ]}
+        />
+      )}
+
       {quizQuestions.length > 0 && (
-        <div className="mx-auto max-w-3xl px-6 pb-8">
-          <QuestionTimingBreakdown questions={quizQuestions} answers={state.answers} totalTimeMs={result.totalTimeMs} />
-        </div>
+        <QuestionTimingBreakdown questions={quizQuestions} answers={state.answers} totalTimeMs={result.totalTimeMs} />
       )}
 
       {state.breakStats && (
-        <div className="mx-auto max-w-3xl px-6 pb-8">
-          <ReadingEfficiencyReport
-            selectedWpm={state.selectedWpm}
-            effectiveWpm={finalEffectiveWpm}
-            reductionPercent={finalReductionPercent}
-            activeReadingMs={activeReadingMs}
-            totalSessionMs={readingDurationMs}
-            breakStats={state.breakStats}
-          />
-        </div>
+        <ReadingEfficiencyReport
+          selectedWpm={state.selectedWpm}
+          effectiveWpm={finalEffectiveWpm}
+          reductionPercent={finalReductionPercent}
+          activeReadingMs={activeReadingMs}
+          totalSessionMs={readingDurationMs}
+          breakStats={state.breakStats}
+        />
       )}
 
-      <div className="mx-auto max-w-3xl px-6 pb-16">
-        <h2 className="mb-4 font-display text-2xl text-ink">Your progress</h2>
-        <Analytics history={history} />
+      <div className="pt-10">
+        <h2 className="mb-4 px-1 font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Your progress.</h2>
+        <Analytics history={history} hideTrends />
       </div>
     </div>
   );

@@ -112,6 +112,9 @@ export const storage = {
     return session().daily.todayBreakMs();
   },
   /** Merges one completed session into today's aggregate row. */
+  recordTestTime(ms: number): DailyActivity {
+    return session().daily.recordTestTime(ms);
+  },
   recordSession(input: RecordSessionInput): DailyActivity {
     return session().daily.recordSession(input);
   },

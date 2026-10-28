@@ -31,6 +31,12 @@ search history, backend tokens). Which OOP principles and patterns are used, why
 and exactly where is documented in [`docs/OOP_ARCHITECTURE.md`](docs/OOP_ARCHITECTURE.md).
 Run the isolation tests with `npm run test:session`.
 
+**Engineering research:** see [`docs/RESEARCH.md`](docs/RESEARCH.md) for public
+references on document handling, uploads, search, collaboration, revision,
+reliability, and connections to OOP, computer networks, operating systems, and
+database systems. It is a learning guide, not a claim that every referenced
+capability is implemented.
+
 ---
 
 ## Architecture at a glance

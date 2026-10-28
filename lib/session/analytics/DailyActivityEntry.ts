@@ -54,6 +54,11 @@ export class DailyActivityEntry {
     });
   }
 
+  /** Adds the duration of one finished test to the day. */
+  addTestTime(ms: number): DailyActivityEntry {
+    return new DailyActivityEntry({ ...this.data, testMs: (this.data.testMs ?? 0) + Math.max(0, Math.round(ms)) });
+  }
+
   toJSON(): DailyActivity {
     return { ...this.data };
   }

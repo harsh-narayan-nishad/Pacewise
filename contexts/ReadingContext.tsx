@@ -43,6 +43,9 @@ export interface ReadingState {
   quizQuestionCount: number;
   /** True when the quiz was started without reading the story first. */
   quizOnly: boolean;
+  /** When the quiz was started ("Begin quiz") and when it ended (Done / Finish): the whole test duration. */
+  quizStartedAt: number | null;
+  quizFinishedAt: number | null;
   settingsPanelOpen: boolean;
   breakStats: BreakStats | null;
   /** Chosen BEFORE a session starts: Start opens the free-scroll article view (/read) instead of the auto-scroll reader. */
@@ -97,6 +100,8 @@ const initialState: ReadingState = {
   answers: [],
   quizQuestionCount: 5,
   quizOnly: false,
+  quizStartedAt: null,
+  quizFinishedAt: null,
   settingsPanelOpen: false,
   breakStats: null,
   readingMode: false,
@@ -148,13 +153,13 @@ function reducer(state: ReadingState, action: Action): ReadingState {
     case "COMPLETE":
       return { ...state, isPlaying: false, phase: "completed", finishedAt: Date.now(), progress: 1 };
     case "GO_TO_QUESTIONS":
-      return { ...state, phase: "questions", quizQuestionCount: action.quizQuestionCount, quizOnly: action.quizOnly ?? false, answers: [] };
+      return { ...state, phase: "questions", quizQuestionCount: action.quizQuestionCount, quizOnly: action.quizOnly ?? false, answers: [], quizStartedAt: Date.now(), quizFinishedAt: null };
     case "ANSWER_QUESTION": {
       const others = state.answers.filter((a) => a.questionIndex !== action.answer.questionIndex);
       return { ...state, answers: [...others, action.answer] };
     }
     case "GO_TO_RESULTS":
-      return { ...state, phase: "results" };
+      return { ...state, phase: "results", quizFinishedAt: Date.now() };
     case "UPDATE_FONTS":
       return { ...state, fonts: { ...state.fonts, ...action.fonts } };
     case "RESET_FONTS_TO_DEFAULT":

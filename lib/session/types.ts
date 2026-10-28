@@ -27,6 +27,8 @@ export interface DailyActivity {
   effectiveWpmSamples: number;
   reductionPercentSum: number;
   reductionPercentSamples: number;
+  /** Milliseconds spent taking tests that day (start to finish of each quiz). Optional: older rows predate it. */
+  testMs?: number;
 }
 
 /** What one finished reading session contributes to a day's aggregate. */

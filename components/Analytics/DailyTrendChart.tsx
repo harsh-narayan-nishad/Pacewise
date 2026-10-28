@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { PagerPill } from "@/components/Analytics/PagerPill";
 import { BRAND_BLUE } from "@/lib/brand";
+import { HOVER_CARD_CLASS } from "@/lib/chartStyle";
 import { DailyActivity, storage } from "@/lib/storage";
 import { formatShortDuration } from "@/lib/wpmCalculator";
 import SpinnerLoader from "@/components/ui/loaders/SpinnerLoader";
@@ -156,8 +157,8 @@ function TrendTooltip({ active, payload }: any) {
   if (!active || !payload || !payload.length) return null;
   const p: TrendPoint = payload[0].payload;
   return (
-    <div className="rounded-lg border border-overlay/10 bg-canvas-raised px-3 py-2 text-xs shadow-themed">
-      <div className="mb-1 font-medium text-ink">{p.label}</div>
+    <div className={HOVER_CARD_CLASS}>
+      <div className="mb-1 font-display text-base tracking-[-0.02em] text-ink">{p.label}</div>
       <div className="text-ink-muted">
         Effective WPM: <span className="text-ink">{p.effectiveWpm}</span>
       </div>

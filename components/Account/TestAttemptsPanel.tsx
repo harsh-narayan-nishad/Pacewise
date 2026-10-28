@@ -56,7 +56,8 @@ export function TestAttemptsPanel({ showHeading = true }: { showHeading?: boolea
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm text-ink">{a.title}</div>
                         <div className="text-xs text-ink-muted">
-                          {new Date(a.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                          {a.quizStartedAt ? `Started ${new Date(a.quizStartedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : new Date(a.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                          {typeof a.quizTotalTimeMs === "number" && a.quizTotalTimeMs > 0 && <> · took {formatDuration(a.quizTotalTimeMs)}</>}
                           {typeof a.totalQuestions === "number" && typeof a.correctAnswers === "number" && (
                             <> · {a.correctAnswers}/{a.totalQuestions} correct</>
                           )}

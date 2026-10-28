@@ -7,6 +7,7 @@ import { DailyActivity, storage, toDateKey } from "@/lib/storage";
 import { formatShortDuration } from "@/lib/wpmCalculator";
 import { PagerPill } from "@/components/Analytics/PagerPill";
 import { BRAND_BLUE } from "@/lib/brand";
+import { HOVER_CARD_CLASS } from "@/lib/chartStyle";
 import SpinnerLoader from "@/components/ui/loaders/SpinnerLoader";
 
 type Level = 0 | 1 | 2 | 3;
@@ -31,7 +32,7 @@ const LEVEL_LABEL: Record<Level, string> = {
  *  stronger "active day" signal than partial minutes. */
 function levelFor(entry: DailyActivity | null): Level {
   if (!entry) return 0;
-  const score = entry.minutes + entry.storiesCompletedCount * 20;
+  const score = entry.minutes + entry.storiesCompletedCount * 20 + (entry.testMs ?? 0) / 60_000;
   if (score <= 0) return 0;
   if (score < 15) return 1;
   if (score < 40) return 2;
@@ -65,7 +66,8 @@ function tooltipLines(day: DayCell): string[] {
     label,
     `Attempts: ${entry.sessions}`,
     `${entry.storiesCompletedCount > 0 ? "✅" : "—"} ${entry.storiesCompletedCount} ${entry.storiesCompletedCount === 1 ? "Story" : "Stories"}`,
-    `Reading Time: ${entry.minutes} min`,
+    `Total reading time: ${formatShortDuration(entry.minutes * 60_000)}`,
+    `Total test time: ${formatShortDuration(entry.testMs ?? 0)}`,
     `Effective WPM: ${avgWpm ?? "—"}`,
     `Break Time: ${entry.breakMs > 0 ? formatShortDuration(entry.breakMs) : "0s"}`,
   ];
@@ -283,11 +285,11 @@ export function ContributionHeatmap() {
       {hovered && (
         <div
           role="tooltip"
-          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full whitespace-pre-line rounded-lg border border-overlay/10 bg-canvas-raised px-3 py-2 text-xs text-ink shadow-themed"
+          className={`pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full whitespace-pre-line ${HOVER_CARD_CLASS}`}
           style={{ left: hovered.x, top: hovered.y - 8 }}
         >
           {tooltipLines(hovered.day).map((line, i) => (
-            <div key={i} className={i === 0 ? "mb-1 font-medium" : "text-ink-muted"}>
+            <div key={i} className={i === 0 ? "mb-1 font-display text-base tracking-[-0.02em] text-ink" : "text-ink-muted"}>
               {line}
             </div>
           ))}

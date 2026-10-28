@@ -1,6 +1,6 @@
 /** Pages anyone can open without signing in (e.g. the notes a QR code points to). */
 export function isPublicPath(pathname: string | null | undefined): boolean {
-  return !!pathname && /^\/notes\/[^/]+\/?$/.test(pathname);
+  return !!pathname && /^\/notes\/[^/]+(\/docs\/[^/]+)?\/?$/.test(pathname);
 }
 
 /** Home address of the deployed app. `NEXT_PUBLIC_SITE_URL` overrides it (e.g. once a custom domain is set). */

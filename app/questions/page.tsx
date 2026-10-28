@@ -31,7 +31,8 @@ export default function QuestionsPage() {
   /** undefined = untouched, null = skipped, number = chosen option. */
   const [picked, setPicked] = useState<Record<number, number | null>>({});
   const startedAt = useRef(Date.now());
-  const times = useRef<Record<number, number>>({});
+  /** Time spent looking at each question, summed over every visit (revisits count). */
+  const dwell = useRef<Record<number, number>>({});
 
   useEffect(() => {
     if (!state.story) router.replace("/");
@@ -88,23 +89,26 @@ export default function QuestionsPage() {
   const answered = picked[index];
   const reveal = answered !== undefined && answered !== null;
 
+  /** Adds the time since this question was opened to its total and restarts the clock. */
+  function flushDwell() {
+    const now = Date.now();
+    dwell.current[index] = (dwell.current[index] ?? 0) + (now - startedAt.current);
+    startedAt.current = now;
+  }
+
   function goTo(i: number) {
     if (i < 0 || i >= questions.length) return;
+    flushDwell();
     setIndex(i);
-    startedAt.current = Date.now();
   }
 
   function choose(option: number) {
     if (reveal) return;
-    if (times.current[index] === undefined) times.current[index] = Date.now() - startedAt.current;
     setPicked((p) => ({ ...p, [index]: option }));
   }
 
   function skip() {
-    if (picked[index] === undefined) {
-      times.current[index] = Date.now() - startedAt.current;
-      setPicked((p) => ({ ...p, [index]: null }));
-    }
+    if (picked[index] === undefined) setPicked((p) => ({ ...p, [index]: null }));
     if (index < questions.length - 1) goTo(index + 1);
   }
 
@@ -118,10 +122,11 @@ export default function QuestionsPage() {
   }
 
   function done() {
+    flushDwell();
     questions.forEach((_, i) =>
       dispatch({
         type: "ANSWER_QUESTION",
-        answer: { questionIndex: i, selectedOption: picked[i] ?? null, flagged: marked.has(i), timeSpentMs: times.current[i] ?? 0 },
+        answer: { questionIndex: i, selectedOption: picked[i] ?? null, flagged: marked.has(i), timeSpentMs: dwell.current[i] ?? 0 },
       })
     );
     dispatch({ type: "GO_TO_RESULTS" });
@@ -198,7 +203,7 @@ export default function QuestionsPage() {
         </div>
       </section>
 
-      <QuestionTracker questions={questions} current={index} statuses={statuses} marked={marked} onSelect={goTo} />
+      <QuestionTracker questions={questions} current={index} statuses={statuses} marked={marked} startedAt={state.quizStartedAt} onSelect={goTo} />
     </div>
   );
 }

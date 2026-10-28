@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Check, Circle, Flag } from "lucide-react";
 import AnimatedList, { type AnimatedListEntry } from "@/components/ui/AnimatedList";
 import { StoryQuestion } from "@/types";
+import { LiquidGlass } from "@/components/ui/LiquidGlass";
+import { formatDuration } from "@/lib/wpmCalculator";
 import { cn } from "@/lib/utils";
 
 export type QuestionStatus = "unanswered" | "completed" | "skipped";
@@ -14,6 +16,8 @@ interface Props {
   statuses: QuestionStatus[];
   /** Question indexes the person marked to review later. */
   marked: ReadonlySet<number>;
+  /** When the test began (ms since epoch), for the live total-time readout. */
+  startedAt: number | null;
   onSelect: (index: number) => void;
 }
 
@@ -54,8 +58,14 @@ function statusLabel(status: QuestionStatus, marked: boolean): string {
 }
 
 /** Right-hand panel of the quiz: how many are completed, which are marked for review, and a Done button. */
-export function QuestionTracker({ questions, current, statuses, marked, onSelect }: Props) {
+export function QuestionTracker({ questions, current, statuses, marked, startedAt, onSelect }: Props) {
   const [filter, setFilter] = useState<Filter | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  const elapsed = startedAt ? Math.max(0, now - startedAt) : 0;
   const completed = statuses.filter((s) => s === "completed").length;
   const counts: Record<Filter, number> = {
     completed,
@@ -99,13 +109,34 @@ export function QuestionTracker({ questions, current, statuses, marked, onSelect
   return (
     <aside aria-label="Question tracker" className="rounded-[32px] bg-canvas-raised/30 p-4 backdrop-blur-xl sm:p-8 lg:sticky lg:top-24">
       <h2 className="font-display text-2xl leading-tight sm:text-3xl tracking-[-0.03em] text-ink">Your progress</h2>
-      <p className="mt-1 text-ink-muted">
-        <span className="text-ink">{completed}</span> of {questions.length} completed
-        {marked.size > 0 && <> · <span className="text-ink">{marked.size}</span> marked for review</>}
-      </p>
-      <div className="mt-4 h-1 overflow-hidden rounded-full bg-overlay/10" role="progressbar" aria-valuemin={0} aria-valuemax={questions.length} aria-valuenow={completed} aria-label="Questions completed">
-        <div className="h-full rounded-full bg-accent-medium transition-all" style={{ width: `${questions.length ? (completed / questions.length) * 100 : 0}%` }} />
-      </div>
+
+      {/* Progress, in the style of the macOS volume HUD: a glass card with a title, a track with end icons, and tick dots. */}
+      <LiquidGlass radius={22} frost={0.3} className="mt-4 border border-overlay/10 px-4 py-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-[15px] font-medium text-ink">
+            {completed} of {questions.length} completed
+          </span>
+          {marked.size > 0 && <span className="text-xs text-ink-muted">{marked.size} marked for review</span>}
+        </div>
+        <div className="mt-3 flex items-center gap-3 text-ink-muted">
+          <Circle className="h-3.5 w-3.5 shrink-0" />
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-overlay/20" role="progressbar" aria-valuemin={0} aria-valuemax={questions.length} aria-valuenow={completed} aria-label="Questions completed">
+            <div className="h-full rounded-full bg-ink/80 transition-all duration-300" style={{ width: `${questions.length ? (completed / questions.length) * 100 : 0}%` }} />
+          </div>
+          <Check className="h-3.5 w-3.5 shrink-0" />
+        </div>
+        <div aria-hidden className="mt-2 flex justify-between px-[1.6rem]">
+          {Array.from({ length: 16 }, (_, i) => (
+            <span key={i} className="h-[3px] w-[3px] rounded-full bg-ink-faint" />
+          ))}
+        </div>
+      </LiquidGlass>
+
+      {/* Whole-test clock, shown on its own. */}
+      <LiquidGlass radius={22} frost={0.3} className="mt-3 flex items-center justify-between border border-overlay/10 px-4 py-3">
+        <span className="text-[15px] font-medium text-ink">Total test time</span>
+        <span className="font-mono text-[15px] text-ink" aria-live="off">{formatDuration(elapsed)}</span>
+      </LiquidGlass>
 
       <div className="mt-5">
         <AnimatedList
@@ -142,15 +173,12 @@ export function QuestionTracker({ questions, current, statuses, marked, onSelect
               aria-label={`${label}, ${counts[id]}`}
               aria-pressed={active}
               onClick={() => setFilter(active ? null : id)}
-              className={cn(
-                "relative grid h-14 w-14 place-items-center rounded-full bg-accent-medium text-white transition-all",
-                active ? "ring-2 ring-white ring-offset-2 ring-offset-transparent" : "opacity-80 hover:opacity-100"
-              )}
+              className={cn("relative h-14 w-14 rounded-full transition-transform hover:scale-105", active && "scale-105")}
             >
-              <span className="grid h-8 w-8 place-items-center rounded-full border-2 border-white">
-                <Icon className="h-4 w-4" strokeWidth={2.5} />
-              </span>
-              <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-canvas px-1 text-[11px] font-medium text-ink">
+              <LiquidGlass radius={28} frost={0.3} className={cn("grid h-full w-full place-items-center rounded-full border-2 border-accent-medium text-accent-medium transition-colors", active ? "bg-white" : "bg-white/75")}>
+                <Icon className="h-5 w-5" strokeWidth={2.25} />
+              </LiquidGlass>
+              <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full border border-accent-medium bg-white px-1 text-[11px] font-medium text-accent-medium">
                 {counts[id]}
               </span>
             </button>

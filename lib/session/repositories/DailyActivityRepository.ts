@@ -37,6 +37,16 @@ export class DailyActivityRepository extends UserScopedRepository<Record<string,
     return this.read()[toDateKey(now)]?.breakMs ?? 0;
   }
 
+  /** Adds one finished test's total time to today's row (creating the row if there was no reading). */
+  recordTestTime(ms: number, now: Date = new Date()): DailyActivity {
+    const key = toDateKey(now);
+    const all = this.read();
+    const existing = all[key] ? DailyActivityEntry.from(all[key]) : DailyActivityEntry.empty(key);
+    const next = existing.addTestTime(ms).toJSON();
+    this.write({ ...all, [key]: next });
+    return next;
+  }
+
   /** Folds one completed session into today's row and persists. */
   recordSession(input: RecordSessionInput, now: Date = new Date()): DailyActivity {
     const key = toDateKey(now);

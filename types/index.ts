@@ -125,6 +125,8 @@ export interface ReadingHistoryEntry {
   correctAnswers?: number;
   quizTotalTimeMs?: number;
   avgTimePerQuestionMs?: number;
+  /** ISO time the quiz was started (set when the test begins); `date` is when it was saved. */
+  quizStartedAt?: string;
 }
 
 export interface FontSettings {
