@@ -31,3 +31,55 @@ Note: AnimatedList's demo icon imports (hugeicons) were removed; not verified in
 
 ## Uploaded-PDF owner fix
 A PDF's pages are images, so a big one can exceed the ~5 MB browser storage quota; the save failed silently and the story then looked like it belonged to someone else. `CustomStoryRepository` now also records the uploader's id in a tiny separate list (`customStoryClaims`), and `SessionManager.findCustomStoryOwner` checks it. Test: `scripts/session-isolation.test.ts`. A PDF too big to store still opens for the session but is not kept in the library.
+
+## Test timing (start to finish)
+- `ReadingContext` stores `quizStartedAt` (set when "Begin quiz" is pressed, via `GO_TO_QUESTIONS`) and `quizFinishedAt` (set by `GO_TO_RESULTS`). **Total test time = finish - start**, shown on the results page, the quiz panel (live), and in history.
+- Per-question time is the sum of every visit to that question (`flushDwell` in `app/questions/page.tsx`), so revisits and unanswered questions are counted.
+- History entries have `quizStartedAt`; "Past test attempts" shows "Started 10:42 AM · took 12:03".
+- Each finished test adds its duration to that day's `testMs` (`DailyActivityRepository.recordTestTime`); the consistency tracker's hover card shows total reading time and total test time, and a test-only day counts as active.
+- Leaving mid-quiz without finishing records nothing (there is no result to attach it to).
+
+## Results page and visual system
+- Results use the site width (`max-w-6xl`) and the apple.com home-page tile grid: one score tile (rating, copy, two pills, all numbers), then Reading speed and Accuracy tiles side by side (`TrendTiles`), Time per question (10 rows at a time, "Show 10 more" / "Show less"), efficiency, and the remaining analytics. The Analytics page uses the same width (`PageShell wide`).
+- The pager under showcase cards is dots only (no play/pause, no auto-advance).
+- Hover cards share one style (`lib/chartStyle.ts`).
+- Quiz panel: progress shown like the macOS volume HUD inside a liquid-glass container (`components/ui/LiquidGlass.tsx`, the navbar's `GlassSurface`), a separate live "Total test time", and white round filter buttons with green strokes.
+- Sign-in / sign-up screens use the same card, display heading, underlined fields and pill tabs as the rest of the app. Behaviour is unchanged.
+
+## Public notes site (QR code) - documents as web pages
+- `/notes/<userId>` (no login) shows the notes, then every document of this `docs/` folder; `/notes/<userId>/docs/<slug>` shows one document as a web page. Links between documents work, and `#section` links jump to headings.
+- The page has the landing navbar (glass bar, hamburger and name on the left, theme switch on the right). The hamburger has no personal data (no playlists, search history, uploads or sign-out); it lists the notes and one row per docs folder (**Project docs**, **Interview prep**). Opening a folder lists its documents; the one being read is highlighted.
+- How it works: `scripts/build-docs.mjs` bundles `docs/**/*.md` into `lib/docs/generated.ts` (full text, server only) and `lib/docs/index.generated.ts` (titles only, used by the menu). It runs automatically before `dev` and `build`, so new or edited docs appear without extra steps; run `npm run docs:build` to refresh by hand. `lib/docs/markdown.ts` turns Markdown into escaped HTML (tests: `npm run test:docs`).
+- Only `.md` files are published. `docs/DEMO_ACCOUNTS.csv` (demo passwords) is deliberately excluded. Anything you write in a `docs/*.md` file becomes public through the QR link, so keep secrets out of those files.
+
+## Document pages (public notes)
+
+- **Diagrams** written as Mermaid blocks are interactive: drag to pan, arrow pad, zoom in/out (Ctrl/⌘ + scroll), reset, expand to full screen, copy source. Needs the `mermaid` package (`npm install`).
+- **Navbar** on document pages hides when scrolling down and returns on any scroll up.
+- **Research** has its own section in the hamburger menu, fed by `docs/research/*.md`.
+- **Writing tools** for authors: `++underline++`, `~~strike~~`, `***bold italic***`. (`==text==` is accepted but shows as plain text; readers have no select-to-highlight tool on document pages.)
+- Code blocks use a larger font.
+- **Search** in the centre of the public navbar: a pill that widens on hover/focus; it searches all text on the pages (titles, headings, body, code), shows a snippet with the match highlighted and opens that section; Enter opens the first result. The index is generated into `lib/docs/search.generated.ts` by `scripts/build-docs.mjs` and loaded only when the search is used.
+- **Diagrams** now load Mermaid + the ELK layout from a CDN (no `npm install` needed) and draw like GitHub's viewer (orthogonal arrows).
+- **Code blocks** are syntax-coloured with indentation kept. Write ` ```ts title="path/to/file.ts" principle="What principle it shows" ` to show the file path on top and the principle underneath. Any ` ```mermaid ` block becomes an interactive diagram, so new block diagrams can be added the same way.
+- The search bar sits in the centre of the navbar.
+
+## Question types (quiz JSON)
+
+Besides single-choice, the quiz JSON can contain:
+
+- **Select all that apply** — `"correctAnswer": [0, 2]` (indexes, letters or option texts). Marked right only when exactly that set is chosen.
+- **Typed number** — `"options": []` and `"correctAnswer": 4.25`. Whole numbers must match exactly; decimals are accepted within ±0.01 (set `"tolerance"` to change).
+
+The quiz shows checkboxes or a number box with a **Check answer** button (leaving the question submits what was entered), and results, timing and accuracy use the same grading (`lib/grading.ts`). A sample is in `scripts/fixtures/gate-cs1-2026.json`; tests are in `scripts/quiz.test.ts`.
+
+## Quiz JSON: optional labels and code in questions
+
+- Each question may also carry these **optional** fields (none are required): `chapter`, `topic`, `year` (year the previous-year question appeared, e.g. `2026`; also accepted as `pyqYear`) and `note` (shown on the results page after the test). Chapter, topic and year appear as small chips above the question while taking the quiz. The one-by-one editor has matching optional boxes.
+- **Code in a question** is shown as a code block with its indentation and line breaks kept and syntax colours. Write it in the JSON with `\n` line breaks (and spaces for indentation), or wrap it in a Markdown fence inside the string (```` ```c … ``` ````). Plain-text questions with pasted code lines are detected automatically. Options that span several lines are shown as code too.
+
+## Syllabus section, layering, and the quiz schema panel
+
+- **Syllabus**: a menu section (below Research) fed by `docs/syllabus/*.md`: chapter 1 *Pacewise* (sub-systems A–T and the hard engineering areas) and placeholders for chapters 2–8; `docs/syllabus/README.md` is the index.
+- **Layering on doc pages** (top to bottom): menu drawer (z 110) → its backdrop (100) → navbar and its search dropdown (95) → full-screen diagram (90, sits under the navbar) → page content.
+- **Quiz schema panel**: the JSON / file tab of the question uploader (shared by Add story, Edit story and the PDF questions dialog) lists every accepted field, its type, whether it is required, and a full example.

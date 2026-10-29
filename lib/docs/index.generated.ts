@@ -128,6 +128,12 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "SDE Interview Prep — topic-wise (Easy / Medium / Hard)"
  },
  {
+  "slug": "research--00-pacewise-research-readme",
+  "path": "research/00-pacewise-research-readme.md",
+  "folder": "research",
+  "title": "Pacewise — Research README"
+ },
+ {
   "slug": "research--01-scaling-security-and-notifier",
   "path": "research/01-scaling-security-and-notifier.md",
   "folder": "research",
@@ -150,5 +156,59 @@ export const DOC_INDEX: DocMeta[] = [
   "path": "research/README.md",
   "folder": "research",
   "title": "Research"
+ },
+ {
+  "slug": "syllabus--01-pacewise",
+  "path": "syllabus/01-pacewise.md",
+  "folder": "syllabus",
+  "title": "Pacewise"
+ },
+ {
+  "slug": "syllabus--02-backend",
+  "path": "syllabus/02-backend.md",
+  "folder": "syllabus",
+  "title": "Backend"
+ },
+ {
+  "slug": "syllabus--03-tools-technology-and-methodology-used",
+  "path": "syllabus/03-tools-technology-and-methodology-used.md",
+  "folder": "syllabus",
+  "title": "Tools, Technology and Methodology used"
+ },
+ {
+  "slug": "syllabus--04-cn-os-oops-dbms-utilization",
+  "path": "syllabus/04-cn-os-oops-dbms-utilization.md",
+  "folder": "syllabus",
+  "title": "Core CSE"
+ },
+ {
+  "slug": "syllabus--05-challenges",
+  "path": "syllabus/05-challenges.md",
+  "folder": "syllabus",
+  "title": "Challenges"
+ },
+ {
+  "slug": "syllabus--06-system-design",
+  "path": "syllabus/06-system-design.md",
+  "folder": "syllabus",
+  "title": "System Design"
+ },
+ {
+  "slug": "syllabus--07-research-references",
+  "path": "syllabus/07-research-references.md",
+  "folder": "syllabus",
+  "title": "Research References"
+ },
+ {
+  "slug": "syllabus--08-insights",
+  "path": "syllabus/08-insights.md",
+  "folder": "syllabus",
+  "title": "Insights"
+ },
+ {
+  "slug": "syllabus--readme",
+  "path": "syllabus/README.md",
+  "folder": "syllabus",
+  "title": "Pacewise syllabus"
  }
 ];

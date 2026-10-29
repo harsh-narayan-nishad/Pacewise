@@ -252,6 +252,29 @@ Two things make this robust:
 **Why:** callers can't produce a wrong key, skip the cap, or mutate a half-built record. The
 isolation guarantee is structural — no call site has to "remember" to include the user id.
 
+```ts title="lib/session/UserScopedRepository.ts" principle="Encapsulation — read/write/storageKey are protected, so callers can only use the subclass's verbs"
+export abstract class UserScopedRepository<T> {
+  constructor(
+    protected readonly store: KeyValueStore,
+    protected readonly namespace: UserNamespace
+  ) {}
+
+  protected storageKey(): string {
+    return this.namespace.key(this.feature());
+  }
+
+  protected read(): T {
+    const raw = this.store.getItem(this.storageKey());
+    if (raw === null) return this.emptyValue();
+    try {
+      return this.deserialize(JSON.parse(raw));
+    } catch {
+      return this.emptyValue();
+    }
+  }
+}
+```
+
 ### 5.2 Abstraction
 *Program against what something does, not how.*
 
@@ -262,6 +285,15 @@ isolation guarantee is structural — no call site has to "remember" to include 
 
 **Why:** the session layer has no knowledge of `localStorage` or of the dev login, so either can be
 replaced without touching a single repository.
+
+```ts title="lib/session/storage/KeyValueStore.ts" principle="Abstraction + Dependency Inversion — repositories depend on this interface, never on localStorage"
+export interface KeyValueStore {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+  keys(): string[];
+}
+```
 
 ### 5.3 Inheritance (used sparingly, two levels)
 *Reuse an invariant algorithm; specialise only what varies.*
@@ -278,13 +310,29 @@ UserScopedRepository<T>            read / write / clear / key building   (abstra
      └─ SearchHistoryRepository    cap 30, case-insensitive de-dupe
 ```
 
-**Why inheritance here:** seven repositories share one *real* "is-a" relationship and one
-algorithm. `ListRepository` exists because five of them are lists and would otherwise each
+**Why inheritance here:** seven repositories share ==one *real* "is-a" relationship and one
+algorithm==. `ListRepository` exists because five of them are lists and would otherwise each
 re-write the empty-array default, the "is it really an array?" guard and read-modify-write. The
-hierarchy stops at two levels on purpose — deeper trees get brittle.
+==hierarchy stops at two levels on purpose== — deeper trees get brittle.
+
+```ts title="lib/session/repositories/SearchHistoryRepository.ts" principle="Inheritance + Template Method — the base class owns read/write, this subclass only fills in the varying hooks"
+export class SearchHistoryRepository extends ListRepository<SearchHistoryEntry> {
+  static readonly MAX_ENTRIES = 30;
+
+  protected feature(): string {
+    return "searchHistory";
+  }
+
+  protected deserialize(raw: unknown): SearchHistoryEntry[] {
+    if (!Array.isArray(raw)) return [];
+    const now = new Date().toISOString();
+    return raw.map((entry) => (typeof entry === "string" ? { term: entry, date: now } : (entry as SearchHistoryEntry)));
+  }
+}
+```
 
 ### 5.4 Polymorphism
-*One call, different behavior depending on the concrete type.*
+*==One call, different behavior depending on the concrete type.==*
 
 - **Template Method hooks.** The base class's `read()` calls `this.deserialize(...)` and
   `this.emptyValue()`. `SearchHistoryRepository` overrides `deserialize` to upgrade the older
@@ -293,6 +341,15 @@ hierarchy stops at two levels on purpose — deeper trees get brittle.
   behind `KeyValueStore` (the tests use the memory one in place of `localStorage`).
 - **Uniform treatment.** `UserSession.clearAllData()` loops
   `ReadonlyArray<UserScopedRepository<unknown>>` and calls `clear()` on each.
+
+```ts title="lib/session/UserSession.ts" principle="Polymorphism — one call, seven different repositories, each clears its own data"
+private readonly repositories: ReadonlyArray<UserScopedRepository<unknown>>;
+
+/** Wipes every feature's data for *this user only*. */
+clearAllData(): void {
+  this.repositories.forEach((repo) => repo.clear());
+}
+```
 
 ### 5.5 Composition over inheritance
 *Build big things by combining small collaborators.*
@@ -304,9 +361,33 @@ hierarchy stops at two levels on purpose — deeper trees get brittle.
 **Why:** "a user's session" isn't a kind of repository; it's a bundle of them. Composition keeps each
 piece independently testable and replaceable.
 
+```ts title="lib/session/UserSession.ts" principle="Composition over inheritance — UserSession HAS repositories; all share one namespace, bound at construction"
+constructor(
+  readonly namespace: UserNamespace,
+  store: KeyValueStore,
+  private readonly stats: LifetimeStatsCalculator = new LifetimeStatsCalculator()
+) {
+  this.history = new HistoryRepository(store, namespace);
+  // …one repository per feature, same namespace
+}
+```
+
 ### 5.6 Immutability / value objects
 `UserNamespace` and `DailyActivityEntry` never change after construction (`merge` returns a new entry).
 **Why:** a half-applied update can't be observed or saved, and equal namespaces are interchangeable.
+
+```ts title="lib/session/UserNamespace.ts" principle="Value object + private constructor/static factory — a blank id can never produce an un-namespaced key"
+export class UserNamespace {
+  static readonly GUEST_ID = "guest";
+
+  private constructor(readonly userId: string) {}
+
+  static forUser(userId: string | null | undefined): UserNamespace {
+    const trimmed = userId?.trim();
+    return new UserNamespace(trimmed ? trimmed : UserNamespace.GUEST_ID);
+  }
+}
+```
 
 ---
 

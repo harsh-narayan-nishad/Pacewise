@@ -5,6 +5,30 @@ import { FileJson, FormInput, Upload, Trash2 } from "lucide-react";
 import { StoryQuestion } from "@/types";
 import { QUESTIONS_EXAMPLE, parseQuestionsInput, questionsToJson } from "@/lib/questionImport";
 
+const SCHEMA_ROWS: [string, string, string, string][] = [
+  ["question", "string", "required", "The question. Code is allowed: use \\n line breaks and spaces, or a ``` fence."],
+  ["options", "string[]", "required*", "2 to 12 choices. *Use [] for a typed-number question."],
+  ["correctAnswer", "number | number[] | string", "required", "0-based index, letter (\"B\") or option text. A list like [0, 2] = select all that apply. With options [] it is the number to type."],
+  ["explanation", "string", "required", "Why the answer is right (shown after answering)."],
+  ["tolerance", "number", "optional", "Typed-number questions: allowed difference (default: exact; decimals ±0.01)."],
+  ["chapter", "string", "optional", "Chapter name, shown above the question."],
+  ["topic", "string", "optional", "Topic name, shown above the question."],
+  ["year", "number", "optional", "Year a previous-year question appeared, e.g. 2026."],
+  ["note", "string", "optional", "Note shown on the results page after the test."],
+];
+const SCHEMA_EXAMPLE = `[
+  {
+    "question": "Which scheduling policy can starve a process?",
+    "options": ["FCFS", "Round robin", "Priority", "Aging"],
+    "correctAnswer": 2,
+    "explanation": "Low-priority processes may wait forever.",
+    "chapter": "Operating Systems",
+    "topic": "CPU scheduling",
+    "year": 2026,
+    "note": "Revise aging."
+  }
+]`;
+
 export const emptyQuestion = (): StoryQuestion => ({ question: "", options: ["", ""], correctAnswer: 0, explanation: "" });
 
 interface Props {
@@ -216,6 +240,33 @@ export function QuestionsInput({ value, onChange, variant = "default" }: Props) 
             <code>options</code> (2+), <code>correctAnswer</code> (0-based number, letter like &quot;B&quot;, or the exact option text) and{" "}
             <code>explanation</code>. Use a list like <code>[0, 2]</code> for &quot;select all that apply&quot;, or empty <code>options</code> with a number for a typed answer. Optional extras per question: <code>chapter</code>, <code>topic</code>, <code>year</code> (e.g. 2026) and <code>note</code> (shown after the test). A whole story JSON with a <code>questions</code> array works too.
           </p>
+          <details open className="rounded-lg border border-overlay/10 bg-overlay/[0.03] text-xs">
+            <summary className="cursor-pointer select-none px-3 py-2 font-medium text-ink">Quiz JSON schema (what is accepted)</summary>
+            <div className="overflow-x-auto px-3 pb-3">
+              <table className="w-full min-w-[34rem] border-collapse text-left">
+                <thead>
+                  <tr className="text-ink-muted">
+                    <th className="py-1 pr-3 font-medium">Field</th>
+                    <th className="py-1 pr-3 font-medium">Type</th>
+                    <th className="py-1 pr-3 font-medium">Required</th>
+                    <th className="py-1 font-medium">Meaning</th>
+                  </tr>
+                </thead>
+                <tbody className="align-top text-ink-muted">
+                  {SCHEMA_ROWS.map(([field, type, req, meaning]) => (
+                    <tr key={field} className="border-t border-overlay/10">
+                      <td className="py-1.5 pr-3 font-mono text-ink">{field}</td>
+                      <td className="py-1.5 pr-3 font-mono">{type}</td>
+                      <td className="py-1.5 pr-3">{req}</td>
+                      <td className="py-1.5">{meaning}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-ink-faint">The file is an array of these objects (or an object with a <code>questions</code> array). Aliases accepted: <code>q</code>/<code>text</code>, <code>choices</code>, <code>answer</code>, <code>explain</code>/<code>rationale</code>, <code>pyqYear</code>.</p>
+              <pre className="mt-2 overflow-x-auto rounded-md border border-overlay/10 bg-canvas p-2 font-mono leading-5 text-ink">{SCHEMA_EXAMPLE}</pre>
+            </div>
+          </details>
           <textarea
             value={jsonText}
             onChange={(e) => applyJson(e.target.value)}

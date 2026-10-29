@@ -30,7 +30,7 @@ export function PublicShell({ userId, children, autoHideNav = false }: { userId:
   }, [autoHideNav]);
   return (
     <>
-      <header className={`sticky top-0 z-[100] overflow-visible border-b border-overlay/10 shadow-themed ${autoHideNav ? "transition-transform duration-300" : ""} ${hidden ? "-translate-y-full" : ""}`}>
+      <header className={`sticky top-0 z-[95] overflow-visible border-b border-overlay/10 shadow-themed ${autoHideNav ? "transition-transform duration-300" : ""} ${hidden ? "-translate-y-full" : ""}`}>
         <div className="absolute inset-0 -z-10">
           <GlassSurface width="100%" height="100%" borderRadius={0} backgroundOpacity={0.55} blur={11} showEdgeHighlight={false} />
         </div>

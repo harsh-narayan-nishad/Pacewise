@@ -156,7 +156,7 @@ export function MermaidViewer({ source }: { source: string }) {
   }
 
   return (
-    <div className={full ? "fixed inset-0 z-[300] flex flex-col bg-canvas p-3 sm:p-6" : "relative my-8"}>
+    <div className={full ? "fixed inset-0 z-[90] flex flex-col bg-canvas p-3 pt-[4.5rem] sm:p-6 sm:pt-[5.5rem]" : "relative my-8"}>
       <div
         ref={frame}
         tabIndex={0}
