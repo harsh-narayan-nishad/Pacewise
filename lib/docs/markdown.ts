@@ -1,8 +1,14 @@
+import { highlight, parseFenceInfo } from "./highlight";
 /**
  * Small, dependency-free Markdown -> HTML renderer for the project's own docs.
  * Everything is HTML-escaped first, so the output is safe to inject: the only tags that can
  * appear are the ones produced here. Supports headings, paragraphs, bold / italic / inline code,
  * links, fenced code, blockquotes, horizontal rules, tables and nested lists.
+ *
+ * Writing tools (all optional, usable in any .md doc):
+ *   ==important==        highlighter (yellow);  ==green:text==  ==blue:text==  ==pink:text==  ==orange:text==
+ *   *italic*  **bold**  ***bold italic***  ++underline++  ~~strikethrough~~
+ *   ```mermaid           a diagram that becomes an interactive viewer on the doc page
  */
 export interface MarkdownOptions {
   /** Maps a link target found in the text (e.g. "OOP_ARCHITECTURE.md#x") to a real URL, or null to leave it. */
@@ -35,6 +41,11 @@ function inline(text: string, opts: MarkdownOptions): string {
     const external = /^https?:/i.test(resolved);
     return `<a href="${escapeHtml(resolved)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${label}</a>`;
   });
+  out = out
+    .replace(/==(?:(yellow|green|blue|pink|orange):)?(?=\S)([^=\n]+?)(?<=\S)==/g, (_m, c, t) => `<mark class="hl" data-c="${c ?? "yellow"}">${t}</mark>`)
+    .replace(/\+\+(?=\S)([^+\n]+?)(?<=\S)\+\+/g, "<u>$1</u>")
+    .replace(/~~(?=\S)([^~\n]+?)(?<=\S)~~/g, "<s>$1</s>")
+    .replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>");
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*\w])\*([^*\s][^*]*)\*(?!\w)/g, "$1<em>$2</em>");
   return out.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[Number(i)]);
 }
@@ -72,19 +83,37 @@ export function renderMarkdown(md: string, opts: MarkdownOptions = {}): string {
     const line = lines[i];
     if (!line.trim()) { i++; continue; }
 
-    const fence = line.match(/^\s*```+\s*([\w-]*)/);
+    const fence = line.match(/^\s*```+\s*([\w-]*)\s*(.*)$/);
     if (fence) {
       const buf: string[] = [];
       i++;
       while (i < lines.length && !/^\s*```+\s*$/.test(lines[i])) buf.push(lines[i++]);
       i++;
-      html.push(`<pre data-lang="${escapeHtml(fence[1])}"><code>${escapeHtml(buf.join("\n"))}</code></pre>`);
+      if (fence[1] === "mermaid") {
+        // Becomes an interactive diagram on the doc page; the plain source stays as the no-JS fallback.
+        html.push(`<div class="doc-diagram" data-diagram="${escapeHtml(buf.join("\n"))}"><pre data-lang="mermaid"><code>${escapeHtml(buf.join("\n"))}</code></pre></div>`);
+        continue;
+      }
+      const code = buf.join("\n");
+      const info = parseFenceInfo(fence[2] ?? "");
+      if (!fence[1] && !info.title && !info.principle) {
+        html.push(`<pre data-lang=""><code>${escapeHtml(code)}</code></pre>`);
+        continue;
+      }
+      // A captioned code block: file path + language on top, code coloured with its indentation kept, and the principle below.
+      html.push(
+        `<figure class="doc-code"><figcaption data-ann-skip="1"><span class="code-path">${info.title ? escapeHtml(info.title) : ""}</span><span class="code-lang">${escapeHtml(fence[1] || "text")}</span><button type="button" class="code-copy" aria-label="Copy code">Copy</button></figcaption>` +
+          `<pre data-lang="${escapeHtml(fence[1])}"><code>${highlight(code, fence[1])}</code></pre>` +
+          (info.principle ? `<div class="code-principle" data-ann-skip="1"><strong>Principle</strong> ${escapeHtml(info.principle)}${info.note ? ` · ${escapeHtml(info.note)}` : ""}</div>` : "") +
+          `</figure>`
+      );
       continue;
     }
     const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
     if (h) {
       const level = h[1].length;
-      html.push(`<h${level} id="${slugify(h[2])}">${inline(h[2], opts)}</h${level}>`);
+      const id = slugify(h[2]);
+      html.push(`<h${level} id="${id}">${inline(h[2], opts)}${level >= 2 ? `<a class="anchor" href="#${id}" aria-label="Link to this section">#</a>` : ""}</h${level}>`);
       i++;
       continue;
     }
@@ -125,4 +154,25 @@ export function renderMarkdown(md: string, opts: MarkdownOptions = {}): string {
 export function firstHeading(md: string, fallback: string): string {
   const m = md.match(/^#\s+(.+)$/m);
   return m ? m[1].replace(/[`*_]/g, "").trim() : fallback;
+}
+
+export interface Heading { level: number; text: string; id: string }
+
+/** h2 / h3 headings (outside code fences), for the "On this page" list. */
+export function extractHeadings(md: string): Heading[] {
+  const out: Heading[] = [];
+  let fenced = false;
+  for (const line of md.replace(/\r\n?/g, "\n").split("\n")) {
+    if (/^\s*```/.test(line)) fenced = !fenced;
+    if (fenced) continue;
+    const m = line.match(/^(#{2,3})\s+(.*?)\s*#*\s*$/);
+    if (m) out.push({ level: m[1].length, text: m[2].replace(/[`*_=+~]/g, "").trim(), id: slugify(m[2]) });
+  }
+  return out;
+}
+
+/** Minutes to read at ~200 words a minute (code and diagrams excluded). */
+export function readingMinutes(md: string): number {
+  const words = md.replace(/```[\s\S]*?```/g, " ").split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
 }

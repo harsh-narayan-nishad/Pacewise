@@ -9,6 +9,13 @@ import { useReadingState, useReadingDispatch } from "@/contexts/ReadingContext";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { cn } from "@/lib/utils";
 import { useInertiaScroll } from "@/components/ReadingMode/useInertiaScroll";
+import { CodeBlock, QuestionText } from "@/components/Quiz/QuestionText";
+import { isMultilineOption } from "@/lib/questionText";
+import { isCorrectAnswer, questionKind, toleranceOf } from "@/lib/grading";
+import type { QuestionAnswer } from "@/types";
+
+/** `picked` value for a multi-select / typed-number question once its answer is submitted (the answer itself is in `multi` / `typed`). */
+const SUBMITTED = -1;
 
 const COUNT_PRESETS = [5, 10, 15];
 
@@ -30,6 +37,9 @@ export default function QuestionsPage() {
   const [marked, setMarked] = useState<Set<number>>(new Set());
   /** undefined = untouched, null = skipped, number = chosen option. */
   const [picked, setPicked] = useState<Record<number, number | null>>({});
+  /** Ticked options of multi-select questions, and typed text of numerical questions (drafts until submitted). */
+  const [multi, setMulti] = useState<Record<number, number[]>>({});
+  const [typed, setTyped] = useState<Record<number, string>>({});
   const startedAt = useRef(Date.now());
   /** Time spent looking at each question, summed over every visit (revisits count). */
   const dwell = useRef<Record<number, number>>({});
@@ -86,8 +96,13 @@ export default function QuestionsPage() {
   }
 
   const current = questions[index];
+  const kind = questionKind(current);
   const answered = picked[index];
   const reveal = answered !== undefined && answered !== null;
+  const draftOptions = multi[index] ?? [];
+  const draftText = typed[index] ?? "";
+  const currentAnswer = reveal ? buildAnswer(index) : undefined;
+  const gotItRight = reveal && isCorrectAnswer(current, currentAnswer);
 
   /** Adds the time since this question was opened to its total and restarts the clock. */
   function flushDwell() {
@@ -96,15 +111,35 @@ export default function QuestionsPage() {
     startedAt.current = now;
   }
 
+  /** Leaving a multi-select / numerical question with something entered submits it. */
+  function lockDraft(i: number) {
+    const kind = questionKind(questions[i]);
+    const has = kind === "msq" ? (multi[i]?.length ?? 0) > 0 : kind === "nat" ? Number.isFinite(parseFloat((typed[i] ?? "").trim())) : false;
+    if (has) setPicked((p) => (p[i] === undefined ? { ...p, [i]: SUBMITTED } : p));
+  }
+
   function goTo(i: number) {
     if (i < 0 || i >= questions.length) return;
     flushDwell();
+    lockDraft(index);
     setIndex(i);
   }
 
   function choose(option: number) {
     if (reveal) return;
     setPicked((p) => ({ ...p, [index]: option }));
+  }
+
+  function submitDraft() {
+    lockDraft(index);
+  }
+
+  function toggleOption(option: number) {
+    if (reveal) return;
+    setMulti((m) => {
+      const cur = m[index] ?? [];
+      return { ...m, [index]: cur.includes(option) ? cur.filter((x) => x !== option) : [...cur, option] };
+    });
   }
 
   function skip() {
@@ -121,12 +156,30 @@ export default function QuestionsPage() {
     });
   }
 
+  /** The stored answer for question i (a draft that was never submitted counts too). */
+  function buildAnswer(i: number): QuestionAnswer {
+    const q = questions[i];
+    const base = { questionIndex: i, flagged: marked.has(i), timeSpentMs: dwell.current[i] ?? 0 };
+    const kind = questionKind(q);
+    if (picked[i] === null) return { ...base, selectedOption: null };
+    if (kind === "msq") {
+      const sel = [...(multi[i] ?? [])].sort((a, b) => a - b);
+      return sel.length ? { ...base, selectedOption: sel[0], selectedOptions: sel } : { ...base, selectedOption: null };
+    }
+    if (kind === "nat") {
+      const n = parseFloat((typed[i] ?? "").trim());
+      return Number.isFinite(n) ? { ...base, selectedOption: null, numericValue: n } : { ...base, selectedOption: null };
+    }
+    return { ...base, selectedOption: picked[i] ?? null };
+  }
+
   function done() {
     flushDwell();
+    lockDraft(index);
     questions.forEach((_, i) =>
       dispatch({
         type: "ANSWER_QUESTION",
-        answer: { questionIndex: i, selectedOption: picked[i] ?? null, flagged: marked.has(i), timeSpentMs: dwell.current[i] ?? 0 },
+        answer: buildAnswer(i),
       })
     );
     dispatch({ type: "GO_TO_RESULTS" });
@@ -154,30 +207,85 @@ export default function QuestionsPage() {
           </button>
         </div>
 
-        <h1 className="font-display text-2xl leading-[1.15] tracking-[-0.03em] text-ink [overflow-wrap:anywhere] sm:text-4xl">{current.question}</h1>
+        {(current.chapter || current.topic || current.year) && (
+          <div className="mb-4 flex flex-wrap gap-2 text-xs text-ink-muted sm:text-sm">
+            {current.chapter && <span className="rounded-full border border-overlay/15 px-3 py-1">{current.chapter}</span>}
+            {current.topic && <span className="rounded-full border border-overlay/15 px-3 py-1">{current.topic}</span>}
+            {current.year && <span className="rounded-full border border-overlay/15 px-3 py-1">PYQ {current.year}</span>}
+          </div>
+        )}
+        <QuestionText text={current.question} />
 
-        <div className="mt-8 space-y-3">
-          {current.options.map((opt, i) => {
-            const isCorrect = reveal && i === current.correctAnswer;
-            const isWrongPick = reveal && answered === i && i !== current.correctAnswer;
-            return (
-              <button
-                key={i}
-                onClick={() => choose(i)}
-                disabled={reveal}
-                className={cn(
-                  "w-full rounded-2xl border px-4 py-3.5 text-left text-base text-ink [overflow-wrap:anywhere] sm:px-5 sm:py-4 sm:text-lg transition-colors",
-                  !reveal && "border-overlay/15 hover:border-overlay/35",
-                  isCorrect && "border-accent-medium bg-accent-medium/15",
-                  isWrongPick && "border-accent-extreme bg-accent-extreme/15",
-                  reveal && !isCorrect && !isWrongPick && "border-overlay/10 text-ink-muted"
-                )}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
+        {kind !== "mcq" && (
+          <p className="mt-3 text-sm text-ink-muted">{kind === "msq" ? "Select all that apply, then check your answer." : "Type your answer as a number, then check it."}</p>
+        )}
+
+        {kind === "nat" ? (
+          <div className="mt-8">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={draftText}
+              disabled={reveal}
+              onChange={(e) => setTyped((t) => ({ ...t, [index]: e.target.value }))}
+              onKeyDown={(e) => e.key === "Enter" && submitDraft()}
+              placeholder="Your answer"
+              aria-label="Your numerical answer"
+              className={cn(
+                "w-full max-w-xs rounded-2xl border bg-transparent px-4 py-3.5 font-mono text-lg text-ink outline-none transition-colors sm:px-5 sm:py-4 sm:text-xl",
+                !reveal && "border-overlay/15 focus:border-overlay/40",
+                reveal && gotItRight && "border-accent-medium bg-accent-medium/15",
+                reveal && !gotItRight && "border-accent-extreme bg-accent-extreme/15"
+              )}
+            />
+            {reveal && !gotItRight && (
+              <p className="mt-3 text-base text-ink-muted">
+                Correct answer: <span className="font-mono text-ink">{current.numericAnswer}</span>
+                {toleranceOf(current) > 0 ? ` (±${toleranceOf(current)} accepted)` : ""}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mt-8 space-y-3">
+            {current.options.map((opt, i) => {
+              const isMulti = kind === "msq";
+              const right = isMulti ? !!current.correctAnswers?.includes(i) : i === current.correctAnswer;
+              const ticked = isMulti ? draftOptions.includes(i) : answered === i;
+              const isCorrect = reveal && right;
+              const isWrongPick = reveal && ticked && !right;
+              return (
+                <button
+                  key={i}
+                  onClick={() => (isMulti ? toggleOption(i) : choose(i))}
+                  disabled={reveal}
+                  role={isMulti ? "checkbox" : undefined}
+                  aria-checked={isMulti ? ticked : undefined}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left text-base text-ink [overflow-wrap:anywhere] sm:px-5 sm:py-4 sm:text-lg transition-colors",
+                    !reveal && !ticked && "border-overlay/15 hover:border-overlay/35",
+                    !reveal && ticked && "border-overlay/50 bg-overlay/[0.06]",
+                    isCorrect && "border-accent-medium bg-accent-medium/15",
+                    isWrongPick && "border-accent-extreme bg-accent-extreme/15",
+                    reveal && !isCorrect && !isWrongPick && "border-overlay/10 text-ink-muted"
+                  )}
+                >
+                  {isMulti && (
+                    <span aria-hidden className={cn("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs", ticked ? "border-ink bg-ink text-canvas" : "border-overlay/30")}>
+                      {ticked ? "✓" : ""}
+                    </span>
+                  )}
+                  {isMultilineOption(opt) ? <span className="min-w-0 flex-1"><CodeBlock code={opt} lang="c" size="sm" /></span> : <span className="min-w-0">{opt}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {kind !== "mcq" && !reveal && (
+          <Button className="mt-6" onClick={submitDraft} disabled={kind === "msq" ? draftOptions.length === 0 : !Number.isFinite(parseFloat(draftText.trim()))}>
+            Check answer
+          </Button>
+        )}
 
         {reveal && current.explanation && (
           <div className="mt-6 rounded-2xl border border-overlay/10 p-5 text-ink-muted">

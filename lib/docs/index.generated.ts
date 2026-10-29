@@ -126,5 +126,29 @@ export const DOC_INDEX: DocMeta[] = [
   "path": "interview/README.md",
   "folder": "interview",
   "title": "SDE Interview Prep — topic-wise (Easy / Medium / Hard)"
+ },
+ {
+  "slug": "research--01-scaling-security-and-notifier",
+  "path": "research/01-scaling-security-and-notifier.md",
+  "folder": "research",
+  "title": "Scaling, security and the test notifier"
+ },
+ {
+  "slug": "research--02-uploaded-pdf-ownership-bug",
+  "path": "research/02-uploaded-pdf-ownership-bug.md",
+  "folder": "research",
+  "title": "Uploaded PDF showed the wrong owner"
+ },
+ {
+  "slug": "research--03-vercel-deployments-vs-domains",
+  "path": "research/03-vercel-deployments-vs-domains.md",
+  "folder": "research",
+  "title": "Vercel deployments versus the domain"
+ },
+ {
+  "slug": "research--readme",
+  "path": "research/README.md",
+  "folder": "research",
+  "title": "Research"
  }
 ];

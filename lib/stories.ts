@@ -74,10 +74,11 @@ export function validateStoryShape(raw: unknown): string[] {
     r.questions.forEach((q, i) => {
       const question = q as Partial<StoryQuestion>;
       if (!isNonEmptyString(question.question)) issues.push(`questions[${i}].question is required`);
-      if (!Array.isArray(question.options) || question.options.length < 2) {
+      const typed = Array.isArray(question.options) && question.options.length === 0 && typeof question.numericAnswer === "number";
+      if (!typed && (!Array.isArray(question.options) || question.options.length < 2)) {
         issues.push(`questions[${i}].options needs at least 2 choices`);
       }
-      if (typeof question.correctAnswer !== "number") issues.push(`questions[${i}].correctAnswer must be a number index`);
+      if (!typed && typeof question.correctAnswer !== "number") issues.push(`questions[${i}].correctAnswer must be a number index`);
       if (!isNonEmptyString(question.explanation)) issues.push(`questions[${i}].explanation is required`);
     });
   }

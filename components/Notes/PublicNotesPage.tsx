@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { NotesView } from "@/components/Notes/NotesView";
@@ -11,7 +11,10 @@ import { docFolders, docUrl } from "@/lib/docs/library";
 
 /** What the QR code opens: read-only notes, then every document, no sign-in. */
 export function PublicNotesPage({ userId }: { userId: string }) {
-  const owner = devDataStore.findUserById(userId);
+  // The owner's name comes from browser storage, which the server cannot see, so it is read after mount
+  // (reading it during render made the server and browser HTML differ: a hydration error).
+  const [owner, setOwner] = useState<{ name: string } | null>(null);
+  useEffect(() => { setOwner(devDataStore.findUserById(userId) ?? null); }, [userId]);
   return (
     <PublicShell userId={userId}>
       <h1 className="font-display text-4xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Notes.</h1>

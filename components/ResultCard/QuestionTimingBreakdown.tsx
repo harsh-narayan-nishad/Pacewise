@@ -1,5 +1,6 @@
 "use client";
 
+import { isAnswered, isCorrectAnswer } from "@/lib/grading";
 import React, { useState } from "react";
 import { Check, X, MinusCircle } from "lucide-react";
 import { QuestionAnswer, StoryQuestion } from "@/types";
@@ -38,10 +39,10 @@ export function QuestionTimingBreakdown({ questions, answers, totalTimeMs }: Que
         {visible.map((q, i) => {
           const answer = byIndex.get(i);
           const timeMs = answer?.timeSpentMs ?? 0;
-          const isSkipped = !answer || answer.selectedOption === null;
-          const isCorrect = !!answer && answer.selectedOption === q.correctAnswer;
+          const isSkipped = !isAnswered(answer);
+          const isCorrect = isCorrectAnswer(q, answer);
           return (
-            <li key={i} className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors hover:bg-overlay/5 sm:gap-4 sm:px-3">
+            <li key={i} className="flex flex-wrap items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors hover:bg-overlay/5 sm:gap-4 sm:px-3">
               <span className="w-7 shrink-0 text-sm text-ink-muted">{i + 1}</span>
               {isSkipped ? (
                 <MinusCircle className="h-4 w-4 shrink-0 text-ink-faint" />
@@ -57,6 +58,14 @@ export function QuestionTimingBreakdown({ questions, answers, totalTimeMs }: Que
                 <div className="h-full rounded-full bg-accent-medium" style={{ width: `${Math.max(4, (timeMs / slowest) * 100)}%` }} />
               </div>
               <span className="w-12 shrink-0 text-right font-mono text-sm text-ink">{formatDuration(timeMs)}</span>
+              {(q.chapter || q.topic || q.year || q.note) && (
+                <div className="basis-full pl-10 text-sm text-ink-muted sm:pl-[3.25rem]">
+                  {(q.chapter || q.topic || q.year) && (
+                    <div className="text-xs">{[q.chapter, q.topic, q.year ? `PYQ ${q.year}` : ""].filter(Boolean).join(" · ")}</div>
+                  )}
+                  {q.note && <p className="mt-1 whitespace-pre-line">{q.note}</p>}
+                </div>
+              )}
             </li>
           );
         })}

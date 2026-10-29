@@ -83,7 +83,8 @@ export function QuestionsInput({ value, onChange, variant = "default" }: Props) 
     const q = value[qi];
     if (q.options.length <= 2) return;
     const correct = q.correctAnswer === oi ? 0 : q.correctAnswer > oi ? q.correctAnswer - 1 : q.correctAnswer;
-    update(qi, { options: q.options.filter((_, k) => k !== oi), correctAnswer: correct });
+    const multi = q.correctAnswers?.filter((x) => x !== oi).map((x) => (x > oi ? x - 1 : x));
+    update(qi, { options: q.options.filter((_, k) => k !== oi), correctAnswer: correct, ...(multi ? { correctAnswers: multi.length ? multi : [0] } : {}) });
   };
 
   return (
@@ -140,8 +141,32 @@ export function QuestionsInput({ value, onChange, variant = "default" }: Props) 
                   </button>
                 )}
               </div>
+              {q.options.length === 0 && q.numericAnswer !== undefined && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-ink-muted">Typed number answer</span>
+                  <input
+                    value={String(q.numericAnswer)}
+                    inputMode="decimal"
+                    onChange={(e) => { const n = parseFloat(e.target.value); update(qi, { numericAnswer: Number.isFinite(n) ? n : 0 }); }}
+                    aria-label="Correct number"
+                    className={`${field} max-w-[10rem] font-mono`}
+                  />
+                </div>
+              )}
               {q.options.map((opt, oi) => (
                 <div key={oi} className="flex items-center gap-1.5">
+                  {q.correctAnswers ? (
+                    <input
+                      type="checkbox"
+                      aria-label={`Option ${oi + 1} is correct`}
+                      className={form ? "h-5 w-5 shrink-0 cursor-pointer accent-accent-medium" : undefined}
+                      checked={q.correctAnswers.includes(oi)}
+                      onChange={() => {
+                        const next = q.correctAnswers!.includes(oi) ? q.correctAnswers!.filter((x) => x !== oi) : [...q.correctAnswers!, oi].sort((a, b) => a - b);
+                        if (next.length) update(qi, { correctAnswers: next, correctAnswer: next[0] });
+                      }}
+                    />
+                  ) : (
                   <input
                     type="radio"
                     name={`correct-${qi}`}
@@ -150,6 +175,7 @@ export function QuestionsInput({ value, onChange, variant = "default" }: Props) 
                     checked={q.correctAnswer === oi}
                     onChange={() => update(qi, { correctAnswer: oi })}
                   />
+                  )}
                   <input value={opt} onChange={(e) => setOption(qi, oi, e.target.value)} placeholder={`Option ${oi + 1}`} className={field} />
                   {q.options.length > 2 && (
                     <button type="button" aria-label={`Remove option ${oi + 1}`} onClick={() => removeOption(qi, oi)} className="px-1 text-xs text-ink-faint hover:text-ink">
@@ -159,10 +185,23 @@ export function QuestionsInput({ value, onChange, variant = "default" }: Props) 
                 </div>
               ))}
               <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => update(qi, { options: [...q.options, ""] })} className={form ? "text-base text-ink-muted hover:text-ink" : "text-xs text-ink-muted hover:text-ink"}>
+                <button type="button" hidden={q.options.length === 0} onClick={() => update(qi, { options: [...q.options, ""] })} className={form ? "text-base text-ink-muted hover:text-ink" : "text-xs text-ink-muted hover:text-ink"}>
                   + option
                 </button>
                 <input value={q.explanation} onChange={(e) => update(qi, { explanation: e.target.value })} placeholder="Explanation" className={`${field} flex-1`} />
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input value={q.chapter ?? ""} onChange={(e) => update(qi, { chapter: e.target.value || undefined })} placeholder="Chapter (optional)" className={`${field} min-w-[8rem] flex-1`} />
+                <input value={q.topic ?? ""} onChange={(e) => update(qi, { topic: e.target.value || undefined })} placeholder="Topic (optional)" className={`${field} min-w-[8rem] flex-1`} />
+                <input
+                  value={q.year ?? ""}
+                  inputMode="numeric"
+                  maxLength={4}
+                  onChange={(e) => { const y = Number(e.target.value.replace(/\D/g, "")); update(qi, { year: y ? y : undefined }); }}
+                  placeholder="Year (optional)"
+                  className={`${field} w-28 shrink-0`}
+                />
+                <input value={q.note ?? ""} onChange={(e) => update(qi, { note: e.target.value || undefined })} placeholder="Note shown after the test (optional)" className={`${field} min-w-[12rem] flex-[2]`} />
               </div>
             </div>
           ))}
@@ -175,7 +214,7 @@ export function QuestionsInput({ value, onChange, variant = "default" }: Props) 
           <p className="text-xs text-ink-faint">
             Paste a JSON array, or load a <code>.json</code>/<code>.txt</code> file. Each question needs <code>question</code>,{" "}
             <code>options</code> (2+), <code>correctAnswer</code> (0-based number, letter like &quot;B&quot;, or the exact option text) and{" "}
-            <code>explanation</code>. A whole story JSON with a <code>questions</code> array works too.
+            <code>explanation</code>. Use a list like <code>[0, 2]</code> for &quot;select all that apply&quot;, or empty <code>options</code> with a number for a typed answer. Optional extras per question: <code>chapter</code>, <code>topic</code>, <code>year</code> (e.g. 2026) and <code>note</code> (shown after the test). A whole story JSON with a <code>questions</code> array works too.
           </p>
           <textarea
             value={jsonText}

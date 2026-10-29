@@ -1,5 +1,6 @@
 "use client";
 
+import { isAnswered, isCorrectAnswer } from "@/lib/grading";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ResultCard } from "@/components/ResultCard/ResultCard";
@@ -30,8 +31,8 @@ export default function ResultsPage() {
     let answeredTime = 0;
     state.answers.forEach((a) => {
       answeredTime += a.timeSpentMs;
-      if (a.selectedOption === null) skipped += 1;
-      else if (state.story && state.story.questions[a.questionIndex].correctAnswer === a.selectedOption) correct += 1;
+      if (!isAnswered(a)) skipped += 1;
+      else if (state.story && isCorrectAnswer(state.story.questions[a.questionIndex], a)) correct += 1;
     });
     const wrong = total - correct - skipped;
     // The whole test: from "Begin quiz" to Done / Finish (falls back to the sum of per-question time).

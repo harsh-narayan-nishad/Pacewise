@@ -1,0 +1,725 @@
+[
+  {
+    "question": "The antonym of the word protagonist is ________.",
+    "options": [
+      "agnostic",
+      "antagonist",
+      "arsonist",
+      "anarchist"
+    ],
+    "correctAnswer": 1,
+    "explanation": "The protagonist is the main character; the opposing character is the antagonist."
+  },
+  {
+    "question": "Two 4-tile patterns are given: a 2x2 square and a 1x4 straight strip (either can be used any number of times, in any orientation, without overlap). Which one of the following rectangles CANNOT be constructed using only these two patterns?",
+    "options": [
+      "2 x 4 grid (8 tiles)",
+      "3 x 4 grid (12 tiles)",
+      "3 x 5 grid (15 tiles)",
+      "4 x 5 grid (20 tiles)"
+    ],
+    "correctAnswer": 2,
+    "explanation": "Every pattern uses 4 tiles, so the total tile count must be a multiple of 4. A 3x5 grid has 15 tiles, which is not divisible by 4."
+  },
+  {
+    "question": "Consider a knock-out women's badminton singles tournament with no ties. The loser of each game is eliminated, and the last undefeated player wins. If there are 64 players at the start, how many games should be played in total to declare the winner?",
+    "options": [
+      "127",
+      "64",
+      "63",
+      "32"
+    ],
+    "correctAnswer": 2,
+    "explanation": "Each game eliminates exactly one player. To leave one winner, 63 players must be eliminated, so 63 games are played."
+  },
+  {
+    "question": "A student needs to enroll for a minimum of 60 credits and cannot enroll for more than 70 credits. Credits are divided among project and three distinct sets of courses: core, specialization and elective. A student must take exactly 15 credits of core courses and exactly 20 credits of project, and a minimum of 10 credits of specialization courses. The maximum credits of elective courses that a student can enroll for is ______",
+    "options": [
+      "10",
+      "15",
+      "20",
+      "25"
+    ],
+    "correctAnswer": 3,
+    "explanation": "Maximum total = 70. Minimum non-elective credits = 15 + 20 + 10 = 45. Maximum elective = 70 - 45 = 25."
+  },
+  {
+    "question": "'When the teacher is in the room, all students stand silently.' If the statement is true, which one of the following statements is NOT necessarily true?",
+    "options": [
+      "If any student is not standing silently, then the teacher is not in the room.",
+      "When the teacher is in the room, all students are silent.",
+      "If all students are standing, then the teacher is in the room.",
+      "When the teacher is in the room, all students are standing."
+    ],
+    "correctAnswer": 2,
+    "explanation": "(A) is the contrapositive, (B) and (D) follow from the statement. (C) is the converse-type claim (students standing does not imply the teacher is present), so it is not necessarily true."
+  },
+  {
+    "question": "Passage: Combinatorics deals with counting problems (e.g., arrangements of N distinct objects in M spaces on a circle). This kind of counting is sometimes used in modeling several physical phenomena. Often, in such models, the combinatorial possibilities are assigned probability values, which enables computing average values of physical quantities.\nP: Combinatorics is always invoked in the modeling of physical phenomena.\nQ: Modeling some physical phenomena involves assigning probabilities to combinatorial possibilities in order to compute average values of physical quantities.\nWhat can be inferred about P and Q?",
+    "options": [
+      "P is False and Q is False",
+      "P is False and Q is True",
+      "P is True and Q is False",
+      "P is True and Q is True"
+    ],
+    "correctAnswer": 1,
+    "explanation": "The passage says combinatorics is only 'sometimes' used, so P ('always') is false. Q restates what the passage says about some models, so Q is true."
+  },
+  {
+    "question": "In Panel I, the front view and top view of a structure are shown. Which one of the 3D structures in Panel II (labelled (i), (ii), (iii), (iv)) has the views shown in Panel I?",
+    "options": [
+      "(i)",
+      "(ii)",
+      "(iii)",
+      "(iv)"
+    ],
+    "correctAnswer": 3,
+    "explanation": "Matching the front and top views against each 3D structure, only structure (iv) is consistent with both views (per the official key)."
+  },
+  {
+    "question": "For positive reals S and K, H_K(S) = max(S - K, 0). The graph of N(S) is 0 for S up to 10, rises linearly from 0 at S = 10 to 10 at S = 20, and stays at 10 for S >= 20. N(S) can be expressed as ______.",
+    "options": [
+      "H_10(S) - H_20(S)",
+      "H_10(S) - 2 H_20(S)",
+      "-H_10(S) + H_20(S)",
+      "H_15(S) - H_20(S)"
+    ],
+    "correctAnswer": 0,
+    "explanation": "H_10(S) - H_20(S) is 0 for S <= 10, equals S - 10 for 10 < S <= 20, and (S-10) - (S-20) = 10 for S > 20, matching the graph."
+  },
+  {
+    "question": "In the 2020 Olympics javelin final, Neeraj Chopra won gold, Jakub Vadlejch silver and Vitezlav Vesely bronze; each athlete had six throws and the best throw counts. (i) Rounds 1-2 were dominated by Chopra (gold-winning throw in round 2); the other two had no medal-winning throws in these rounds. (ii) Both Vadlejch's and Vesely's last-round throws were fouls. (iii) After four rounds Vesely was second and could not improve later. (iv) In round 4, Vadlejch's throw was the best of that round. In which round did Vesely have his best throw?",
+    "options": [
+      "Third",
+      "Fourth",
+      "Fifth",
+      "Sixth"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Rounds 1-2 gave no medal throws for Vesely, round 4 was best for Vadlejch (so not Vesely), and round 6 was a foul. His best throw was made by round 4 and could not be in round 4 or later rounds, so it was the third round."
+  },
+  {
+    "question": "An unbiased six-faced die (faces 1 to 6) is rolled twice. The probability that the number in the second roll is an integer multiple of the number in the first roll is ______",
+    "options": [
+      "1/6",
+      "5/18",
+      "7/18",
+      "5/6"
+    ],
+    "correctAnswer": 2,
+    "explanation": "Favourable outcomes for first roll 1..6: 6, 3, 2, 1, 1, 1 = 14 out of 36, so 14/36 = 7/18."
+  },
+  {
+    "question": "An urn contains one red ball and one blue ball. At each step a ball is picked uniformly at random, and it is put back together with another ball of the same color. The probability that there are equal numbers of red and blue balls after two steps is",
+    "options": [
+      "1/4",
+      "1/3",
+      "1/2",
+      "2/3"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Equal counts after two steps need one red and one blue draw. P(R then B) = 1/2 x 1/3 = 1/6 and P(B then R) = 1/6, total 1/3."
+  },
+  {
+    "question": "Consider 4 x 4 matrices with elements from {0, 1}. The number of such matrices with an even number of 1s in every row and every column is",
+    "options": [
+      "512",
+      "1025",
+      "1023",
+      "255"
+    ],
+    "correctAnswer": 0,
+    "explanation": "The top-left 3x3 block can be chosen freely (2^9 ways); the last row and column are then forced by the parity constraints. Total = 512."
+  },
+  {
+    "question": "For n > 1, the maximum multiplicity of any eigenvalue of an n x n matrix with elements from R is",
+    "options": [
+      "n",
+      "n - 1",
+      "1",
+      "n + 1"
+    ],
+    "correctAnswer": 0,
+    "explanation": "The identity matrix has eigenvalue 1 with multiplicity n, and multiplicity cannot exceed n."
+  },
+  {
+    "question": "Match each addressing mode in List I with a data element in List II. List I: P. Immediate, Q. Indirect, R. Base with index, S. Base with offset/displacement. List II: 1. Element of an array, 2. Pointer, 3. Element of a record, 4. Constant.",
+    "options": [
+      "P-4, Q-3, R-1, S-2",
+      "P-4, Q-2, R-1, S-3",
+      "P-1, Q-4, R-3, S-2",
+      "P-2, Q-3, R-1, S-4"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Immediate = constant, indirect = pointer, base with index = array element, base with displacement = record field."
+  },
+  {
+    "question": "Processor P has a load-store architecture, and the first operand of any instruction is the destination. Which sequence corresponds to Z = X + Y? (X, Y, Z are memory operands; R0, R1, R2 are registers.)",
+    "options": [
+      "ADD Z, X, Y",
+      "LOAD R0, X\nADD Z, R0, Y",
+      "ADD R0, X, Y\nSTORE Z, R0",
+      "LOAD R0, X\nLOAD R1, Y\nADD R2, R0, R1\nSTORE Z, R2"
+    ],
+    "correctAnswer": 3,
+    "explanation": "In a load-store architecture only LOAD/STORE access memory; arithmetic works on registers. Only option D does this."
+  },
+  {
+    "question": "Which one of the following dependencies among register operands of different instructions can cause a data hazard in a pipelined processor?",
+    "options": [
+      "Read-after-read",
+      "Read-after-write",
+      "Write-after-read",
+      "Write-after-write"
+    ],
+    "correctAnswer": 1,
+    "explanation": "In an in-order pipeline, read-after-write (true dependency) causes data hazards. Read-after-read is harmless; WAR and WAW do not occur in a simple in-order pipeline (per the official key)."
+  },
+  {
+    "question": "Consider the recurrences, for n > 1: T1(n) = 4 T1(n/2) + T2(n) and T2(n) = 5 T2(n/4) + Theta(log2 n), with T1(n) = T2(n) = 1 for n <= 1. Which one of the following is correct?",
+    "options": [
+      "T1(n) = Theta(n^2)",
+      "T1(n) = Theta(n^2 log2 n)",
+      "T1(n) = Theta(n^(log_4 5))",
+      "T1(n) = Theta(n^(log_4 5) log2 n)"
+    ],
+    "correctAnswer": 0,
+    "explanation": "T2(n) = Theta(n^(log_4 5)) with log_4 5 ~ 1.16 < 2. In T1, n^(log_2 4) = n^2 dominates T2(n), so by the Master theorem T1(n) = Theta(n^2)."
+  },
+  {
+    "question": "With respect to a TCP connection between a client and a server, which one of the following statements is true?",
+    "options": [
+      "The client and server use a two-way handshake mechanism before the start of data transmission",
+      "The server cannot initiate closing of the connection before the client initiates closing of the connection",
+      "The TCP connection is half-duplex",
+      "The client and server can initiate closing of the connection at the same time"
+    ],
+    "correctAnswer": 3,
+    "explanation": "TCP uses a three-way handshake and is full-duplex; either side can close, and simultaneous close is permitted."
+  },
+  {
+    "question": "Which of the following statements is/are true with respect to the interaction of a web browser with a web server using HTTP 1.1? (Select all that apply)",
+    "options": [
+      "HTTP 1.1 facilitates downloading multiple objects of the same webpage over the same TCP connection, if the objects are stored in the same server",
+      "HTTP 1.1 facilitates downloading multiple objects of the same webpage over the same TCP connection, even if they are stored in different servers",
+      "HTTP 1.1 facilitates sending a request for downloading one object without waiting for a previously requested object to be downloaded completely",
+      "HTTP 1.1 facilitates downloading multiple webpages on the same server to be downloaded over a single TCP connection"
+    ],
+    "correctAnswer": [
+      0,
+      2,
+      3
+    ],
+    "explanation": "HTTP 1.1 supports persistent connections (same server, multiple objects/pages) and pipelining. A connection is to one server only, so B is false."
+  },
+  {
+    "question": "Let n > 1. Consider an n x n real matrix M such that the vector (0, 1, 0, 0, ..., 0) is in the null space of M. Which of the following is/are always correct? (Select all that apply)",
+    "options": [
+      "Determinant of M is 1",
+      "Determinant of M is 0",
+      "Rank of M is 1",
+      "There are at least two non-zero vectors in the null space of M"
+    ],
+    "correctAnswer": [
+      1,
+      3
+    ],
+    "explanation": "A non-zero null vector means M is singular, so det = 0. Any non-zero scalar multiple of the null vector is also in the null space, so there are at least two non-zero vectors. Rank need not be 1."
+  },
+  {
+    "question": "F(P,Q) = (P' + Q) XOR (P'Q). Which of the following expressions is/are equivalent to F? (Select all that apply)",
+    "options": [
+      "(P XOR Q)'",
+      "P XOR Q",
+      "P' XOR Q",
+      "P' XOR Q'"
+    ],
+    "correctAnswer": [
+      0,
+      2
+    ],
+    "explanation": "Truth table: F(0,0)=1, F(0,1)=0, F(1,0)=0, F(1,1)=1, i.e., XNOR. (P XOR Q)' and P' XOR Q are both XNOR."
+  },
+  {
+    "question": "8-bit signed integers in sign-magnitude form: X = 10110100, Y = 01001100. Which of the following operations to compute Z result(s) in an arithmetic overflow? (Select all that apply)",
+    "options": [
+      "Z = X + Y",
+      "Z = X - Y",
+      "Z = -X + Y",
+      "Z = -X - Y"
+    ],
+    "correctAnswer": [
+      1,
+      2
+    ],
+    "explanation": "X = -52, Y = +76. X+Y = 24 (ok); X-Y = -128 (overflow, range is -127..127); -X+Y = 128 (overflow); -X-Y = -24 (ok)."
+  },
+  {
+    "question": "Let n be an odd number greater than 100. Consider a binary minheap with n elements stored in an array P with indices starting from 1. Which of the following indices of P do/does NOT correspond to any leaf node of the minheap? (Select all that apply)",
+    "options": [
+      "(n+1)/2",
+      "(n-1)/2",
+      "(n-3)/2",
+      "n"
+    ],
+    "correctAnswer": [
+      1,
+      2
+    ],
+    "explanation": "Leaves occupy indices floor(n/2)+1 to n. For odd n, floor(n/2) = (n-1)/2, so leaves start at (n+1)/2. Hence (n-1)/2 and (n-3)/2 are internal nodes."
+  },
+  {
+    "question": "A hash table P[0..10] uses open addressing with linear probing and h(x) = (x + 7) mod 11. Insert 1, 13, 22, 15, 11, 24. Which of the following positions is/are empty after these insertions? (Select all that apply)",
+    "options": [
+      "0",
+      "10",
+      "2",
+      "1"
+    ],
+    "correctAnswer": [
+      2
+    ],
+    "explanation": "1->8, 13->9, 22->7, 15->0, 11->7 (occupied) -> 8 -> 9 -> 10, 24->9 (occupied) -> 10 -> 0 -> 1. Filled: 0,1,7,8,9,10. Empty: 2,3,4,5,6."
+  },
+  {
+    "question": "Grammar: S -> aSbS | bS | epsilon (S start; a, b terminals). Which of the following statements is/are true? (Select all that apply)",
+    "options": [
+      "The grammar is ambiguous",
+      "The string abb has two distinct derivations in this grammar",
+      "The string abab has only one rightmost derivation",
+      "The language generated by the grammar is undecidable"
+    ],
+    "correctAnswer": [
+      0,
+      1,
+      2
+    ],
+    "explanation": "The official key marks A, B and C as true. D is false: the language is context-free, hence decidable."
+  },
+  {
+    "question": "Let M be an NFA with 6 states over a finite alphabet. Which of the following options CANNOT be the number of states in the minimal DFA equivalent to M? (Select all that apply)",
+    "options": [
+      "32",
+      "65",
+      "1",
+      "128"
+    ],
+    "correctAnswer": [
+      1,
+      3
+    ],
+    "explanation": "Subset construction gives at most 2^6 = 64 DFA states, so the minimal DFA cannot have 65 or 128 states."
+  },
+  {
+    "question": "Consider the C statements:\nchar *str1 = \"Hello;      /* S1 */\nchar *str2 = \"Hello;\";   /* S2 */\nint *str3 = \"Hello\";     /* S3 */\nWhich of the following options is/are correct? (Select all that apply)",
+    "options": [
+      "S1 and S2 have syntactic errors",
+      "S2 has a lexical error and S3 has a syntactic error",
+      "S1 has a lexical error and S3 has a semantic error",
+      "S1 has a syntactic error and S3 has a semantic error"
+    ],
+    "correctAnswer": [
+      2
+    ],
+    "explanation": "S1 has an unterminated string literal (lexical error). S2 is valid. S3 assigns a char array to an int pointer, which is a type (semantic) error."
+  },
+  {
+    "question": "Which of the following statements is/are true? (Select all that apply)",
+    "options": [
+      "LL(1) parser uses backtracking",
+      "For a grammar to be LL(1), it must be left-recursive",
+      "For a grammar to be LL(1), it must be left-factored",
+      "The LL(1) parsers are more powerful than the SLR parsers"
+    ],
+    "correctAnswer": [
+      2
+    ],
+    "explanation": "LL(1) is predictive (no backtracking), grammars must not be left-recursive, must be left-factored, and LL(1) is less powerful than SLR."
+  },
+  {
+    "question": "With respect to deadlocks in an operating system, which of the following statements is/are FALSE? (Select all that apply)",
+    "options": [
+      "Banker's algorithm is used to prevent deadlocks",
+      "Deadlock formation can be prevented by ensuring that the hold and wait condition is not allowed",
+      "An assignment edge in a resource allocation graph is marked from a process to a resource",
+      "A safe state guarantees that all processes can finish without formation of a deadlock"
+    ],
+    "correctAnswer": [
+      0,
+      2
+    ],
+    "explanation": "Banker's algorithm is for deadlock avoidance (per the key), and an assignment edge goes from a resource to a process. B and D are true."
+  },
+  {
+    "question": "P, Q, R, S are attributes of a relation. X -> Y denotes a functional dependency. Which of the following is/are always true? (Select all that apply)",
+    "options": [
+      "If ({P,Q} -> {R} and {P} -> {R}), then {Q} -> {R}",
+      "If {P,Q} -> {R}, then ({P} -> {R} or {Q} -> {R})",
+      "If ({P} -> {R} and {Q} -> {S}), then {P,Q} -> {R,S}",
+      "If {P} -> {R}, then {P,Q} -> {R}"
+    ],
+    "correctAnswer": [
+      2,
+      3
+    ],
+    "explanation": "C follows by union and augmentation; D follows by augmentation. A and B do not hold in general."
+  },
+  {
+    "question": "In the context of relational database normalization, which of the following statements is/are true? (Select all that apply)",
+    "options": [
+      "It is always possible to obtain a dependency-preserving 3NF decomposition of a relation",
+      "It is always possible to obtain a dependency-preserving 1NF decomposition of a relation",
+      "It is not always possible to obtain a dependency-preserving BCNF decomposition of a relation",
+      "It is not always possible to obtain a dependency-preserving 2NF decomposition of a relation"
+    ],
+    "correctAnswer": [
+      0,
+      1,
+      2
+    ],
+    "explanation": "A lossless, dependency-preserving 3NF decomposition always exists; BCNF may not preserve dependencies; 1NF is trivially preserved. D is false (2NF is weaker than 3NF)."
+  },
+  {
+    "question": "Let f(x) = c1 e^x - c2 ln(1/x) for x > 0 and f(x) = 3 otherwise, where c1, c2 are real. If f is continuous at x = 0, then c1 + c2 = ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 3,
+    "explanation": "As x -> 0+, ln(1/x) -> infinity, so c2 must be 0. Then c1 e^0 = 3 gives c1 = 3. So c1 + c2 = 3."
+  },
+  {
+    "question": "The height of a binary tree is the number of edges in the longest path from the root to a leaf. The maximum possible height of a full binary tree with 23 nodes is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 11,
+    "explanation": "A full binary tree with 23 nodes has 11 internal nodes. The maximum height is obtained by a chain-like tree, with height = number of internal nodes = 11."
+  },
+  {
+    "question": "Consider the C program:\n#include <stdio.h>\nvoid func(int i, int j) {\n  if (i < j) {\n    int i = 0;\n    while (i < 10) { j += 2; i++; }\n  }\n  printf(\"%d\", i);\n}\nint main() { int i = 9, j = 10; func(i, j); return 0; }\nThe output of the program is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 9,
+    "explanation": "The inner 'int i = 0' shadows the parameter only inside the if-block. The printf outside the block prints the parameter i, which is 9."
+  },
+  {
+    "question": "A system has k instances of a resource R shared by 5 processes. Each process needs at most two instances, and requests or releases one instance at a time (the second only after acquiring the first). The minimum value of k for the system to be deadlock-free is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 6,
+    "explanation": "Worst case: each of the 5 processes holds one instance and waits for a second, which deadlocks if k = 5. With k = 6, at least one process can always get its second instance and finish. So k = 6."
+  },
+  {
+    "question": "X and Y are IEEE 754 single-precision numbers with hexadecimal representations X: 35C00000 and Y: 34A00000. Let Z = X + Y. Which one of the following is the hexadecimal representation of Z?",
+    "options": [
+      "35C80000",
+      "35CC0000",
+      "35E80000",
+      "35EC0000"
+    ],
+    "correctAnswer": 2,
+    "explanation": "X = 1.1b x 2^-20 = 1.5 x 2^-20. Y = 1.01b x 2^-22 = 1.25 x 2^-22 = 0.3125 x 2^-20. Sum = 1.8125 x 2^-20 = 1.1101b x 2^-20, giving 0 01101011 11010000... = 35E80000."
+  },
+  {
+    "question": "A 2-bit saturating up/down counter counts up when P = 0 and down when P = 1 (next-state: P=0: 00->01, 01->10, 10->11, 11->11; P=1: 00->00, 01->00, 10->01, 11->10). It is built with D flip-flops. Which option gives the D-flip-flop inputs D1 and D0? (' denotes complement)",
+    "options": [
+      "D1 = P Q1 + P'Q0 + Q1Q0 ; D0 = P Q0 + P'Q1 + Q1 Q0'",
+      "D1 = P'Q1 + P'Q0 + Q1Q0 ; D0 = P'Q0' + P'Q1 + Q1Q0'",
+      "D1 = P'Q1' + P'Q0 + Q1Q0 ; D0 = P'Q0 + P'Q1 + Q1Q0'",
+      "D1 = P Q1' + P'Q0 + Q1Q0 ; D0 = P Q0' + P'Q1 + Q1Q0'"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Q1+ is Q1+Q0 when P=0 and Q1Q0 when P=1, giving D1 = P'Q1 + P'Q0 + Q1Q0. Q0+ is Q0' + Q1 when P=0 and Q1Q0' when P=1, giving D0 = P'Q0' + P'Q1 + Q1Q0'."
+  },
+  {
+    "question": "Physical address space is 2^32 bytes, cache capacity 2^23 bytes, block size 128 bytes. The cache can be direct mapped or K-way set-associative with K = 2^L, L in {1,2,3}. Let the TAG length be M bits for direct mapped and N bits for set-associative. Which option is true?",
+    "options": [
+      "N = M + L",
+      "N = M - L",
+      "N = M + K",
+      "N = M - K"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Blocks = 2^23/2^7 = 2^16. Direct mapped: index 16 bits, offset 7, tag M = 9. K-way: sets = 2^(16-L), so index = 16 - L bits and tag N = 9 + L = M + L."
+  },
+  {
+    "question": "Code computes the number of nodes in a non-empty singly linked list:\nstruct node { int elt; struct node *next; };\nint getListSize(struct node *head) { if (E1) return 1; return E2; }\nWhich option gives the correct E1 and E2?",
+    "options": [
+      "E1: head == NULL ; E2: 1 + getListSize(head)",
+      "E1: head->next == NULL ; E2: 1 + getListSize(head->next)",
+      "E1: head == NULL ; E2: 1 + getListSize(head->next)",
+      "E1: head->next == NULL ; E2: 1 + getListSize(head)"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Base case: last node (head->next == NULL) returns 1. Otherwise count this node plus the size of the rest of the list."
+  },
+  {
+    "question": "Let P be the set of integers 1 to 15. Consider any insertion order of P into a binary search tree that creates a complete binary tree. Which of the following elements can NEVER be the third element inserted?",
+    "options": [
+      "4",
+      "2",
+      "10",
+      "5"
+    ],
+    "correctAnswer": 3,
+    "explanation": "The resulting tree is perfect: root 8; level 1: 4, 12; level 2: 2, 6, 10, 14; leaves: odd numbers. Parents must be inserted before children, so the third insertion can only be 4, 12 or a level-2 node. 5 is a leaf-level node and needs 8, 4, 6 and 2... first, so it can never be third."
+  },
+  {
+    "question": "G(V,E) is an undirected edge-weighted graph with integer weights. d_k(u) is the weight of a shortest path from s to u with at most k edges (infinity if none). S1: for every k >= 0 and u in V, d_{k+1}(u) <= d_k(u). S2: for every (u,v) in E, if (u,v) is part of a shortest path from s to v, then for every k >= 0, d_k(u) <= d_k(v). Which option is correct?",
+    "options": [
+      "Only S1 is true",
+      "Only S2 is true",
+      "Both S1 and S2 are true",
+      "Neither S1 nor S2 is true"
+    ],
+    "correctAnswer": 0,
+    "explanation": "S1 is true: allowing one more edge can only keep or lower the best weight. S2 can fail, since with negative weights or a limited edge budget d_k(u) can exceed d_k(v)."
+  },
+  {
+    "question": "Consider the control flow graph: B1: a = b + i; B2: a = g*k; f = d - f; a = c*4; B3: t = g*k; b = c + m; B4: x = g*k; y = b + i; B5: z = c + m. B1 branches to B2 and B3, both lead to B4, then B5. Which option lists the redundant expressions (common subexpressions) in B4 and B5? (All variables are integers.)",
+    "options": [
+      "B4: {b + i}; B5: {c + m}",
+      "B4: {g * k}; B5: {c + m}",
+      "B4: {g * k, b + i}; B5: { }",
+      "B4: {g * k}; B5: { }"
+    ],
+    "correctAnswer": 3,
+    "explanation": "g*k is computed on both paths (B2 and B3) before B4, so it is redundant in B4. b + i is not available on the B3 path because b is redefined there. c + m is computed only on the B3 path, not B2, so it is not redundant in B5."
+  },
+  {
+    "question": "Relations R(P,Q) and S(X,Y). E = {<u> | exists v exists w (<u,v> in R and <v,w> in S)}. Which relational algebra expression is equivalent to E?",
+    "options": [
+      "Pi_P(R join_{R.P = S.X} S)",
+      "Pi_P(S join_{S.X = R.Q} R)",
+      "Pi_P(R join_{R.P = S.Y} S)",
+      "Pi_P(S join_{S.Y = R.Q} R)"
+    ],
+    "correctAnswer": 1,
+    "explanation": "u is R's first attribute (P), v is R's second attribute (Q), and v must equal S's first attribute (X). So join on S.X = R.Q and project P."
+  },
+  {
+    "question": "A TCP sender starts transmitting after connection setup. The slow-start threshold is 10000 segments, RTT is fixed at 1 ms, the sender always has data, segments are numbered from 1, and no segment is lost. Let t be the time (ms) at which transmission of segment 2000 starts. Which option is correct?",
+    "options": [
+      "9 <= t < 10",
+      "10 <= t < 11",
+      "11 <= t < 12",
+      "12 <= t < 13"
+    ],
+    "correctAnswer": 1,
+    "explanation": "In slow start the window doubles every RTT: round k (starting at t = k ms) sends 2^k segments. After rounds 0-9, 1023 segments are sent. Round 10 (starting at t = 10 ms) sends segments 1024-2047, which includes segment 2000."
+  },
+  {
+    "question": "Sliding window protocol over a lossless link: window W frames, frame size 1000 bits, bandwidth 100 kbps, one-way propagation delay 100 ms, zero processing time and zero ack transmission time. What is the minimum W for 100% link utilization?",
+    "options": [
+      "10",
+      "21",
+      "20",
+      "11"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Transmission time = 1000/100000 = 10 ms. Round trip = 10 + 2x100 = 210 ms (frame transmission plus RTT). W = 210/10 = 21 frames."
+  },
+  {
+    "question": "f(x) = (|x|/2 - x)(x - |x|/2). Which of the following statements is/are true? (Select all that apply)",
+    "options": [
+      "f has a local maximum",
+      "f has a local minimum",
+      "f' is continuous over R",
+      "f' is not differentiable over R"
+    ],
+    "correctAnswer": [
+      0,
+      2,
+      3
+    ],
+    "explanation": "For x >= 0, f = -x^2/4; for x < 0, f = -9x^2/4. f has a local maximum at 0 (f <= 0), f' = -x/2 or -9x/2 is continuous (both 0 at x=0), but its one-sided slopes at 0 differ (-1/2 vs -9/2), so f' is not differentiable at 0."
+  },
+  {
+    "question": "G(V,E) is a simple undirected graph. A vertex cover is a subset V' such that every edge has an endpoint in V'. The smallest vertex cover has size k, and S is any vertex cover of size k. For a vertex v, which constraint(s) will always ensure v in S? (Select all that apply)",
+    "options": [
+      "The degree of v is at least k + 1",
+      "The vertex v is on a path of length k + 1",
+      "The vertex v is on a cycle of length k + 1",
+      "The vertex v is a part of a clique of size k"
+    ],
+    "correctAnswer": [
+      0
+    ],
+    "explanation": "If v is not in S, all its (at least k+1) neighbours must be in S, making |S| > k, a contradiction. The other conditions do not force v into every minimum vertex cover."
+  },
+  {
+    "question": "F(P,Q,R,S) = Sum m(1,2,3,4,5,7,10,12,13,14). Which of the following is/are the minimal sum-of-products expression(s) of F? (' denotes complement) (Select all that apply)",
+    "options": [
+      "P'S + QR' + P'Q'R + Q'RS'",
+      "P'S + QR' + P'Q'R + PRS'",
+      "P'S + QR' + PQS' + PRS'",
+      "P'S + QR' + PQS' + Q'RS'"
+    ],
+    "correctAnswer": [
+      1,
+      3
+    ],
+    "explanation": "P'S covers 1,3,5,7 and QR' covers 4,5,12,13. Remaining minterms 2, 10, 14 are covered by P'Q'R + PRS' (option B) or Q'RS' + PQS' (option D)."
+  },
+  {
+    "question": "G(V,E) is a simple undirected edge-weighted graph with unique edge weights. Which of the following statements about MSTs of G is/are true? (Select all that apply)",
+    "options": [
+      "In every cycle C of G, the edge with the largest weight in C is not in any MST",
+      "In every cycle C of G, the edge with the smallest weight in C is in every MST",
+      "For every vertex v, the edge with the largest weight incident on v is not in any MST",
+      "For every vertex v, the edge with the smallest weight incident on v is in every MST"
+    ],
+    "correctAnswer": [
+      0,
+      3
+    ],
+    "explanation": "A is the cycle property; D follows from the cut property. B is false (the smallest edge of a cycle can be avoided if a cheaper path joins its endpoints) and C is false (e.g., a pendant vertex's only edge must be in the MST)."
+  },
+  {
+    "question": "DFS pseudocode (d[v] = discovery time, f[v] = finishing time) is run on a directed acyclic graph G. For an edge (u,v) in E, which of the following will NEVER be correct? (Select all that apply)",
+    "options": [
+      "d[u] < d[v] < f[v] < f[u]",
+      "d[v] < d[u] < f[u] < f[v]",
+      "d[v] < f[v] < d[u] < f[u]",
+      "d[u] < d[v] < f[u] < f[v]"
+    ],
+    "correctAnswer": [
+      1,
+      3
+    ],
+    "explanation": "In a DAG, an edge (u,v) is a tree/forward edge (A: v nested in u) or a cross edge (C: v finishes before u is discovered). B would be a back edge (needs a cycle), and D (partially overlapping intervals) can never occur in DFS."
+  },
+  {
+    "question": "L1 and L2 are languages over a finite alphabet such that L1 ∩ L2 and L2 are regular. Which of the following statements is/are always true? (Select all that apply)",
+    "options": [
+      "L1 is regular",
+      "L1 ∪ L2 is regular",
+      "complement of L2 is context-free",
+      "L1 is context-free"
+    ],
+    "correctAnswer": [
+      2
+    ],
+    "explanation": "Regular languages are closed under complement, so the complement of L2 is regular and hence context-free. L1 itself is not constrained (e.g., L2 = empty set makes L1 arbitrary), so A, B and D need not hold."
+  },
+  {
+    "question": "Grammar G: S -> abaABAbba; A -> aaBBAb | bBabaa; B -> aBb | ab. n1(s) = number of a's and n2(s) = number of b's in s in L(G). Which of the following is/are true? (Select all that apply)",
+    "options": [
+      "There is a string s in L(G) such that n1(s) < n2(s)",
+      "For every string s in L(G), n1(s) >= n2(s)",
+      "There is a string s in L(G) such that n1(s) > 2 n2(s)",
+      "For every string s in L(G), n1(s) <= 2 n2(s)"
+    ],
+    "correctAnswer": [
+      1,
+      3
+    ],
+    "explanation": "B generates a^n b^n with equal counts. Counting the terminals contributed by the fixed parts of the S and A rules shows n2 <= n1 <= 2*n2 for every derivable string (per the official key)."
+  },
+  {
+    "question": "Two syntax-directed definitions for type declarations: SDD1 (grammar G1: D -> T V; T -> int | float; V -> V1 id | id, with inherited V.type) and SDD2 (grammar G2: D -> D1 id | T id; T -> int | float, with synthesized D.type). Let P and Q be the languages of G1 and G2. Which of the following is/are true? (Select all that apply)",
+    "options": [
+      "The languages P and Q are the same",
+      "SDD2 is S-attributed and contains only synthesized attributes",
+      "SDD1 is L-attributed and contains only inherited attributes",
+      "The specifications of SDD1 and SDD2 are such that the same entries get added to the symbol table"
+    ],
+    "correctAnswer": [
+      0,
+      1,
+      3
+    ],
+    "explanation": "Both grammars generate (int | float) id+. SDD2 uses only synthesized attributes (S-attributed). SDD1 also has synthesized attributes (D.type, T.type), so C is false. Both put the same (id, type) entries in the symbol table."
+  },
+  {
+    "question": "A system has a cache and an MMU with a TLB. The cache is addressed by physical address. When a page is evicted from main memory, the corresponding cache blocks are marked invalid. For a given memory reference, which of the following sequences of events can NEVER happen? (Select all that apply)",
+    "options": [
+      "TLB miss, Page table hit, Cache hit",
+      "TLB hit, Page table miss, Cache hit",
+      "TLB miss, Page table miss, Cache hit",
+      "TLB miss, Page table miss, Cache miss"
+    ],
+    "correctAnswer": [
+      1,
+      2
+    ],
+    "explanation": "A TLB hit means the page is in memory, so a page table miss cannot also occur. A page table miss means the page is not in memory, so its cache blocks are invalid, making a cache hit impossible."
+  },
+  {
+    "question": "An undirected, unweighted, simple graph G is 2-colorable if there is c: V -> {0,1} with c(u) != c(v) for every edge (u,v). Which of the following statements about 2-colorable graphs is/are true? (Select all that apply)",
+    "options": [
+      "If G is 2-colorable, then G may contain cycles of odd length",
+      "If G is 2-colorable, then G may contain cycles of even length",
+      "An optimal algorithm for testing 2-colorability runs in time Theta(|V| + |E|), if G is represented as an adjacency list",
+      "An optimal algorithm for testing 2-colorability runs in time Theta(|E| log |V|), if G is represented as an adjacency list"
+    ],
+    "correctAnswer": [
+      1,
+      2
+    ],
+    "explanation": "2-colorable means bipartite: no odd cycles, even cycles allowed. BFS/DFS coloring tests this in Theta(|V| + |E|)."
+  },
+  {
+    "question": "An ISP has address block 202.16.0.0/15 and assigns a block of 6000 IP addresses to a client using CIDR. Which of the following address blocks can be assigned by the ISP? (Select all that apply)",
+    "options": [
+      "202.16.0.0/19",
+      "202.17.64.0/19",
+      "202.16.32.0/19",
+      "202.17.24.0/19"
+    ],
+    "correctAnswer": [
+      0,
+      1,
+      2
+    ],
+    "explanation": "6000 addresses need 2^13 = 8192, i.e., a /19. The /15 block spans 202.16.0.0 to 202.17.255.255. Valid /19 blocks must start at multiples of 32 in the third octet. 202.17.24.0 is not aligned (24 is not a multiple of 32)."
+  },
+  {
+    "question": "Let G be an undirected graph that is a path on 8 vertices. The number of matchings in G is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 34,
+    "explanation": "Matchings of a path P_n follow the Fibonacci recurrence m(n) = m(n-1) + m(n-2) with m(1)=1, m(2)=2: 1, 2, 3, 5, 8, 13, 21, 34. So m(8) = 34 (including the empty matching)."
+  },
+  {
+    "question": "X takes values in {1,...,8} with Pr(X=1)=Pr(X=2)=Pr(X=5)=Pr(X=7)=1/6 and Pr(X=3)=Pr(X=4)=Pr(X=6)=Pr(X=8)=1/12. E[X] = ______ (rounded to two decimal places). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 4.25,
+    "explanation": "E[X] = (1+2+5+7)/6 + (3+4+6+8)/12 = 2.5 + 1.75 = 4.25. (Accepted range: 4.24 to 4.26.)"
+  },
+  {
+    "question": "A hard disk rotates at 15000 rpm. Moving the head to an adjacent track takes 1 ms. The head starts on track 0. There are 400 sectors per track, 1024 bytes per sector. Data must be transferred from 10 randomly located sectors in each of tracks 5, 12 and 7, in that order. The total data transfer time (ms) is ______ (rounded to one decimal place). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 77.3,
+    "explanation": "Seek: 0->5 (5) + 5->12 (7) + 12->7 (5) = 17 ms. One rotation = 4 ms, so average rotational latency = 2 ms for each of the 30 sectors = 60 ms. Transfer per sector = 4/400 = 0.01 ms, 30 sectors = 0.3 ms. Total = 17 + 60 + 0.3 = 77.3 ms."
+  },
+  {
+    "question": "The EX stage of a pipelined processor (1 ns clock) takes t_EX per instruction: LOAD 1.8 (15 instr.), IMUL 1.5 (10), IDIV 2.5 (5), FADD 1.7 (10), FSUB 1.7 (5), FMUL 2.8 (15), FDIV 3.2 (5), all others < 1.0 (35), in a sequence of 100 instructions. The number of clock cycles for which the pipeline is stalled due to structural hazards in the EX stage is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 95,
+    "explanation": "Stall cycles per instruction = ceil(t_EX) - 1. LOAD 1x15 = 15; IMUL 1x10 = 10; IDIV 2x5 = 10; FADD 1x10 = 10; FSUB 1x5 = 5; FMUL 2x15 = 30; FDIV 3x5 = 15. Total = 95."
+  },
+  {
+    "question": "Consider: int bar(int n){ if (n==1) return 0; else return 1 + bar(n/2); } int foo(int n){ if (n==1) return 1; else return 1 + foo(bar(n)); } The smallest positive integer n for which foo(n) returns 5 is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 65536,
+    "explanation": "bar(n) = floor(log2 n). foo(1)=1, foo(2)=2, foo(4)=3, foo(16)=4, foo(65536)=5. Each next smallest value is 2^(previous), so the answer is 2^16 = 65536."
+  },
+  {
+    "question": "The preorder traversal of a binary search tree T is: 50, 25, 13, 40, 30, 47, 75, 60, 70, 80, 77. The position of the element 60 in the postorder traversal of T is ______ (answer in integer; positions start at 1). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 7,
+    "explanation": "Rebuilding the BST gives postorder: 13, 30, 47, 40, 25, 70, 60, 77, 80, 75, 50. The element 60 is at position 7."
+  },
+  {
+    "question": "Program: int main(){ int i; for(i=0;i<3;i++){ if(fork()==0){ continue; } break; } printf(\"Hello!\"); return 0; } The total number of times that the printf statement gets executed is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 4,
+    "explanation": "At each iteration the parent breaks out of the loop and prints, while the child continues. Three iterations give 3 parents that print, plus the final child that exits the loop after i = 3 and prints: 4 in total."
+  },
+  {
+    "question": "A CPU uses FCFS. Type A processes (burst 6 s) arrive at t = 10, 20, 30, 40, 50; type C processes (burst 8 s) arrive at t = 11, 22, 33, 44, 55. The first A process starts at t = 10. The average waiting time (s) for the 10 processes is ______ (rounded to one decimal place). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 9.5,
+    "explanation": "FCFS schedule: A1 10-16 (wait 0), C1 16-24 (5), A2 24-30 (4), C2 30-38 (8), A3 38-44 (8), C3 44-52 (11), A4 52-58 (12), C4 58-66 (14), A5 66-72 (16), C5 72-80 (17). Total wait = 95, average = 9.5 s."
+  },
+  {
+    "question": "Relation R(A,B,C,D) has {A,B} and {A,C} as its only two candidate keys. The number of superkeys of R is ______ (answer in integer). (Numerical answer)",
+    "options": [],
+    "correctAnswer": 6,
+    "explanation": "A superkey must contain A and at least one of B or C. Choices for (B, C): 3 non-empty combinations; D is free (2 choices). Total = 3 x 2 = 6."
+  }
+]

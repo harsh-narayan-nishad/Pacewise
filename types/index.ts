@@ -5,8 +5,20 @@ export interface StoryParagraph {
 export interface StoryQuestion {
   question: string;
   options: string[];
+  /** MCQ: the 0-based index of the right option. (For multi-select / numerical questions this is just a placeholder.) */
   correctAnswer: number;
   explanation: string;
+  /** Multi-select question ("select all that apply"): every right option index. */
+  correctAnswers?: number[];
+  /** Numerical-answer question (no options): the right value, and how far off an answer may be. */
+  numericAnswer?: number;
+  tolerance?: number;
+  /** Optional labels: where the question belongs, and the year it appeared (previous-year question). */
+  chapter?: string;
+  topic?: string;
+  year?: number;
+  /** Optional note shown after the test (on the results page). */
+  note?: string;
 }
 
 /** One rendered page of an uploaded PDF or image — a data URL so it needs
@@ -89,6 +101,10 @@ export interface QuestionAnswer {
   selectedOption: number | null; // null = skipped
   flagged: boolean;
   timeSpentMs: number;
+  /** Multi-select questions: every option the learner ticked. */
+  selectedOptions?: number[];
+  /** Numerical-answer questions: the value the learner typed. */
+  numericValue?: number;
 }
 
 export interface QuizConfig {

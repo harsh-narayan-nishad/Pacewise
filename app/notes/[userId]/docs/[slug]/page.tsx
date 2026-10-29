@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DOCS } from "@/lib/docs/generated";
 import { makeLinkResolver } from "@/lib/docs/library";
-import { renderMarkdown } from "@/lib/docs/markdown";
+import { extractHeadings, readingMinutes, renderMarkdown } from "@/lib/docs/markdown";
 import { DocContent } from "@/components/Notes/DocContent";
 import { PublicShell } from "@/components/Notes/PublicShell";
 
@@ -20,8 +20,8 @@ export default function DocPage({ params }: { params: { userId: string; slug: st
   }
   const html = renderMarkdown(doc.md, { resolveLink: makeLinkResolver(params.userId) });
   return (
-    <PublicShell userId={params.userId}>
-      <DocContent html={html} />
+    <PublicShell userId={params.userId} autoHideNav>
+      <DocContent html={html} slug={doc.slug} headings={extractHeadings(doc.md)} minutes={readingMinutes(doc.md)} />
     </PublicShell>
   );
 }

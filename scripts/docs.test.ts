@@ -1,6 +1,6 @@
 /** npx tsx scripts/docs.test.ts — the docs renderer is safe and covers the Markdown the docs use. */
 import assert from "node:assert/strict";
-import { renderMarkdown } from "../lib/docs/markdown";
+import { extractHeadings, readingMinutes, renderMarkdown } from "../lib/docs/markdown";
 import { DOCS } from "../lib/docs/generated";
 
 let passed = 0;
@@ -35,5 +35,30 @@ test("every bundled doc renders, safely, and the credentials CSV is not bundled"
     assert.ok(!d.path.endsWith(".csv"));
   }
   assert.ok(!DOCS.some((d) => /4walnut\.zebra/.test(d.md)));
+});
+test("highlighter, underline, strike and bold-italic", () => {
+  const out = renderMarkdown("This is ==key== and ==green:go== and ++under++ and ~~gone~~ and ***both***. a == b stays.");
+  assert.ok(out.includes('<mark class="hl" data-c="yellow">key</mark>'));
+  assert.ok(out.includes('data-c="green">go</mark>') && out.includes("<u>under</u>") && out.includes("<s>gone</s>") && out.includes("<strong><em>both</em></strong>"));
+  assert.ok(out.includes("a == b stays"));
+});
+test("mermaid fences become diagram holders, headings get anchors", () => {
+  const out = renderMarkdown("```mermaid\nclassDiagram\n  A <|-- B\n```\n\n## Part one");
+  assert.ok(out.includes('class="doc-diagram" data-diagram="classDiagram'));
+  assert.ok(out.includes('<a class="anchor" href="#part-one"'));
+  assert.deepEqual(extractHeadings("# T\n## A b\n```\n## no\n```\n### C"), [{ level: 2, text: "A b", id: "a-b" }, { level: 3, text: "C", id: "c" }]);
+  assert.equal(readingMinutes("word ".repeat(400)), 2);
+});
+test("captioned code blocks: path, language, coloured tokens, principle, indentation kept", () => {
+  const md = '```ts title="lib/a.ts" principle="Encapsulation"\nclass A {\n  private x = 1; // note\n}\n```';
+  const html = renderMarkdown(md);
+  assert.match(html, /<figure class="doc-code">/);
+  assert.match(html, /<span class="code-path">lib\/a\.ts<\/span>/);
+  assert.match(html, /<span class="tk-k">class<\/span>/);
+  assert.match(html, /<span class="tk-c">\/\/ note<\/span>/);
+  assert.match(html, /\n  <span class="tk-k">private<\/span>/);
+  assert.match(html, /Encapsulation/);
+  assert.doesNotMatch(renderMarkdown('```ts title="<script>"\nx\n```'), /<script>/);
+  assert.match(renderMarkdown("```\nplain\n```"), /^<pre data-lang="">/);
 });
 console.log(`\n${passed} tests passed`);

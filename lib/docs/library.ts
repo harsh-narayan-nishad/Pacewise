@@ -2,7 +2,7 @@ import { DOC_INDEX, type DocMeta } from "@/lib/docs/index.generated";
 
 export interface DocFolder { id: string; label: string; docs: DocMeta[] }
 
-const FOLDER_LABELS: Record<string, string> = { "": "Project docs", interview: "Interview prep" };
+const FOLDER_LABELS: Record<string, string> = { "": "Project docs", interview: "Interview prep", research: "Research" };
 
 /** Docs grouped by folder (root first), in file-name order, for the menu and the notes index. */
 export function docFolders(): DocFolder[] {

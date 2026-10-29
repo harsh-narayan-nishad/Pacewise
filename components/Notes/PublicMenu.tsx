@@ -31,7 +31,9 @@ export function PublicMenu({ userId }: { userId: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const folders = docFolders();
+  const all = docFolders();
+  const folders = all.filter((f) => f.id !== "research");
+  const research = all.find((f) => f.id === "research");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
@@ -45,7 +47,7 @@ export function PublicMenu({ userId }: { userId: string }) {
   // Open the folder of the document being read.
   useEffect(() => {
     const slug = pathname?.split("/docs/")[1];
-    const hit = folders.find((f) => f.docs.some((d) => d.slug === slug));
+    const hit = all.find((f) => f.docs.some((d) => d.slug === slug));
     if (hit) setOpenFolder(hit.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
@@ -107,6 +109,25 @@ export function PublicMenu({ userId }: { userId: string }) {
                         )}
                       </div>
                     ))}
+
+                    {research && (
+                      <>
+                        <div className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-ink-muted">Research</div>
+                        <BigRow label="Research" open={openFolder === "research"} onToggle={() => setOpenFolder(openFolder === "research" ? null : "research")} />
+                        {openFolder === "research" && (
+                          <ul className="mb-4 mt-1 space-y-0.5">
+                            {research.docs.map((d) => (
+                              <li key={d.slug}>
+                                <Link href={docUrl(userId, d.slug)} aria-current={current === d.slug ? "page" : undefined} className={`flex items-start gap-3 rounded-2xl px-3 py-2.5 text-base transition-colors hover:bg-overlay/5 ${current === d.slug ? "bg-overlay/[0.08] text-ink" : "text-ink-muted hover:text-ink"}`}>
+                                  <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+                                  <span className="min-w-0">{d.title}</span>
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
 
                     <div className="mt-8 border-t border-overlay/10 pt-5">
                       <Link href="/" className="text-base text-ink transition-opacity hover:opacity-70">Open {BRAND_NAME}</Link>
