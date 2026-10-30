@@ -97,3 +97,7 @@ Added `docs/interview/13-html-css.md` (Interview prep). Code blocks are captione
 ## Search engine system design
 
 Added section 3 "Pacewise Search Engine" to `docs/syllabus/06-system-design.md` with five SVG diagrams in `public/docs/search-*.svg`, capacity estimates, ingestion for docs/PDFs/images (OCR), tenant-routed index, query flow, ranking and failure modes.
+
+## Cleanup
+
+Insights and Challenges are cleared (placeholders), Syllabus "System Design 1" removed, and the three Case studies posts plus the other saved LinkedIn posts now live on one page, `docs/system-design/social-media.md`.

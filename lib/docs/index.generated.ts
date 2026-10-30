@@ -200,12 +200,6 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Challenges"
  },
  {
-  "slug": "syllabus--06-system-design--01-system-design-1",
-  "path": "syllabus/06-system-design/01-system-design-1.md",
-  "folder": "syllabus/06-system-design",
-  "title": "System Design 1"
- },
- {
   "slug": "syllabus--06-system-design--02-system-design-2",
   "path": "syllabus/06-system-design/02-system-design-2.md",
   "folder": "syllabus/06-system-design",
@@ -230,27 +224,9 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Overview"
  },
  {
-  "slug": "system-design--01-system-design-post-1",
-  "path": "system-design/01-system-design-post-1.md",
+  "slug": "system-design--social-media",
+  "path": "system-design/social-media.md",
   "folder": "system-design",
-  "title": "System design post 1"
- },
- {
-  "slug": "system-design--02-system-design-post-2",
-  "path": "system-design/02-system-design-post-2.md",
-  "folder": "system-design",
-  "title": "System design post 2"
- },
- {
-  "slug": "system-design--03-system-design-post-3",
-  "path": "system-design/03-system-design-post-3.md",
-  "folder": "system-design",
-  "title": "System design post 3"
- },
- {
-  "slug": "system-design--readme",
-  "path": "system-design/README.md",
-  "folder": "system-design",
-  "title": "Case studies"
+  "title": "Social Media"
  }
 ];

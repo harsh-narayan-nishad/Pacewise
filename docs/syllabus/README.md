@@ -73,7 +73,6 @@ Each chapter is its own page in the **Syllabus** section of the menu. **Core CSE
    - [Tools and Technology](03-methodologies/01-tools-and-technology.md)
 3. [Challenges](05-challenges.md)
 4. System Design
-   - [System Design 1](06-system-design/01-system-design-1.md) — latency vs throughput, cheatsheet, interview process
    - [System Design 2](06-system-design/02-system-design-2.md) — the Pacewise search-engine case study (5 SVG diagrams)
 5. [Insights](08-insights.md)
 

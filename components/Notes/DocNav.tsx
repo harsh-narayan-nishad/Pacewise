@@ -63,7 +63,7 @@ export function DocNav({ prev, next }: { prev?: Target; next?: Target }) {
   return (
     <>
       {marks.length > 1 && (
-        <nav aria-label="Sections on this page" className="fixed right-2 top-1/2 z-[90] flex -translate-y-1/2 flex-col items-end sm:right-4">
+        <nav aria-label="Sections on this page" className="fixed right-4 top-1/2 z-[90] hidden -translate-y-1/2 flex-col items-end md:flex">
           {marks.map((m, i) => (
             <a
               key={m.id}
