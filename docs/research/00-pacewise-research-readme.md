@@ -227,6 +227,14 @@ Design language ("the homepage language") that every new screen must follow: `fo
 - Kleppmann — *Designing Data-Intensive Applications* (partitioning, caching, queues, monitoring)
 - Google SRE Book — monitoring distributed systems (alert on symptoms and error rates): https://sre.google/sre-book/monitoring-distributed-systems/
 
+**Case studies and saved posts (embedded in the docs site)**
+- Apple AirTag case study — LinkedIn post: https://www.linkedin.com/feed/update/urn:li:share:7520840668794118144 (Research › Apple AirTag case study)
+- 10 algorithms behind system design — LinkedIn post: https://www.linkedin.com/feed/update/urn:li:share:7521638052172288001 (Syllabus › Insights)
+- System design post — LinkedIn: https://www.linkedin.com/feed/update/urn:li:share:7514296223722467328 (Syllabus › System Design)
+- 8 hidden system design problems — Shalini Goyal: https://lnkd.in/p/g35wJwn2 (Syllabus › Challenges)
+
+- System design posts 1–3 — LinkedIn: https://www.linkedin.com/feed/update/urn:li:share:7519179549264343041 , https://www.linkedin.com/feed/update/urn:li:share:7518813190181343233 , https://www.linkedin.com/feed/update/urn:li:share:7518811245807005696 (System design folder)
+
 **Quiz content**
 - GATE CS1 2026 question set provided by the owner (65 questions), kept as `scripts/fixtures/gate-cs1-2026.json`.
 

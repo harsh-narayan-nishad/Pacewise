@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, FileText, Menu, X } from "lucide-react";
-import { docFolders, docUrl } from "@/lib/docs/library";
+import { docFolders, docUrl, HIDDEN_IN_MENU, syllabusOrder } from "@/lib/docs/library";
 import { BRAND_NAME } from "@/lib/brand";
 
 /** Same large display-type row as the app's menu: label, divider, chevron. */
@@ -23,9 +23,8 @@ function BigRow({ label, open, onToggle }: { label: string; open: boolean; onTog
 }
 
 const LABEL = "mb-2 text-xs font-medium uppercase tracking-wide text-ink-muted";
-const SECTION = "mt-8 first:mt-0";
+const SECTION = "mt-6 border-t border-overlay/10 pt-6 first:mt-0 first:border-t-0 first:pt-0"; // a thin line between sections, like the app menu
 const CORE_CSE_SLUG = "syllabus--04-cn-os-oops-dbms-utilization"; // "Core CSE": opens the CN, OS, OOP, DBMS notes
-const HIDDEN_IN_MENU = new Set(["syllabus--07-research-references"]);
 
 /** An expandable folder row (big heading + chevron) listing its documents. */
 function FolderRow({ label, docs, open, onToggle, userId, current }: { label: string; docs: { slug: string; title: string }[]; open: boolean; onToggle: () => void; userId: string; current?: string }) {
@@ -71,9 +70,11 @@ export function PublicMenu({ userId }: { userId: string }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const all = docFolders();
-  const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && f.id !== "interview");
+  const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && !f.id.startsWith("syllabus/") && f.id !== "interview");
   const interview = all.find((f) => f.id === "interview");
   const syllabus = all.find((f) => f.id === "syllabus");
+  // Chapters that hold several pages (e.g. "System Design" with System Design 1, 2 …) are sub-folders of docs/syllabus.
+  const syllabusGroups = all.filter((f) => f.id.startsWith("syllabus/"));
   const research = all.find((f) => f.id === "research");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
 
@@ -126,10 +127,18 @@ export function PublicMenu({ userId }: { userId: string }) {
                     {syllabus && (
                       <section aria-label="Syllabus" className={SECTION}>
                         <div className={LABEL}>Syllabus</div>
-                        {syllabus.docs
-                          .filter((d) => !HIDDEN_IN_MENU.has(d.slug))
-                          .sort((a, b) => Number(a.slug.endsWith("--readme")) - Number(b.slug.endsWith("--readme")))
-                          .map((d) => {
+                        {[
+                          ...syllabus.docs
+                            .filter((d) => !HIDDEN_IN_MENU.has(d.slug))
+                            .map((d) => ({ key: d.slug, order: syllabusOrder(d.slug), doc: d, group: undefined as (typeof syllabusGroups)[number] | undefined })),
+                          ...syllabusGroups.map((g) => ({ key: g.id, order: syllabusOrder(g.id), doc: undefined, group: g })),
+                        ]
+                          .sort((a, b) => a.order - b.order)
+                          .map(({ key, doc: d, group }) => {
+                            if (group) {
+                              return <FolderRow key={key} label={group.label} docs={group.docs} open={openFolder === group.id} onToggle={() => setOpenFolder(openFolder === group.id ? null : group.id)} userId={userId} current={current} />;
+                            }
+                            if (!d) return null;
                             const isIndex = d.slug.endsWith("--readme");
                             if (d.slug === CORE_CSE_SLUG) {
                               const notesHref = `/notes/${encodeURIComponent(userId)}`;

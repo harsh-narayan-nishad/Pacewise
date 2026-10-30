@@ -83,3 +83,17 @@ The quiz shows checkboxes or a number box with a **Check answer** button (leavin
 - **Syllabus**: a menu section (below Research) fed by `docs/syllabus/*.md`: chapter 1 *Pacewise* (sub-systems A–T and the hard engineering areas) and placeholders for chapters 2–8; `docs/syllabus/README.md` is the index.
 - **Layering on doc pages** (top to bottom): menu drawer (z 110) → its backdrop (100) → navbar and its search dropdown (95) → full-screen diagram (90, sits under the navbar) → page content.
 - **Quiz schema panel**: the JSON / file tab of the question uploader (shared by Add story, Edit story and the PDF questions dialog) lists every accepted field, its type, whether it is required, and a full example.
+
+## System design notes in the Syllabus
+
+Syllabus chapters now hold: *System Design* (latency vs throughput vs bandwidth in a 3-column table, the cheatsheet image and its 8 sections in 3 columns), *Insights* (10 algorithms inside system-design boxes), *Challenges* (8 hidden problems, post link and image). Docs can embed local images with `![caption](/docs/file.png)` (files in `public/docs/`); tables accept `<br>` for line breaks inside cells.
+- **Embeds**: `::linkedin urn:li:share:<id> <height> "title"` on its own line embeds a LinkedIn post (only LinkedIn embed URLs are possible). Used in Syllabus › Insights, Syllabus › System Design and Research › Apple AirTag case study.
+- **System design folder** (`docs/system-design/`): its own menu group with three embedded LinkedIn posts.
+
+## HTML & CSS interview page
+
+Added `docs/interview/13-html-css.md` (Interview prep). Code blocks are captioned `index.html` / `styles.css`, keep exact indentation, and HTML/XML/SVG now get syntax colouring in `lib/docs/highlight.ts`.
+
+## Search engine system design
+
+Added section 3 "Pacewise Search Engine" to `docs/syllabus/06-system-design.md` with five SVG diagrams in `public/docs/search-*.svg`, capacity estimates, ingestion for docs/PDFs/images (OCR), tenant-routed index, query flow, ranking and failure modes.

@@ -8,6 +8,7 @@ import { highlight, parseFenceInfo } from "./highlight";
  * Writing tools (all optional, usable in any .md doc):
  *   ==important==        highlighter (yellow);  ==green:text==  ==blue:text==  ==pink:text==  ==orange:text==
  *   *italic*  **bold**  ***bold italic***  ++underline++  ~~strikethrough~~
+ *   ::linkedin urn:li:share:<id> <height> "title"   embeds a LinkedIn post
  *   ```mermaid           a diagram that becomes an interactive viewer on the doc page
  */
 export interface MarkdownOptions {
@@ -33,6 +34,7 @@ function inline(text: string, opts: MarkdownOptions): string {
     codes.push(`<code>${c}</code>`);
     return `\u0000${codes.length - 1}\u0000`;
   });
+  out = out.replace(/&lt;br\s*\/?&gt;/gi, "<br />"); // the only raw tag allowed: a line break (used in table cells)
   out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
     const raw = href.replace(/&amp;/g, "&");
     const ok = safeHref(raw);
@@ -114,6 +116,23 @@ export function renderMarkdown(md: string, opts: MarkdownOptions = {}): string {
       const level = h[1].length;
       const id = slugify(h[2]);
       html.push(`<h${level} id="${id}">${inline(h[2], opts)}${level >= 2 ? `<a class="anchor" href="#${id}" aria-label="Link to this section">#</a>` : ""}</h${level}>`);
+      i++;
+      continue;
+    }
+    const emb = line.match(/^\s*::linkedin\s+(urn:li:share:\d{10,25})\s+(\d{3,4})(?:\s+"([^"]*)")?\s*$/);
+    if (emb) {
+      // Only LinkedIn's own embed URL can be embedded, built from a validated post id.
+      const urn = emb[1];
+      const title = escapeHtml(emb[3] ?? "LinkedIn post");
+      html.push(`<figure class="doc-embed"><iframe src="https://www.linkedin.com/embed/feed/update/${urn}" height="${emb[2]}" width="504" frameborder="0" allowfullscreen loading="lazy" title="${title}"></iframe><figcaption><a href="https://www.linkedin.com/feed/update/${urn}" target="_blank" rel="noopener noreferrer">Open this post on LinkedIn</a></figcaption></figure>`);
+      i++;
+      continue;
+    }
+    const img = line.match(/^\s*!\[([^\]]*)\]\((\/[^)\s]+)\)\s*$/);
+    if (img) {
+      // Local images only (served from /public); click opens the full-size picture.
+      const src = escapeHtml(img[2]);
+      html.push(`<figure class="doc-figure"><a href="${src}" target="_blank" rel="noopener noreferrer"><img src="${src}" alt="${escapeHtml(img[1])}" loading="lazy" /></a>${img[1] ? `<figcaption>${escapeHtml(img[1])}</figcaption>` : ""}</figure>`);
       i++;
       continue;
     }

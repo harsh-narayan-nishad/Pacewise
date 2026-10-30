@@ -27,6 +27,14 @@ const C: Rule[] = [
   ["l", /\b(?:NULL|true|false)\b/y],
   ["f", /\b[A-Za-z_]\w*(?=\s*\()/y],
 ];
+const HTML: Rule[] = [
+  ["c", /<!--[\s\S]*?-->/y],
+  ["t", /<!DOCTYPE[^>]*>/iy],
+  ["k", /<\/?[A-Za-z][\w-]*/y],
+  ["k", /\/?>/y],
+  ["s", /"[^"]*"|'[^']*'/y],
+  ["p", /[A-Za-z_:][\w:.-]*(?==)/y],
+];
 const BASH: Rule[] = [
   ["c", /#[^\n]*/y],
   ["s", /'[^']*'|"(?:\\.|[^"\\])*"/y],
@@ -60,6 +68,7 @@ const CONF: Rule[] = [
 
 const LANGS: Record<string, Rule[]> = {
   ts: JS, tsx: JS, js: JS, jsx: JS, javascript: JS, typescript: JS, mjs: JS,
+  html: HTML, xml: HTML, svg: HTML,
   c: C, cpp: C, java: C,
   bash: BASH, sh: BASH, shell: BASH, zsh: BASH,
   json: JSON_, css: CSS, scss: CSS,

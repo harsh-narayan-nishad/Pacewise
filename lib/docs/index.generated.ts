@@ -122,6 +122,18 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "11 — Ownership, routing & profile photos (Easy / Medium / Hard)"
  },
  {
+  "slug": "interview--12-system-design-google-docs",
+  "path": "interview/12-system-design-google-docs.md",
+  "folder": "interview",
+  "title": "12 · System Design: Google Docs"
+ },
+ {
+  "slug": "interview--13-html-css",
+  "path": "interview/13-html-css.md",
+  "folder": "interview",
+  "title": "13 · HTML & CSS"
+ },
+ {
   "slug": "interview--readme",
   "path": "interview/README.md",
   "folder": "interview",
@@ -152,28 +164,28 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Vercel deployments versus the domain"
  },
  {
+  "slug": "research--04-apple-airtag-case-study",
+  "path": "research/04-apple-airtag-case-study.md",
+  "folder": "research",
+  "title": "Apple AirTag case study"
+ },
+ {
+  "slug": "research--05-docs-writing-tool-strategy-and-challenges",
+  "path": "research/05-docs-writing-tool-strategy-and-challenges.md",
+  "folder": "research",
+  "title": "Docs writing tool — strategy and challenges"
+ },
+ {
   "slug": "research--readme",
   "path": "research/README.md",
   "folder": "research",
   "title": "Research"
  },
  {
-  "slug": "syllabus--01-pacewise",
-  "path": "syllabus/01-pacewise.md",
-  "folder": "syllabus",
-  "title": "Pacewise"
- },
- {
-  "slug": "syllabus--02-backend",
-  "path": "syllabus/02-backend.md",
-  "folder": "syllabus",
-  "title": "Backend"
- },
- {
-  "slug": "syllabus--03-tools-technology-and-methodology-used",
-  "path": "syllabus/03-tools-technology-and-methodology-used.md",
-  "folder": "syllabus",
-  "title": "Tools, Technology and Methodology used"
+  "slug": "syllabus--03-methodologies--01-tools-and-technology",
+  "path": "syllabus/03-methodologies/01-tools-and-technology.md",
+  "folder": "syllabus/03-methodologies",
+  "title": "Tools and Technology"
  },
  {
   "slug": "syllabus--04-cn-os-oops-dbms-utilization",
@@ -188,10 +200,16 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Challenges"
  },
  {
-  "slug": "syllabus--06-system-design",
-  "path": "syllabus/06-system-design.md",
-  "folder": "syllabus",
-  "title": "System Design"
+  "slug": "syllabus--06-system-design--01-system-design-1",
+  "path": "syllabus/06-system-design/01-system-design-1.md",
+  "folder": "syllabus/06-system-design",
+  "title": "System Design 1"
+ },
+ {
+  "slug": "syllabus--06-system-design--02-system-design-2",
+  "path": "syllabus/06-system-design/02-system-design-2.md",
+  "folder": "syllabus/06-system-design",
+  "title": "System Design 2"
  },
  {
   "slug": "syllabus--07-research-references",
@@ -209,6 +227,30 @@ export const DOC_INDEX: DocMeta[] = [
   "slug": "syllabus--readme",
   "path": "syllabus/README.md",
   "folder": "syllabus",
-  "title": "Pacewise syllabus"
+  "title": "Overview"
+ },
+ {
+  "slug": "system-design--01-system-design-post-1",
+  "path": "system-design/01-system-design-post-1.md",
+  "folder": "system-design",
+  "title": "System design post 1"
+ },
+ {
+  "slug": "system-design--02-system-design-post-2",
+  "path": "system-design/02-system-design-post-2.md",
+  "folder": "system-design",
+  "title": "System design post 2"
+ },
+ {
+  "slug": "system-design--03-system-design-post-3",
+  "path": "system-design/03-system-design-post-3.md",
+  "folder": "system-design",
+  "title": "System design post 3"
+ },
+ {
+  "slug": "system-design--readme",
+  "path": "system-design/README.md",
+  "folder": "system-design",
+  "title": "Case studies"
  }
 ];

@@ -32,6 +32,12 @@ const PROSE = [
 
 const CSS = `
 .doc-prose mark.hl{background:transparent;color:inherit;padding:0}
+.doc-prose .doc-figure{margin:2rem 0;text-align:center}
+.doc-prose .doc-figure img{max-width:100%;height:auto;border-radius:1rem;border:1px solid rgba(128,128,128,.25);background:#fff;display:inline-block}
+.doc-prose .doc-figure figcaption{margin-top:.6rem;font-size:.85rem;opacity:.7}
+.doc-prose .doc-embed{margin:2rem 0;text-align:center}
+.doc-prose .doc-embed iframe{max-width:100%;border:1px solid rgba(128,128,128,.25);border-radius:1rem;background:#fff}
+.doc-prose .doc-embed figcaption{margin-top:.5rem;font-size:.85rem}
 .doc-prose em{font-style:italic}
 
 .doc-prose .doc-code{margin:1.5rem 0;overflow:hidden;border-radius:1rem;border:1px solid rgb(var(--overlay-rgb,128 128 128)/.18);background:var(--code-bg,#f6f8fa)}

@@ -6,6 +6,8 @@ Findings from investigating the questions behind Pacewise: what it takes to scal
 - [Scaling, security and the test notifier](01-scaling-security-and-notifier.md)
 - [Uploaded PDF showed the wrong owner](02-uploaded-pdf-ownership-bug.md)
 - [Vercel deployment URL versus the domain](03-vercel-deployments-vs-domains.md)
+- [Docs writing tool — strategy and challenges](05-docs-writing-tool-strategy-and-challenges.md): editor design decisions with code from the repo
+- [Apple AirTag case study](04-apple-airtag-case-study.md): embedded LinkedIn post
 
 The project syllabus (chapters 1–8, starting with the Pacewise sub-systems) is in the **Syllabus** section of the menu: [Pacewise syllabus](../syllabus/README.md).
 

@@ -61,4 +61,18 @@ test("captioned code blocks: path, language, coloured tokens, principle, indenta
   assert.doesNotMatch(renderMarkdown('```ts title="<script>"\nx\n```'), /<script>/);
   assert.match(renderMarkdown("```\nplain\n```"), /^<pre data-lang="">/);
 });
+test("images (local only) and line breaks in table cells", () => {
+  assert.match(renderMarkdown("![Cap](/docs/a.png)"), /<figure class="doc-figure"><a href="\/docs\/a\.png"[^>]*><img src="\/docs\/a\.png" alt="Cap"/);
+  assert.doesNotMatch(renderMarkdown("![x](https://evil.test/a.png)"), /<img/);
+  assert.match(renderMarkdown("| A |\n| --- |\n| one<br>two |"), /one<br \/>two/);
+  assert.doesNotMatch(renderMarkdown("<img src=x onerror=1>"), /<img/);
+});
+test("LinkedIn embeds: only validated post ids", () => {
+  assert.match(renderMarkdown('::linkedin urn:li:share:7521638052172288001 1699 "T"'), /<iframe src="https:\/\/www\.linkedin\.com\/embed\/feed\/update\/urn:li:share:7521638052172288001" height="1699"/);
+  assert.doesNotMatch(renderMarkdown("::linkedin https://evil.test 1699"), /<iframe/);
+});
+test("html code blocks are coloured and keep indentation", () => {
+  const h = renderMarkdown('```html title="index.html"\n<div class="a">\n  <p>Hi</p>\n</div>\n```');
+  assert.match(h, /<span class="tk-k">&lt;div<\/span> <span class="tk-p">class<\/span>=<span class="tk-s">&quot;a&quot;<\/span><span class="tk-k">&gt;<\/span>\n  <span class="tk-k">&lt;p<\/span>/);
+});
 console.log(`\n${passed} tests passed`);
