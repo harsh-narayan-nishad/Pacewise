@@ -119,6 +119,7 @@ export default function ReaderPage() {
     });
 
     storage.bumpStreak();
+    storage.recordStoryReading(state.story.id ?? state.story.title, state.story.title, Math.max(0, actualDurationMs - breakTracker.sessionBreakMs));
     storage.recordSession({
       minutes: Math.round(actualDurationMs / 60_000),
       wpm: Math.round(actualWpm),

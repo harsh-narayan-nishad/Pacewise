@@ -10,6 +10,10 @@ import { BookmarkRepository } from "@/lib/session/repositories/BookmarkRepositor
 import { AchievementRepository } from "@/lib/session/repositories/AchievementRepository";
 import { CustomStoryRepository } from "@/lib/session/repositories/CustomStoryRepository";
 import { SearchHistoryRepository } from "@/lib/session/repositories/SearchHistoryRepository";
+import { DocTimeRepository } from "@/lib/session/repositories/DocTimeRepository";
+import { TimeLogRepository } from "@/lib/session/repositories/TimeLogRepository";
+import { TimeSummaryCalculator } from "@/lib/session/analytics/TimeSummaryCalculator";
+import { TimeSummary } from "@/lib/session/types";
 
 /**
  * AGGREGATE ROOT + FACADE + COMPOSITION.
@@ -33,6 +37,10 @@ export class UserSession {
   readonly achievements: AchievementRepository;
   readonly customStories: CustomStoryRepository;
   readonly searchHistory: SearchHistoryRepository;
+  /** Time spent reading and testing, per story and per page (the profile's time analysis). */
+  readonly timeLog: TimeLogRepository;
+  /** Time spent reading documentation pages. */
+  readonly docTime: DocTimeRepository;
 
   /** Every repository, viewed through their shared abstract type — lets
    *  `clearAllData` treat them uniformly (polymorphism). */
@@ -41,7 +49,8 @@ export class UserSession {
   constructor(
     readonly namespace: UserNamespace,
     store: KeyValueStore,
-    private readonly stats: LifetimeStatsCalculator = new LifetimeStatsCalculator()
+    private readonly stats: LifetimeStatsCalculator = new LifetimeStatsCalculator(),
+    private readonly timeStats: TimeSummaryCalculator = new TimeSummaryCalculator()
   ) {
     this.history = new HistoryRepository(store, namespace);
     this.streak = new StreakRepository(store, namespace);
@@ -50,6 +59,8 @@ export class UserSession {
     this.achievements = new AchievementRepository(store, namespace);
     this.customStories = new CustomStoryRepository(store, namespace);
     this.searchHistory = new SearchHistoryRepository(store, namespace);
+    this.timeLog = new TimeLogRepository(store, namespace);
+    this.docTime = new DocTimeRepository(store, namespace);
     this.repositories = [
       this.history,
       this.streak,
@@ -58,6 +69,8 @@ export class UserSession {
       this.achievements,
       this.customStories,
       this.searchHistory,
+      this.timeLog,
+      this.docTime,
     ] as ReadonlyArray<UserScopedRepository<unknown>>;
   }
 
@@ -69,6 +82,11 @@ export class UserSession {
    *  call, so the same history can't produce two different totals. */
   lifetimeStats(now: Date = new Date()): LifetimeStats {
     return this.stats.compute(this.daily.getAll(), now);
+  }
+
+  /** Totals over the whole time log (reading, testing, both). */
+  timeSummary(): TimeSummary {
+    return this.timeStats.compute(this.timeLog.getAll(), this.docTime.getAll());
   }
 
   /** Wipes every feature's data for *this user only*. */

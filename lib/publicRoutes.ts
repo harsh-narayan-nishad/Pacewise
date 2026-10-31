@@ -1,4 +1,4 @@
-/** Pages anyone can open without signing in (e.g. the notes a QR code points to). */
+/** The notes / docs pages (what a QR code points to). They have their own header and footer, but opening them still needs a sign-in. */
 export function isPublicPath(pathname: string | null | undefined): boolean {
   return !!pathname && /^\/notes\/[^/]+(\/docs\/[^/]+)?\/?$/.test(pathname);
 }

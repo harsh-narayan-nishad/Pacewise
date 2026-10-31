@@ -40,3 +40,14 @@ export function wpmFromElapsed(words: number, elapsedMs: number): number {
   if (words <= 0 || elapsedMs <= 0) return 0;
   return Math.round(words / (elapsedMs / 60_000));
 }
+
+/**
+ * The reading clock face: counts down from words/wpm to 0, then keeps going *up* as overtime so the
+ * reader can see how late they are. `overtime` is true from the first second past the target.
+ */
+export function clockFace(words: number, wpm: number, elapsedMs: number): { ms: number; overtime: boolean } {
+  if (words <= 0 || wpm <= 0) return { ms: 0, overtime: false };
+  const total = (words / wpm) * 60_000;
+  const elapsed = Math.max(0, elapsedMs);
+  return elapsed <= total ? { ms: total - elapsed, overtime: false } : { ms: elapsed - total, overtime: true };
+}

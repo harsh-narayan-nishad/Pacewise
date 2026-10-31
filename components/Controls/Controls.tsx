@@ -27,7 +27,8 @@ interface ControlsProps {
   onPlayPause: () => void;
   onRestart: () => void;
   onSkip: () => void;
-  onSpeedChange: (wpm: number) => void;
+  /** Omit to lock the speed: it is chosen on the story page before reading starts. */
+  onSpeedChange?: (wpm: number) => void;
   onFontsChange: (fonts: Partial<FontSettings>) => void;
 }
 
@@ -110,6 +111,7 @@ export function Controls({
               </Button>
             </div>
 
+            {onSpeedChange ? (
             <div className="mt-4">
               <div className="mb-1.5 text-xs text-ink-muted">Preset speeds (wpm)</div>
               <div className="flex flex-wrap gap-1.5">
@@ -127,6 +129,9 @@ export function Controls({
                 />
               </div>
             </div>
+            ) : (
+              <p className="mt-4 text-xs text-ink-muted">Reading speed: {wpm} wpm, set before you started.</p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -135,9 +140,11 @@ export function Controls({
         <div className="absolute inset-0 -z-10">
           <GlassSurface width="100%" height="100%" borderRadius={999} backgroundOpacity={0.55} blur={11} />
         </div>
-        <Button size="icon" variant="ghost" onClick={() => onSpeedChange(wpm - 25)} aria-label="Decrease speed">
-          <ChevronDown className="h-4 w-4" />
-        </Button>
+        {onSpeedChange && (
+          <Button size="icon" variant="ghost" onClick={() => onSpeedChange(wpm - 25)} aria-label="Decrease speed">
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        )}
         <Button size="icon" variant="ghost" onClick={onRestart} aria-label="Restart">
           <RotateCcw className="h-4 w-4" />
         </Button>
@@ -147,9 +154,11 @@ export function Controls({
         <Button size="icon" variant="ghost" onClick={onSkip} aria-label="Skip to questions">
           <SkipForward className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="ghost" onClick={() => onSpeedChange(wpm + 25)} aria-label="Increase speed">
-          <ChevronUp className="h-4 w-4" />
-        </Button>
+        {onSpeedChange && (
+          <Button size="icon" variant="ghost" onClick={() => onSpeedChange(wpm + 25)} aria-label="Increase speed">
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+        )}
         <div className="mx-1 h-6 w-px bg-overlay/10" />
         <Button
           size="icon"

@@ -6,7 +6,7 @@ import { qrMatrix } from "@/lib/qr";
 import { notesUrl } from "@/lib/publicRoutes";
 
 /**
- * This person's own QR code: it opens their public notes page (no login needed). The code is
+ * This person's own QR code: it opens their public notes page (the person signs in first). The code is
  * built from the signed-in user's id, so every user — and every session — gets a different one.
  */
 export function ProfileQr({ userId }: { userId: string }) {

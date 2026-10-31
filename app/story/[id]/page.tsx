@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { StoryPage } from "@/components/Dashboard/StoryPage";
@@ -18,9 +18,15 @@ export default function StoryRoute({ params }: { params: { id: string } }) {
   const story = useMemo(() => getStoryById(id), [id]);
   const loaded = Boolean(story) && (state.story?.id ?? state.story?.title) === (story?.id ?? story?.title);
 
+  // Load the story once per address. Without this guard, clearing the story (the logo click) made this page
+  // load it again, so the first logo click kept you here and only the second reached the landing page.
+  const requestedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (story && !loaded) dispatch({ type: "LOAD_STORY", story });
-  }, [story, loaded, dispatch]);
+    if (story && !loaded && requestedFor.current !== id) {
+      requestedFor.current = id;
+      dispatch({ type: "LOAD_STORY", story });
+    }
+  }, [story, loaded, id, dispatch]);
 
   if (!story) {
     return (

@@ -14,6 +14,7 @@ import { ThemeSync } from "@/components/ThemeSync";
 import { PresenceTracker } from "@/components/Session/PresenceTracker";
 import { TopNav } from "@/components/Navigation/TopNav";
 import { Footer } from "@/components/Footer/Footer";
+import { NavLoaderProvider } from "@/contexts/NavLoaderContext";
 import { DevLoginGate } from "@/components/Auth/DevLoginGate";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { AuthProvider } from "@/lib/api/AuthContext";
@@ -63,9 +64,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 >
                   Skip to content
                 </a>
-                <TopNav />
-                <main id="main">{children}</main>
-                <Footer />
+                <NavLoaderProvider>
+                  <TopNav />
+                  <main id="main">{children}</main>
+                  <Footer />
+                </NavLoaderProvider>
               </DevLoginGate>
               <ToastHost />
             </ReadingProvider>

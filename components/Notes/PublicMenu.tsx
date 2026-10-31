@@ -8,6 +8,21 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, FileText, Menu, X } from "lucide-react";
 import { docFolders, docUrl, HIDDEN_IN_MENU, syllabusOrder } from "@/lib/docs/library";
 import { BRAND_NAME } from "@/lib/brand";
+import { TickSpinner } from "@/components/ui/loaders/TickSpinner";
+
+/** True from the click on a menu link until the new page arrives, but only once the wait passes 150 ms (quicker loads never show it). */
+function useLinkPending(href: string): { pending: boolean; onClick: (e: React.MouseEvent) => void } {
+  const pathname = usePathname();
+  const [clicked, setClicked] = useState(false);
+  const [pending, setPending] = useState(false);
+  useEffect(() => { setClicked(false); setPending(false); }, [pathname]);
+  useEffect(() => {
+    if (!clicked) return;
+    const id = window.setTimeout(() => setPending(true), 150);
+    return () => window.clearTimeout(id);
+  }, [clicked]);
+  return { pending, onClick: (e) => { if (href.split(/[?#]/)[0] !== pathname && !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) setClicked(true); } };
+}
 
 /** Same large display-type row as the app's menu: label, divider, chevron. */
 function BigRow({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
@@ -26,6 +41,17 @@ const LABEL = "mb-2 text-xs font-medium uppercase tracking-wide text-ink-muted";
 const SECTION = "mt-6 border-t border-overlay/10 pt-6 first:mt-0 first:border-t-0 first:pt-0"; // a thin line between sections, like the app menu
 const CORE_CSE_SLUG = "syllabus--04-cn-os-oops-dbms-utilization"; // "Core CSE": opens the CN, OS, OOP, DBMS notes
 
+/** One document row of a folder; a small spinner replaces the file icon while its page loads. */
+function DocItem({ href, title, active }: { href: string; title: string; active: boolean }) {
+  const { pending, onClick } = useLinkPending(href);
+  return (
+    <Link href={href} onClick={onClick} aria-current={active ? "page" : undefined} aria-busy={pending} className={`flex items-start gap-3 rounded-2xl px-3 py-2.5 text-base transition-colors hover:bg-overlay/5 ${active ? "bg-overlay/[0.08] text-ink" : "text-ink-muted hover:text-ink"}`}>
+      {pending ? <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center"><TickSpinner size={16} label="Loading page" /></span> : <FileText className="mt-0.5 h-4 w-4 shrink-0" />}
+      <span className="min-w-0">{title}</span>
+    </Link>
+  );
+}
+
 /** An expandable folder row (big heading + chevron) listing its documents. */
 function FolderRow({ label, docs, open, onToggle, userId, current }: { label: string; docs: { slug: string; title: string }[]; open: boolean; onToggle: () => void; userId: string; current?: string }) {
   return (
@@ -35,10 +61,7 @@ function FolderRow({ label, docs, open, onToggle, userId, current }: { label: st
         <ul className="mb-4 mt-1 space-y-0.5">
           {docs.map((d) => (
             <li key={d.slug}>
-              <Link href={docUrl(userId, d.slug)} aria-current={current === d.slug ? "page" : undefined} className={`flex items-start gap-3 rounded-2xl px-3 py-2.5 text-base transition-colors hover:bg-overlay/5 ${current === d.slug ? "bg-overlay/[0.08] text-ink" : "text-ink-muted hover:text-ink"}`}>
-                <FileText className="mt-0.5 h-4 w-4 shrink-0" />
-                <span className="min-w-0">{d.title}</span>
-              </Link>
+              <DocItem href={docUrl(userId, d.slug)} title={d.title} active={current === d.slug} />
             </li>
           ))}
         </ul>
@@ -47,14 +70,56 @@ function FolderRow({ label, docs, open, onToggle, userId, current }: { label: st
   );
 }
 
+/** A folder that also holds sub-folders: its own pages first, then one expandable row per sub-folder. */
+function NestedFolderRow({ folder, subs, openFolder, setOpenFolder, userId, current }: { folder: { id: string; label: string; docs: { slug: string; title: string }[] }; subs: { id: string; label: string; docs: { slug: string; title: string }[] }[]; openFolder: string | null; setOpenFolder: (id: string | null) => void; userId: string; current?: string }) {
+  const open = openFolder === folder.id || (openFolder?.startsWith(folder.id + "/") ?? false);
+  return (
+    <div>
+      <BigRow label={folder.label} open={open} onToggle={() => setOpenFolder(open ? null : folder.id)} />
+      {open && (
+        <div className="mb-4 mt-1">
+          <ul className="space-y-0.5">
+            {folder.docs.map((d) => (
+              <li key={d.slug}><DocItem href={docUrl(userId, d.slug)} title={d.title} active={current === d.slug} /></li>
+            ))}
+          </ul>
+          {subs.map((s) => {
+            const subOpen = openFolder === s.id;
+            return (
+              <div key={s.id} className="mt-1 border-l border-overlay/10 pl-3">
+                <button type="button" onClick={() => setOpenFolder(subOpen ? folder.id : s.id)} aria-expanded={subOpen} className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-overlay/5">
+                  <span className="font-display text-2xl leading-tight tracking-[-0.02em] text-ink">{s.label}</span>
+                  <ChevronRight className={`h-4 w-4 text-ink transition-transform ${subOpen ? "rotate-90" : ""}`} />
+                </button>
+                {subOpen && (
+                  <ul className="mb-2 mt-0.5 space-y-0.5">
+                    {s.docs.map((d) => (
+                      <li key={d.slug}><DocItem href={docUrl(userId, d.slug)} title={d.title} active={current === d.slug} /></li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** A direct-link row (big heading, divider, chevron) for a syllabus chapter. */
 function LinkRow({ label, href, active }: { label: string; href: string; active: boolean }) {
+  const { pending, onClick } = useLinkPending(href);
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className="group flex w-full items-center justify-between py-3">
+    <Link href={href} onClick={onClick} aria-current={active ? "page" : undefined} aria-busy={pending} className="group flex w-full items-center justify-between py-3">
       <span className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink transition-opacity group-hover:opacity-70 sm:text-4xl">{label}</span>
       <span className="flex items-center gap-4">
         <span aria-hidden className="h-9 w-px bg-overlay/15" />
-        <ChevronRight className={`h-5 w-5 transition-transform group-hover:translate-x-0.5 ${active ? "text-[#306fdb]" : "text-ink"}`} />
+        {pending ? (
+          <span className="flex h-5 w-5 items-center justify-center"><TickSpinner size={20} label="Loading page" /></span>
+        ) : (
+          <ChevronRight className={`h-5 w-5 transition-transform group-hover:translate-x-0.5 ${active ? "text-[#306fdb]" : "text-ink"}`} />
+        )}
       </span>
     </Link>
   );
@@ -70,7 +135,9 @@ export function PublicMenu({ userId }: { userId: string }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const all = docFolders();
-  const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && !f.id.startsWith("syllabus/") && f.id !== "interview");
+  // Top-level folders only; a sub-folder (e.g. "leadership-principles/amazon") is listed inside its parent.
+  const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && !f.id.startsWith("syllabus/") && f.id !== "interview" && !f.id.includes("/"));
+  const subFolders = (parentId: string) => all.filter((f) => f.id.startsWith(parentId + "/"));
   const interview = all.find((f) => f.id === "interview");
   const syllabus = all.find((f) => f.id === "syllabus");
   // Chapters that hold several pages (e.g. "System Design" with System Design 1, 2 …) are sub-folders of docs/syllabus.
@@ -152,9 +219,13 @@ export function PublicMenu({ userId }: { userId: string }) {
                     {folders.length > 0 && (
                       <section aria-label="Documents" className={SECTION}>
                         <div className={LABEL}>Documents</div>
-                        {folders.map((f) => (
-                          <FolderRow key={f.id || "root"} label={f.label} docs={f.docs} open={openFolder === f.id} onToggle={() => setOpenFolder(openFolder === f.id ? null : f.id)} userId={userId} current={current} />
-                        ))}
+                        {folders.map((f) =>
+                          subFolders(f.id).length > 0 ? (
+                            <NestedFolderRow key={f.id} folder={f} subs={subFolders(f.id)} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />
+                          ) : (
+                            <FolderRow key={f.id || "root"} label={f.label} docs={f.docs} open={openFolder === f.id} onToggle={() => setOpenFolder(openFolder === f.id ? null : f.id)} userId={userId} current={current} />
+                          )
+                        )}
                       </section>
                     )}
 

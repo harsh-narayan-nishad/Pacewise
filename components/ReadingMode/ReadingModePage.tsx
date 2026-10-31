@@ -1,6 +1,5 @@
 "use client";
 import { readingPresence } from "@/lib/readingPresence";
-import { SpeedWheel } from "@/components/ReadingMode/SpeedWheel";
 import { BRAND_BLUE, BRAND_NAME } from "@/lib/brand";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -12,6 +11,7 @@ import { useInertiaScroll } from "@/components/ReadingMode/useInertiaScroll";
 import { useStoryHtml } from "@/components/Reader/useStoryHtml";
 import { useReadingDispatch, useReadingState } from "@/contexts/ReadingContext";
 import { articleProgress, wpmFromElapsed } from "@/lib/readingMode/progress";
+import { PageDwellTracker, WORDS_PER_PAGE, pageIndexAt, paginate } from "@/lib/readingMode/PageDwellTracker";
 import { effectiveWpm, wpmReductionPercent } from "@/lib/wpmCalculator";
 import { storage } from "@/lib/storage";
 import { storyWordCount } from "@/lib/wpmCalculator";
@@ -39,6 +39,12 @@ export function ReadingModePage({ story, embedded = false }: { story: StoryData;
   const articleRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const elapsed = useRef(0); // ms of real, visible reading time
+  // Page-by-page time: where each page starts, how long was spent on each, and whether it was saved yet.
+  const tracker = useRef(new PageDwellTracker());
+  const pageStarts = useRef<number[]>([]);
+  const logged = useRef(false);
+  const storyRef = useRef(story);
+  storyRef.current = story;
   // Embedded on the story page: progress bar at the bottom of the screen, section rail on the
   // right, and a font-size control. They appear once the article scrolls into view.
   const [inArticle, setInArticle] = useState(!embedded);
@@ -102,15 +108,43 @@ export function ReadingModePage({ story, embedded = false }: { story: StoryData;
     };
   }, [dispatch, embedded]);
 
+  /** Cuts the article into pages (about 250 words each; a media story keeps its own pages) and records where each starts. */
+  function measurePages() {
+    const body = bodyRef.current;
+    if (!body) return;
+    const parent = body.querySelector(".sr-rich") ?? body.querySelector(".space-y-8") ?? body;
+    const blocks = Array.from(parent.children).filter((c): c is HTMLElement => c instanceof HTMLElement);
+    const media = Boolean(storyRef.current.media);
+    pageStarts.current = paginate(
+      blocks.map((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, words: media ? 1 : (el.textContent ?? "").split(/\s+/).filter(Boolean).length })),
+      media ? 1 : WORDS_PER_PAGE
+    );
+  }
+
+  /** Saves this reading (total + per page) to the profile's time log, once. Very short visits are not logged. */
+  function logReading() {
+    if (logged.current || elapsed.current < 3000) return;
+    logged.current = true;
+    const s = storyRef.current;
+    storage.recordStoryReading(s.id ?? s.title, s.title, elapsed.current, tracker.current.snapshot());
+  }
+
   // Stopwatch: real time on this page (paused while the tab is hidden), never tied to scroll.
   useEffect(() => {
     elapsed.current = 0;
+    logged.current = false;
+    tracker.current.reset();
     dispatch({ type: "SET_READING_ELAPSED", ms: 0 });
     let last = performance.now();
     let lastSecond = 0;
     const id = window.setInterval(() => {
       const now = performance.now();
-      if (document.visibilityState === "visible" && clockOn.current) elapsed.current += now - last;
+      const dt = now - last;
+      if (document.visibilityState === "visible" && clockOn.current) {
+        elapsed.current += dt;
+        if (pageStarts.current.length === 0) measurePages();
+        tracker.current.tick(pageIndexAt(window.scrollY + window.innerHeight * 0.4, pageStarts.current), dt);
+      }
       last = now;
       const sec = Math.floor(elapsed.current / 1000);
       if (sec !== lastSecond) {
@@ -118,11 +152,19 @@ export function ReadingModePage({ story, embedded = false }: { story: StoryData;
         dispatch({ type: "SET_READING_ELAPSED", ms: elapsed.current });
       }
     }, 250);
-    return () => window.clearInterval(id);
+    const ro = new ResizeObserver(measurePages);
+    if (bodyRef.current) ro.observe(bodyRef.current);
+    return () => {
+      window.clearInterval(id);
+      ro.disconnect();
+      logReading(); // leaving the page early still counts what was read
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   function finish() {
     // Submitting early (or late) recalculates the speed from the time actually spent.
+    logReading();
     const elapsedMs = Math.max(1000, elapsed.current);
     const actualWpm = wpmFromElapsed(words, elapsedMs);
     const eff = effectiveWpm(words, elapsedMs);
@@ -148,7 +190,6 @@ export function ReadingModePage({ story, embedded = false }: { story: StoryData;
   return (
     <>
       {(!embedded || inArticle) && <ScrollRail bodyRef={bodyRef} deps={html} side={embedded ? "right" : "left"} accent={embedded ? BRAND_BLUE : undefined} alwaysOpen={embedded} />}
-      {embedded && inArticle && <SpeedWheel />}
       {embedded && inArticle && (
         <>
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-[3px] bg-overlay/10" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label="Reading progress">

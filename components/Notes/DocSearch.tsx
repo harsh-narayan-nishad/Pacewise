@@ -15,6 +15,14 @@ const SEARCH_CSS = `
 :root[data-theme="dark"] .doc-search-input::placeholder{color:rgba(242,242,242,.55)}
 `;
 
+/* While searching, the rest of the screen sits behind Apple's "regular" blur material: 20 px blur, saturation 180%, a light tint. */
+const SCRIM_CSS = `
+.doc-search-scrim{position:fixed;inset:0;z-index:-1;background:rgba(246,246,248,.4);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);animation:doc-scrim-in .25s cubic-bezier(.25,.1,.25,1) both}
+:root[data-theme="dark"] .doc-search-scrim{background:rgba(0,0,0,.4)}
+@keyframes doc-scrim-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.doc-search-scrim{animation:none}}
+`;
+
 const FOLDER = new Map(docFolders().map((f) => [f.id, f.label]));
 
 interface Hit { entry: SearchEntry; score: number; snippet: string }
@@ -72,12 +80,22 @@ export function DocSearch({ userId }: { userId: string }) {
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
+  // Behind the blur the page stays put: wheel and touch scrolling are held until the search closes (the result list still scrolls).
+  useEffect(() => {
+    if (!open) return;
+    const hold = (e: Event) => { if (!(e.target as HTMLElement | null)?.closest?.('[role="listbox"]')) e.preventDefault(); };
+    document.addEventListener("wheel", hold, { passive: false });
+    document.addEventListener("touchmove", hold, { passive: false });
+    return () => { document.removeEventListener("wheel", hold); document.removeEventListener("touchmove", hold); };
+  }, [open]);
+
   const href = (h: Hit) => docUrl(userId, h.entry.slug) + (h.entry.id ? `#${h.entry.id}` : "");
   const go = (h: Hit) => { setOpen(false); setQ(""); router.push(href(h)); };
 
   return (
     <div ref={box} className="relative">
-      <style dangerouslySetInnerHTML={{ __html: SEARCH_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: SEARCH_CSS + SCRIM_CSS }} />
+      {open && <div aria-hidden className="doc-search-scrim pointer-events-auto" onMouseDown={() => { setOpen(false); (document.activeElement as HTMLElement | null)?.blur(); }} />}
       <input
         type="text"
         name="text"
@@ -96,16 +114,16 @@ export function DocSearch({ userId }: { userId: string }) {
         className="doc-search-input block w-[132px] rounded-full border border-transparent px-[15px] py-[9px] text-center text-sm outline-none transition-[width] duration-500 sm:w-[200px] sm:hover:w-[240px] focus:w-[min(280px,52vw)] sm:focus:w-[280px]"
       />
       {open && q.trim() && (
-        <ul role="listbox" className="absolute left-1/2 top-full z-[110] mt-2 max-h-[70vh] w-[min(420px,92vw)] -translate-x-1/2 overflow-y-auto rounded-3xl border border-overlay/10 bg-canvas p-1.5 shadow-themed">
-          {!index && <li className="px-3 py-2.5 text-sm text-ink-muted">Searching…</li>}
-          {index && results.length === 0 && <li className="px-3 py-2.5 text-sm text-ink-muted">Nothing found for “{q.trim()}”</li>}
+        <ul role="listbox" className="fixed inset-x-0 top-14 z-[110] max-h-[70vh] w-screen overflow-y-auto rounded-b-[28px] bg-canvas px-3 pb-5 pt-2 sm:px-6">
+          {!index && <li className="mx-auto max-w-3xl px-4 py-3 text-[15px] text-ink-muted">Searching…</li>}
+          {index && results.length === 0 && <li className="mx-auto max-w-3xl px-4 py-3 text-[15px] text-ink-muted">No results for “{q.trim()}”</li>}
           {results.map((h, i) => (
-            <li key={`${h.entry.slug}#${h.entry.id}-${i}`} role="option" aria-selected={i === active}>
-              <Link href={href(h)} onClick={() => { setOpen(false); setQ(""); }} onMouseEnter={() => setActive(i)} className={`flex items-start gap-3 rounded-2xl px-3 py-2.5 text-sm ${i === active ? "bg-overlay/[0.08]" : ""}`}>
-                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
+            <li key={`${h.entry.slug}#${h.entry.id}-${i}`} role="option" aria-selected={i === active} className="mx-auto max-w-3xl">
+              <Link href={href(h)} onClick={() => { setOpen(false); setQ(""); }} onMouseEnter={() => setActive(i)} className={`flex items-start gap-3.5 rounded-xl px-4 py-3 ${i === active ? "bg-overlay/[0.06]" : ""}`}>
+                <FileText className="mt-[3px] h-[18px] w-[18px] shrink-0 text-ink-muted" />
                 <span className="min-w-0">
-                  <span className="block text-ink"><Marked text={h.entry.title} q={q} />{h.entry.id ? <span className="text-ink-muted"> › <Marked text={h.entry.heading} q={q} /></span> : null}</span>
-                  {h.snippet && <span className="mt-0.5 block text-xs leading-snug text-ink-muted"><Marked text={h.snippet} q={q} /></span>}
+                  <span className="block text-[17px] font-medium leading-snug tracking-[-0.01em] text-ink"><Marked text={h.entry.title} q={q} />{h.entry.id ? <span className="text-ink-muted"> › <Marked text={h.entry.heading} q={q} /></span> : null}</span>
+                  {h.snippet && <span className="mt-1 block text-[13px] leading-[1.4] text-ink-muted"><Marked text={h.snippet} q={q} /></span>}
                 </span>
               </Link>
             </li>

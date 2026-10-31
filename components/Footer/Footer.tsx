@@ -6,6 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, LayoutDashboard, Share2, UserCircle } from "lucide-react";
 import { useCurrentUser } from "@/lib/devData/useDevStore";
+import { isPublicPath } from "@/lib/publicRoutes";
+import { docsFooterColumns } from "@/lib/docs/library";
 
 const LINK_COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
   {
@@ -57,13 +59,17 @@ export function Footer() {
     }
   }
 
+  // Public docs pages (the QR code destination): the footer links to the docs themselves.
+  const onDocs = isPublicPath(pathname);
+  const columns = onDocs ? docsFooterColumns(decodeURIComponent(pathname.split("/")[2] ?? "")) : LINK_COLUMNS;
+
   const round = "flex h-12 w-12 items-center justify-center rounded-full bg-overlay/[0.08] text-ink-muted transition-colors hover:bg-overlay/[0.14] hover:text-ink";
 
   return (
     <footer className="relative overflow-hidden border-t border-overlay/10 bg-canvas-raised transition-colors">
       <div className="mx-auto max-w-6xl px-6 pt-16 sm:px-8">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
-          {LINK_COLUMNS.map((col) => (
+        <div className={`grid grid-cols-2 gap-x-6 gap-y-12 ${onDocs ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
+          {columns.map((col) => (
             <nav key={col.title} aria-label={col.title}>
               <div className="mb-6 text-sm text-ink-muted">{col.title}</div>
               <ul className="space-y-4">
@@ -78,8 +84,8 @@ export function Footer() {
           <div className="md:text-right">
             <div className="mb-6 text-sm text-ink-muted">Quick actions</div>
             <div className="flex gap-3 md:justify-end">
-              <Link href="/dashboard" aria-label="Dashboard" title="Dashboard" className={round}><LayoutDashboard className="h-5 w-5" /></Link>
-              {user && <Link href={`/profile/${user.id}`} aria-label="Your profile" title="Your profile" className={round}><UserCircle className="h-5 w-5" /></Link>}
+              {!onDocs && <Link href="/dashboard" aria-label="Dashboard" title="Dashboard" className={round}><LayoutDashboard className="h-5 w-5" /></Link>}
+              {!onDocs && user && <Link href={`/profile/${user.id}`} aria-label="Your profile" title="Your profile" className={round}><UserCircle className="h-5 w-5" /></Link>}
               <button onClick={copyLink} aria-label={`Copy link to ${BRAND_NAME}`} title={copied ? "Link copied" : "Copy link"} className={round}>
                 {copied ? <Check className="h-5 w-5" /> : <Share2 className="h-5 w-5" />}
               </button>

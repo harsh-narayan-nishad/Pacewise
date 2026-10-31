@@ -112,6 +112,18 @@ export const storage = {
     return session().daily.todayBreakMs();
   },
   /** Merges one completed session into today's aggregate row. */
+  /** Adds a reading session (with its per-page times) to the story's time log. */
+  recordStoryReading(storyId: string, title: string, ms: number, pageMs: readonly number[] = []): void {
+    session().timeLog.recordReading(storyId, title, ms, pageMs);
+  },
+  /** Adds a finished test to the story's time log. */
+  recordStoryTest(storyId: string, title: string, ms: number): void {
+    session().timeLog.recordTest(storyId, title, ms);
+  },
+  /** Adds time spent on a documentation page to the signed-in user's time log. */
+  recordDocReading(slug: string, title: string, ms: number, newVisit: boolean): void {
+    session().docTime.record(slug, title, ms, newVisit);
+  },
   recordTestTime(ms: number): DailyActivity {
     return session().daily.recordTestTime(ms);
   },

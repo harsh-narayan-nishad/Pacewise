@@ -27,7 +27,7 @@ Note: AnimatedList's demo icon imports (hugeicons) were removed; not verified in
 ## Notes, QR code and public link
 - New **Notes** tab (between Dashboard and Reading history): how CN, OS, OOP and DBMS are used in this project, each with a "Used here" and a "Tradeoff" line. Content lives in `lib/notesContent.ts`; one view (`components/Notes/NotesView.tsx`) serves the tab and the public page.
 - On your own profile a QR code (`components/Profile/ProfileQr.tsx`) replaced the Change photo button; click your avatar to change the photo. The QR is built from the signed-in user's id (`lib/qr.ts`, no dependency, tested by decoding), so each user gets a different one. Under it, "Copy notes link".
-- The QR opens `/notes/<userId>`, which needs no login (`lib/publicRoutes.ts`, bypassed in `DevLoginGate`, navbar hidden). The link always points at the deployed app; set `NEXT_PUBLIC_SITE_URL` to override; the default is the deployed Vercel address in `lib/publicRoutes.ts` (`SITE_ORIGIN`), so the QR works from a phone even when running locally.
+- The QR opens `/notes/<userId>`, which now needs a sign-in like every other page (`DevLoginGate`); it keeps its own header and no app navbar (`lib/publicRoutes.ts`). The link always points at the deployed app; set `NEXT_PUBLIC_SITE_URL` to override; the default is the deployed Vercel address in `lib/publicRoutes.ts` (`SITE_ORIGIN`), so the QR works from a phone even when running locally.
 
 ## Uploaded-PDF owner fix
 A PDF's pages are images, so a big one can exceed the ~5 MB browser storage quota; the save failed silently and the story then looked like it belonged to someone else. `CustomStoryRepository` now also records the uploader's id in a tiny separate list (`customStoryClaims`), and `SessionManager.findCustomStoryOwner` checks it. Test: `scripts/session-isolation.test.ts`. A PDF too big to store still opens for the session but is not kept in the library.
@@ -47,7 +47,7 @@ A PDF's pages are images, so a big one can exceed the ~5 MB browser storage quot
 - Sign-in / sign-up screens use the same card, display heading, underlined fields and pill tabs as the rest of the app. Behaviour is unchanged.
 
 ## Public notes site (QR code) - documents as web pages
-- `/notes/<userId>` (no login) shows the notes, then every document of this `docs/` folder; `/notes/<userId>/docs/<slug>` shows one document as a web page. Links between documents work, and `#section` links jump to headings.
+- `/notes/<userId>` (after signing in) shows the notes, then every document of this `docs/` folder; `/notes/<userId>/docs/<slug>` shows one document as a web page. Links between documents work, and `#section` links jump to headings.
 - The page has the landing navbar (glass bar, hamburger and name on the left, theme switch on the right). The hamburger has no personal data (no playlists, search history, uploads or sign-out); it lists the notes and one row per docs folder (**Project docs**, **Interview prep**). Opening a folder lists its documents; the one being read is highlighted.
 - How it works: `scripts/build-docs.mjs` bundles `docs/**/*.md` into `lib/docs/generated.ts` (full text, server only) and `lib/docs/index.generated.ts` (titles only, used by the menu). It runs automatically before `dev` and `build`, so new or edited docs appear without extra steps; run `npm run docs:build` to refresh by hand. `lib/docs/markdown.ts` turns Markdown into escaped HTML (tests: `npm run test:docs`).
 - Only `.md` files are published. `docs/DEMO_ACCOUNTS.csv` (demo passwords) is deliberately excluded. Anything you write in a `docs/*.md` file becomes public through the QR link, so keep secrets out of those files.
@@ -101,3 +101,19 @@ Added section 3 "Pacewise Search Engine" to `docs/syllabus/06-system-design.md` 
 ## Cleanup
 
 Insights and Challenges are cleared (placeholders), Syllabus "System Design 1" removed, and the three Case studies posts plus the other saved LinkedIn posts now live on one page, `docs/system-design/social-media.md`.
+
+## Time analysis
+
+Profile → Time spent, the story-page speed wheel, overtime clock, hero Prev/Next, the opening-glitch fix and the docs footer are described in `docs/TIME_ANALYSIS.md` and `docs/STORY_PAGE.md`.
+
+## Docs pages: path, inertia, rail
+
+Every docs page shows its path (Folder > Tab > Page, each level a link) above the reading time and again just above the footer; the page uses the same eased inertia scrolling as the reading page; the bar-line rail rides up with the footer instead of overlapping it; search results open as a full-width, borderless panel with the rest of the screen blurred below it.
+
+## Leadership principles
+
+`docs/leadership-principles/` is a new Documents folder with a sub-folder `amazon/` ("Amazon's Leadership"): an overview page and one interview-prep page for each of the 16 principles. The menu lists the sub-folder inside its parent.
+
+## Leadership principles folder
+
+Added `docs/leadership-principles/` (Documents menu) with sub-folders `amazon/` and `google/`: the headings follow each company's published list and every explanation is original, written for Pacewise.

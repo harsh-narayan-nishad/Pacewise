@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useNavLoader } from "@/contexts/NavLoaderContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { resetAllAppData } from "@/lib/resetApp";
 import { ChevronDown, ChevronRight, Globe, Lock, LogOut, Menu, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
@@ -55,7 +55,7 @@ function BigRow({ label, open, onToggle }: { label: string; open: boolean; onTog
 }
 
 export function HamburgerMenu() {
-  const router = useRouter();
+  const nav = useNavLoader();
   const dispatch = useReadingDispatch();
   const currentUser = useCurrentUser();
   useDevStoreVersion();
@@ -110,7 +110,7 @@ export function HamburgerMenu() {
       dispatch({ type: "LOAD_STORY", story: matches[0] });
       storage.addSearchHistory(matches[0].title);
       setOpen(false);
-      router.push("/");
+      nav.push("/");
     }
   }
 
@@ -119,7 +119,7 @@ export function HamburgerMenu() {
     if (!story) return;
     dispatch({ type: "LOAD_STORY", story });
     setOpen(false);
-    router.push("/");
+    nav.push("/");
   }
 
   return (
@@ -301,7 +301,7 @@ export function HamburgerMenu() {
                     </div>
 
                     {/* --- Past test attempts (moved here from the story page) --- */}
-                    <BigRow label="Past test attempts" open={false} onToggle={() => { setOpen(false); router.push("/history"); }} />
+                    <BigRow label="Past test attempts" open={false} onToggle={() => { setOpen(false); nav.push("/history"); }} />
 
                     {/* --- Add theme: landing-page background --- */}
                     <BigRow label="Add theme" open={section === "theme"} onToggle={() => setSection(section === "theme" ? null : "theme")} />

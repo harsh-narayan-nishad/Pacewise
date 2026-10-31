@@ -65,3 +65,41 @@ export interface LifetimeStats {
   avgReductionPercent: number;
   readingEfficiency: number;
 }
+
+/** Everything the profile's time analysis knows about one story (the serialized form). */
+export interface StoryTimeData {
+  storyId: string;
+  title: string;
+  /** Total time spent reading it, over all sessions. */
+  readingMs: number;
+  /** Total time spent taking its tests. */
+  testMs: number;
+  readingSessions: number;
+  testSessions: number;
+  /** ISO time of the latest reading or test. */
+  lastAt: string;
+  /** Milliseconds per page, summed over sessions (index 0 = page 1). Empty when no page detail exists. */
+  pages: number[];
+}
+
+export interface TimeSummary {
+  /** Reading + testing + documentation. */
+  totalMs: number;
+  readingMs: number;
+  testMs: number;
+  storyCount: number;
+  readingSessions: number;
+  testSessions: number;
+  /** Time spent on documentation pages, and how many different pages. */
+  docMs: number;
+  docCount: number;
+}
+
+/** Time one user has spent on one documentation page (the serialized form). */
+export interface DocTimeData {
+  slug: string;
+  title: string;
+  ms: number;
+  visits: number;
+  lastAt: string;
+}

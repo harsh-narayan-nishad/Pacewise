@@ -2,7 +2,7 @@
 
 import { BRAND_NAME } from "@/lib/brand";
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useReadingDispatch, useReadingState } from "@/contexts/ReadingContext";
 import { ReadingStatus } from "@/components/Navigation/ReadingStatus";
@@ -15,7 +15,9 @@ import { MobileSearchSheet } from "@/components/Search/MobileSearchSheet";
 import { isPublicPath } from "@/lib/publicRoutes";
 import GlassSurface from "@/components/ui/GlassSurface";
 import { useIdleDim } from "@/components/ReadingMode/useIdleDim";
-import { remainingMs } from "@/lib/readingMode/progress";
+import { clockFace } from "@/lib/readingMode/progress";
+import { useNavLoader } from "@/contexts/NavLoaderContext";
+import { useOvertimeAlert } from "@/hooks/useOvertimeAlert";
 import { durationForWpm, formatDuration, storyWordCount } from "@/lib/wpmCalculator";
 
 /**
@@ -28,7 +30,7 @@ import { durationForWpm, formatDuration, storyWordCount } from "@/lib/wpmCalcula
 export function TopNav() {
   const state = useReadingState();
   const dispatch = useReadingDispatch();
-  const router = useRouter();
+  const nav = useNavLoader();
   const pathname = usePathname();
 
   const isReading = state.phase === "reading" || state.phase === "completed";
@@ -47,17 +49,20 @@ export function TopNav() {
   // Story page clock: counts down from words ÷ wpm in real time while the article is being read.
   // It runs on its own timer and never depends on scrolling.
   const onStoryPage = Boolean(state.story) && !showTimer && (pathname === "/" || pathname.startsWith("/story/"));
-  const estimate = state.story ? formatDuration(remainingMs(storyWordCount(state.story), state.selectedWpm, state.readingElapsedMs)) : "0:00";
+  // Both clocks count down to 0, then count *up* as overtime (shown in the danger colour with a "+").
+  const face = state.story ? clockFace(storyWordCount(state.story), state.selectedWpm, state.readingElapsedMs) : { ms: 0, overtime: false };
+  const estimate = (face.overtime ? "+" : "") + formatDuration(face.ms);
   // Time left at the selected speed — as large as the landing heading, and dimmed after a few idle seconds.
   const dimTimer = useIdleDim(2500, showTimer);
   // Practice: scroll-driven. Reading mode: a real clock counting down from words/wpm (scrolling doesn't move it).
-  const timeLeft = state.story
-    ? formatDuration(
-        inReadingMode
-          ? remainingMs(storyWordCount(state.story), state.selectedWpm, state.readingElapsedMs)
-          : Math.max(0, durationForWpm(storyWordCount(state.story), state.selectedWpm) * (1 - state.progress))
-      )
-    : "0:00";
+  const timeLeft = !state.story
+    ? "0:00"
+    : inReadingMode
+      ? estimate
+      : formatDuration(Math.max(0, durationForWpm(storyWordCount(state.story), state.selectedWpm) * (1 - state.progress)));
+  const overtime = face.overtime && (inReadingMode || onStoryPage);
+  useOvertimeAlert(overtime, inReadingMode || onStoryPage);
+  const DANGER = "text-accent-extreme";
 
   // The logo's click target: returns to the search landing page by
   // clearing the loaded story (see CLEAR_STORY in ReadingContext.tsx).
@@ -67,7 +72,7 @@ export function TopNav() {
   function goHome() {
     if (isReading) return;
     dispatch({ type: "CLEAR_STORY" });
-    router.push("/");
+    nav.push("/");
   }
 
   // Public pages (shared notes) have their own header and no account menu.
@@ -132,23 +137,23 @@ export function TopNav() {
               className="flex items-center gap-2 sm:gap-4"
             >
               <span
-                className={`font-display text-3xl leading-none tracking-[-0.03em] text-ink tabular-nums transition-opacity duration-700 sm:text-5xl ${dimTimer ? "opacity-25" : "opacity-100"}`}
-                aria-label={`Time left ${timeLeft}`}
-                title="Time left"
+                className={`font-display text-3xl leading-none tracking-[-0.03em] tabular-nums transition-opacity duration-700 sm:text-5xl ${overtime ? DANGER : "text-ink"} ${dimTimer && !overtime ? "opacity-25" : "opacity-100"}`}
+                aria-label={overtime ? `${timeLeft} over the target time` : `Time left ${timeLeft}`}
+                title={overtime ? "Time over the target" : "Time left"}
               >
                 {timeLeft}
               </span>
               {inReadingMode ? (
                 <div className={`flex shrink-0 items-center gap-1 font-mono text-xs text-ink-muted transition-opacity duration-700 ${dimTimer ? "opacity-40" : "opacity-100"}`} role="group" aria-label="Reading speed">
                   <button type="button" aria-label="Slower" onClick={() => dispatch({ type: "SET_WPM", wpm: state.selectedWpm - 25 })} className="h-7 w-7 rounded-full border border-overlay/15 hover:border-overlay/30 hover:text-ink sm:h-6 sm:w-6">−</button>
-                                    <button type="button" aria-label="Faster" onClick={() => dispatch({ type: "SET_WPM", wpm: state.selectedWpm + 25 })} className="h-7 w-7 rounded-full border border-overlay/15 hover:border-overlay/30 hover:text-ink sm:h-6 sm:w-6">+</button>
+                  <button type="button" aria-label="Faster" onClick={() => dispatch({ type: "SET_WPM", wpm: state.selectedWpm + 25 })} className="h-7 w-7 rounded-full border border-overlay/15 hover:border-overlay/30 hover:text-ink sm:h-6 sm:w-6">+</button>
                 </div>
               ) : null}
               <ReadingStatus />
             </motion.div>
           ) : onStoryPage ? (
             <div className="flex items-center gap-2 sm:gap-4">
-              <span className="font-display text-3xl leading-none tracking-[-0.03em] text-ink tabular-nums sm:text-5xl" aria-label={`Time to read this story ${estimate}`} title="Time to read this story at the selected speed">
+              <span className={`font-display text-3xl leading-none tracking-[-0.03em] tabular-nums sm:text-5xl ${overtime ? DANGER : "text-ink"}`} aria-label={overtime ? `${estimate} over the target time` : `Time to read this story ${estimate}`} title={overtime ? "Time over the target" : "Time to read this story at the selected speed"}>
                 {estimate}
               </span>
               <ReadingStatus />

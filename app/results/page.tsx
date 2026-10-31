@@ -70,6 +70,7 @@ export default function ResultsPage() {
     if (!state.story || testTimeRecorded.current || result.totalTimeMs <= 0) return;
     testTimeRecorded.current = true;
     storage.recordTestTime(result.totalTimeMs);
+    storage.recordStoryTest(state.story.id ?? state.story.title, state.story.title, result.totalTimeMs);
   }, [state.story, result.totalTimeMs]);
 
   const quizOnlyRecorded = useRef(false);

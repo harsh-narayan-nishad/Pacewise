@@ -3,7 +3,6 @@ import { BRAND_NAME } from "@/lib/brand";
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowUpRight, Clock3, Pencil, User } from "lucide-react";
 import { ContentActions } from "@/components/Content/ContentActions";
 import { EditStoryModal } from "@/components/Content/EditStoryModal";
@@ -15,6 +14,7 @@ import { devDataStore } from "@/lib/devData/store";
 import { useDevStoreVersion } from "@/lib/devData/useDevStore";
 import { StoryData } from "@/types";
 import { ROUTES } from "@/lib/routes";
+import { useNavLoader } from "@/contexts/NavLoaderContext";
 import { safeThumbnail } from "@/lib/thumbnail";
 import { isVideoRef } from "@/lib/thumbnailVideo";
 import { HoverCoverVideo } from "@/components/Search/HoverCoverVideo";
@@ -66,9 +66,9 @@ interface StoryCardProps {
  * one implementation of each action to keep correct.
  */
 export function StoryCard({ story: initialStory, arrowStartsReader = false }: StoryCardProps) {
-  const router = useRouter();
   const dispatch = useReadingDispatch();
   useDevStoreVersion();
+  const nav = useNavLoader();
   const [story, setStory] = useState(initialStory);
   const [editing, setEditing] = useState(false);
   const [deleted, setDeleted] = useState(false);
@@ -87,14 +87,14 @@ export function StoryCard({ story: initialStory, arrowStartsReader = false }: St
   function openStory() {
     dispatch({ type: "LOAD_STORY", story });
     storage.addSearchHistory(story.title);
-    router.push(ROUTES.story(story.id ?? story.title));
+    nav.push(ROUTES.story(story.id ?? story.title));
   }
 
   function startReader() {
     dispatch({ type: "LOAD_STORY", story });
     dispatch({ type: "PLAY" });
     storage.addSearchHistory(story.title);
-    router.push("/reader");
+    nav.push("/reader");
   }
 
   const level = story.difficulty ?? story.level;

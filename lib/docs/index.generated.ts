@@ -56,6 +56,12 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Story text editor — design, OOP, CN, OS and DBMS"
  },
  {
+  "slug": "time_analysis",
+  "path": "TIME_ANALYSIS.md",
+  "folder": "",
+  "title": "Time analysis (profile → Time spent)"
+ },
+ {
   "slug": "interview--01-javascript-typescript",
   "path": "interview/01-javascript-typescript.md",
   "folder": "interview",
@@ -138,6 +144,126 @@ export const DOC_INDEX: DocMeta[] = [
   "path": "interview/README.md",
   "folder": "interview",
   "title": "SDE Interview Prep — topic-wise (Easy / Medium / Hard)"
+ },
+ {
+  "slug": "leadership-principles--readme",
+  "path": "leadership-principles/README.md",
+  "folder": "leadership-principles",
+  "title": "Leadership principles"
+ },
+ {
+  "slug": "leadership-principles--amazon--01-amazon-leadership-principles",
+  "path": "leadership-principles/amazon/01-amazon-leadership-principles.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Amazon's Leadership Principles"
+ },
+ {
+  "slug": "leadership-principles--amazon--01-customer-obsession",
+  "path": "leadership-principles/amazon/01-customer-obsession.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Customer Obsession"
+ },
+ {
+  "slug": "leadership-principles--amazon--02-ownership",
+  "path": "leadership-principles/amazon/02-ownership.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Ownership"
+ },
+ {
+  "slug": "leadership-principles--amazon--03-invent-and-simplify",
+  "path": "leadership-principles/amazon/03-invent-and-simplify.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Invent and Simplify"
+ },
+ {
+  "slug": "leadership-principles--amazon--04-are-right-a-lot",
+  "path": "leadership-principles/amazon/04-are-right-a-lot.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Are Right, A Lot"
+ },
+ {
+  "slug": "leadership-principles--amazon--05-learn-and-be-curious",
+  "path": "leadership-principles/amazon/05-learn-and-be-curious.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Learn and Be Curious"
+ },
+ {
+  "slug": "leadership-principles--amazon--06-hire-and-develop-the-best",
+  "path": "leadership-principles/amazon/06-hire-and-develop-the-best.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Hire and Develop the Best"
+ },
+ {
+  "slug": "leadership-principles--amazon--07-insist-on-the-highest-standards",
+  "path": "leadership-principles/amazon/07-insist-on-the-highest-standards.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Insist on the Highest Standards"
+ },
+ {
+  "slug": "leadership-principles--amazon--08-think-big",
+  "path": "leadership-principles/amazon/08-think-big.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Think Big"
+ },
+ {
+  "slug": "leadership-principles--amazon--09-bias-for-action",
+  "path": "leadership-principles/amazon/09-bias-for-action.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Bias for Action"
+ },
+ {
+  "slug": "leadership-principles--amazon--10-frugality",
+  "path": "leadership-principles/amazon/10-frugality.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Frugality"
+ },
+ {
+  "slug": "leadership-principles--amazon--11-earn-trust",
+  "path": "leadership-principles/amazon/11-earn-trust.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Earn Trust"
+ },
+ {
+  "slug": "leadership-principles--amazon--12-dive-deep",
+  "path": "leadership-principles/amazon/12-dive-deep.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Dive Deep"
+ },
+ {
+  "slug": "leadership-principles--amazon--13-have-backbone-disagree-and-commit",
+  "path": "leadership-principles/amazon/13-have-backbone-disagree-and-commit.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Have Backbone; Disagree and Commit"
+ },
+ {
+  "slug": "leadership-principles--amazon--14-deliver-results",
+  "path": "leadership-principles/amazon/14-deliver-results.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Deliver Results"
+ },
+ {
+  "slug": "leadership-principles--amazon--15-strive-to-be-earth-s-best-employer",
+  "path": "leadership-principles/amazon/15-strive-to-be-earth-s-best-employer.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Strive to be Earth's Best Employer"
+ },
+ {
+  "slug": "leadership-principles--amazon--16-success-and-scale-bring-broad-responsibility",
+  "path": "leadership-principles/amazon/16-success-and-scale-bring-broad-responsibility.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Success and Scale Bring Broad Responsibility"
+ },
+ {
+  "slug": "leadership-principles--amazon--readme",
+  "path": "leadership-principles/amazon/README.md",
+  "folder": "leadership-principles/amazon",
+  "title": "Amazon's Leadership Principles"
+ },
+ {
+  "slug": "leadership-principles--google--01-google-leadership-principles",
+  "path": "leadership-principles/google/01-google-leadership-principles.md",
+  "folder": "leadership-principles/google",
+  "title": "Google's Leadership Principles"
  },
  {
   "slug": "research--00-pacewise-research-readme",

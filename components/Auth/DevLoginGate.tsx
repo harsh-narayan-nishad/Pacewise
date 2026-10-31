@@ -3,8 +3,6 @@ import { BRAND_NAME } from "@/lib/brand";
 
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import React, { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { isPublicPath } from "@/lib/publicRoutes";
 import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,7 +45,6 @@ const PANEL = "w-full max-w-md rounded-[32px] border border-overlay/10 bg-canvas
 
 export function DevLoginGate({ children }: { children: React.ReactNode }) {
   const currentUser = useCurrentUser();
-  const pathname = usePathname();
   const [userId, setUserId] = useState(SEED_USERS[0].id);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +54,8 @@ export function DevLoginGate({ children }: { children: React.ReactNode }) {
     devDataStore.hydrate();
   }, []);
 
-  // Public pages (the shared notes a QR code opens) never ask for a login.
-  if (currentUser || isPublicPath(pathname)) return <>{children}</>;
+  // Everything, the notes and docs a QR code opens included, needs a sign-in first.
+  if (currentUser) return <>{children}</>;
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-canvas px-4 py-12 sm:px-6">

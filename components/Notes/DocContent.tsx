@@ -1,5 +1,6 @@
 "use client";
 
+import { useInertiaScroll } from "@/components/ReadingMode/useInertiaScroll";
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ListTree } from "lucide-react";
@@ -79,6 +80,7 @@ export function DocContent({ html, headings = [], minutes }: { html: string; slu
   const ref = useRef<HTMLElement>(null);
   const [diagrams, setDiagrams] = useState<{ el: HTMLElement; source: string }[]>([]);
   const [tocOpen, setTocOpen] = useState(false);
+  useInertiaScroll(true); // the same eased wheel / key scrolling as the reading page
 
   // Mount the diagram viewers into the placeholders the renderer left.
   useLayoutEffect(() => {

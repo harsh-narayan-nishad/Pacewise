@@ -15,19 +15,21 @@ import { HomeDashboard } from "@/components/Dashboard/HomeDashboard";
 import { TestAttemptsPanel } from "@/components/Account/TestAttemptsPanel";
 import { ReadingHistoryPanel } from "@/components/Account/ReadingHistoryPanel";
 import { AnalyticsPanel } from "@/components/Account/AnalyticsPanel";
+import { TimeAnalysisPanel } from "@/components/Profile/TimeAnalysisPanel";
 import { NotesView } from "@/components/Notes/NotesView";
 import { ProfileQr } from "@/components/Profile/ProfileQr";
 import { SettingsPanel } from "@/components/Account/SettingsPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAvatarUpload } from "@/components/Profile/useAvatarUpload";
 
-type ProfileTab = "dashboard" | "notes" | "readingHistory" | "analytics" | "attempts" | "settings";
+type ProfileTab = "dashboard" | "notes" | "readingHistory" | "analytics" | "time" | "attempts" | "settings";
 
 const TABS: { id: ProfileTab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "notes", label: "Notes" },
   { id: "readingHistory", label: "Reading history" },
   { id: "analytics", label: "Analytics" },
+  { id: "time", label: "Time spent" },
   { id: "attempts", label: "Past test attempts" },
   { id: "settings", label: "Settings" },
 ];
@@ -151,6 +153,7 @@ export function UserProfile({ userId }: UserProfileProps) {
       {isSelf && tab === "notes" && <NotesPanel userId={userId} />}
       {isSelf && tab === "readingHistory" && <ReadingHistoryPanel />}
       {isSelf && tab === "analytics" && <AnalyticsPanel />}
+      {isSelf && tab === "time" && <TimeAnalysisPanel />}
       {isSelf && tab === "attempts" && <TestAttemptsPanel showHeading={false} />}
       {isSelf && tab === "settings" && <SettingsPanel />}
 
@@ -173,7 +176,7 @@ function NotesPanel({ userId }: { userId: string }) {
   return (
     <div>
       <p className="mb-6 text-ink-muted">
-        Anyone can open these without signing in: scan your QR code at the top of this page, or use <button type="button" className="underline underline-offset-4 hover:text-ink" onClick={() => window.open(`/notes/${encodeURIComponent(userId)}`, "_blank")}>your notes link</button>.
+        Whoever you share these with signs in first, then can read them: scan your QR code at the top of this page, or use <button type="button" className="underline underline-offset-4 hover:text-ink" onClick={() => window.open(`/notes/${encodeURIComponent(userId)}`, "_blank")}>your notes link</button>.
       </p>
       <NotesView />
     </div>

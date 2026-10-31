@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Dashboard } from "@/components/Dashboard/Dashboard";
 import { useReadingState, useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage } from "@/lib/storage";
+import { useNavLoader } from "@/contexts/NavLoaderContext";
+import { useScrollToTopOnMount } from "@/hooks/useScrollToTopOnMount";
 
 export function StoryPage() {
   const state = useReadingState();
   const dispatch = useReadingDispatch();
-  const router = useRouter();
+  const nav = useNavLoader();
   const [streak, setStreak] = useState(0);
+  useScrollToTopOnMount(state.story?.id ?? state.story?.title ?? "");
 
   useEffect(() => {
     setStreak(storage.getStreak().count);
@@ -27,16 +29,16 @@ export function StoryPage() {
       onQuizOnly={() => {
         // Just the quiz, without reading the story first.
         dispatch({ type: "GO_TO_QUESTIONS", quizQuestionCount: Math.min(5, state.story!.questions.length), quizOnly: true });
-        router.push("/questions");
+        nav.push("/questions");
       }}
       onStart={() => {
         // Reading mode was chosen before starting: open the free-scroll article, no practice session.
         if (state.readingMode) {
-          router.push("/read");
+          nav.push("/read");
           return;
         }
         dispatch({ type: "PLAY" });
-        router.push("/reader");
+        nav.push("/reader");
       }}
     />
   );
