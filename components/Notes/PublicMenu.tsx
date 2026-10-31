@@ -28,7 +28,7 @@ function useLinkPending(href: string): { pending: boolean; onClick: (e: React.Mo
 function BigRow({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
   return (
     <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center justify-between py-3 text-left">
-      <span className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-4xl">{label}</span>
+      <span className="font-display text-[34px] leading-[1.1] tracking-[-0.035em] text-ink sm:text-4xl sm:leading-tight sm:tracking-[-0.03em]">{label}</span>
       <span className="flex items-center gap-4">
         <span aria-hidden className="h-9 w-px bg-overlay/15" />
         <ChevronRight className={`h-5 w-5 text-ink transition-transform ${open ? "rotate-90" : ""}`} />
@@ -112,7 +112,7 @@ function LinkRow({ label, href, active }: { label: string; href: string; active:
   const { pending, onClick } = useLinkPending(href);
   return (
     <Link href={href} onClick={onClick} aria-current={active ? "page" : undefined} aria-busy={pending} className="group flex w-full items-center justify-between py-3">
-      <span className="font-display text-3xl leading-tight tracking-[-0.03em] text-ink transition-opacity group-hover:opacity-70 sm:text-4xl">{label}</span>
+      <span className="font-display text-[34px] leading-[1.1] tracking-[-0.035em] text-ink transition-opacity group-hover:opacity-70 sm:text-4xl sm:leading-tight sm:tracking-[-0.03em]">{label}</span>
       <span className="flex items-center gap-4">
         <span aria-hidden className="h-9 w-px bg-overlay/15" />
         {pending ? (
@@ -185,7 +185,7 @@ export function PublicMenu({ userId }: { userId: string }) {
                 >
                   <div className="flex items-center justify-between px-6 pb-2 pt-5">
                     <span className="text-[13px] font-medium tracking-tight text-ink">{BRAND_NAME}</span>
-                    <button onClick={() => setOpen(false)} aria-label="Close menu" className="shrink-0 rounded-full p-2 text-ink transition-colors hover:bg-overlay/10">
+                    <button onClick={() => setOpen(false)} aria-label="Close menu" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised text-ink md:h-auto md:w-auto md:border-0 md:bg-transparent md:p-2">
                       <X className="h-6 w-6" />
                     </button>
                   </div>

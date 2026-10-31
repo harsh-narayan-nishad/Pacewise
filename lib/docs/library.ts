@@ -2,7 +2,21 @@ import { DOC_INDEX, type DocMeta } from "@/lib/docs/index.generated";
 
 export interface DocFolder { id: string; label: string; docs: DocMeta[] }
 
-const FOLDER_LABELS: Record<string, string> = { "": "Project docs", interview: "Interview prep", research: "Research", syllabus: "Syllabus", "system-design": "Case studies", "leadership-principles": "Leadership principles", "leadership-principles/amazon": "Amazon's Leadership", "leadership-principles/google": "Google's Leadership", "leadership-principles": "Leadership principles", "leadership-principles/amazon": "Amazon's Leadership", "syllabus/03-methodologies": "Methodologies", "syllabus/06-system-design": "System Design" };
+const FOLDER_LABELS: Record<string, string> = {
+  "": "Project docs",
+  interview: "Interview prep",
+  research: "Research",
+  syllabus: "Syllabus",
+  "system-design": "Case studies",
+  "leadership-principles": "Leadership principles",
+  "leadership-principles/amazon": "Amazon's Leadership",
+  "leadership-principles/google": "Google's Leadership",
+  "leadership-principles/uber": "Uber's Leadership",
+  "leadership-principles/netflix": "Netflix's Leadership",
+  "leadership-principles/apple": "Apple's Leadership",
+  "syllabus/03-methodologies": "Methodologies",
+  "syllabus/06-system-design": "System Design",
+};
 
 /** Docs grouped by folder (root first), in file-name order, for the menu and the notes index. */
 export function docFolders(): DocFolder[] {

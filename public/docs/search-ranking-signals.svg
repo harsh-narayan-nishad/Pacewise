@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 560" width="1040" height="560" role="img" aria-labelledby="t d" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+<title id="t">Ranking signals</title><desc id="d">Signals combine into one score: lexical, structure, link rank, freshness and personal behaviour.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4b5468"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#306fdb"/></marker></defs>
+<rect width="1040" height="560" rx="22" fill="#ffffff"/><rect x="0.5" y="0.5" width="1039" height="559" rx="22" fill="none" stroke="#dfe3ec"/>
+<rect x="40" y="40" width="330" height="66" rx="12" fill="#e7f7ee" stroke="#1f9d61" stroke-width="1.5"/>
+<text x="205.0" y="70.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">BM25F text match</text>
+<text x="205.0" y="86.0" text-anchor="middle" font-size="11.5" fill="#4b5468">title ×3 · heading ×2 · body ×1</text>
+<text x="408" y="78" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2233">× 0.50</text>
+<path d="M440 73 L500 73 L540 270 L600 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<line x1="370" y1="73" x2="388" y2="73" stroke="#4b5468" stroke-width="1.8"/>
+<rect x="40" y="124" width="330" height="66" rx="12" fill="#e7f7ee" stroke="#1f9d61" stroke-width="1.5"/>
+<text x="205.0" y="154.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Phrase &amp; proximity</text>
+<text x="205.0" y="170.0" text-anchor="middle" font-size="11.5" fill="#4b5468">hit positions close together</text>
+<text x="408" y="162" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2233">× 0.15</text>
+<path d="M440 157 L500 157 L540 270 L600 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<line x1="370" y1="157" x2="388" y2="157" stroke="#4b5468" stroke-width="1.8"/>
+<rect x="40" y="208" width="330" height="66" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="205.0" y="238.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Doc link rank</text>
+<text x="205.0" y="254.0" text-anchor="middle" font-size="11.5" fill="#4b5468">PageRank on doc-to-doc links, d = 0.85</text>
+<text x="408" y="246" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2233">× 0.10</text>
+<path d="M440 241 L500 241 L540 270 L600 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<line x1="370" y1="241" x2="388" y2="241" stroke="#4b5468" stroke-width="1.8"/>
+<rect x="40" y="292" width="330" height="66" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="205.0" y="322.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Anchor text</text>
+<text x="205.0" y="338.0" text-anchor="middle" font-size="11.5" fill="#4b5468">words in links pointing at the doc</text>
+<text x="408" y="330" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2233">× 0.05</text>
+<path d="M440 325 L500 325 L540 270 L600 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<line x1="370" y1="325" x2="388" y2="325" stroke="#4b5468" stroke-width="1.8"/>
+<rect x="40" y="376" width="330" height="66" rx="12" fill="#fff4e0" stroke="#d98a0b" stroke-width="1.5"/>
+<text x="205.0" y="406.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Freshness</text>
+<text x="205.0" y="422.0" text-anchor="middle" font-size="11.5" fill="#4b5468">recently edited or read</text>
+<text x="408" y="414" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2233">× 0.08</text>
+<path d="M440 409 L500 409 L540 270 L600 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<line x1="370" y1="409" x2="388" y2="409" stroke="#4b5468" stroke-width="1.8"/>
+<rect x="40" y="460" width="330" height="66" rx="12" fill="#fff4e0" stroke="#d98a0b" stroke-width="1.5"/>
+<text x="205.0" y="490.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Personal behaviour</text>
+<text x="205.0" y="506.0" text-anchor="middle" font-size="11.5" fill="#4b5468">clicks · saves · reading time</text>
+<text x="408" y="498" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2233">× 0.12</text>
+<path d="M440 493 L500 493 L540 270 L600 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<line x1="370" y1="493" x2="388" y2="493" stroke="#4b5468" stroke-width="1.8"/>
+<rect x="600" y="205" width="200" height="130" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="700.0" y="267.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Score</text>
+<text x="700.0" y="283.0" text-anchor="middle" font-size="11.5" fill="#4b5468">Σ weight × signal</text>
+<text x="700.0" y="297.0" text-anchor="middle" font-size="11.5" fill="#4b5468">then spam / dup demotion</text>
+<rect x="850" y="224" width="150" height="92" rx="12" fill="#f3f4f7" stroke="#6b7385" stroke-width="1.5"/>
+<text x="925.0" y="267.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Top-k</text>
+<text x="925.0" y="283.0" text-anchor="middle" font-size="11.5" fill="#4b5468">20 results</text>
+<text x="925.0" y="297.0" text-anchor="middle" font-size="11.5" fill="#4b5468">diverse by doc</text>
+<path d="M800 270 L850 270" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<text x="700" y="380" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">Weights are starting values, tuned offline</text>
+<text x="700" y="400" text-anchor="middle" font-size="12" font-weight="400" fill="#4b5468">with NDCG@10 and MRR on a labelled query set,</text>
+<text x="700" y="418" text-anchor="middle" font-size="12" font-weight="400" fill="#4b5468">then A/B tested on click-through.</text>
+<rect x="560" y="450" width="440" height="70" rx="12" fill="#ffecef" stroke="#d6455d" stroke-width="1.5"/>
+<text x="780.0" y="482.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Penalties</text>
+<text x="780.0" y="498.0" text-anchor="middle" font-size="11.5" fill="#4b5468">duplicates (same hash / near-simhash) · low OCR confidence · empty pages</text>
+<path d="M780 450 L780 335" fill="none" stroke="#4b5468" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#a)"/>
+</svg>

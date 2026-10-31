@@ -13,6 +13,8 @@ export class TimeSummaryCalculator {
         storyCount: sum.storyCount + 1,
         readingSessions: sum.readingSessions + r.readingSessions,
         testSessions: sum.testSessions + r.testSessions,
+        docMs: sum.docMs,
+        docCount: sum.docCount,
       }),
       { totalMs: 0, readingMs: 0, testMs: 0, storyCount: 0, readingSessions: 0, testSessions: 0, docMs: 0, docCount: 0 }
     );

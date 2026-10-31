@@ -10,9 +10,9 @@ import type { Heading as DocHeading } from "@/lib/docs/markdown";
 /** The look of a rendered document: display headings, readable body, scrollable tables and code. */
 const PROSE = [
   "text-base leading-relaxed text-ink sm:text-lg",
-  "[&_h1]:mb-6 [&_h1]:font-display [&_h1]:text-4xl [&_h1]:leading-tight [&_h1]:tracking-[-0.03em] sm:[&_h1]:text-5xl",
-  "[&_h2]:mb-4 [&_h2]:mt-14 [&_h2]:font-display [&_h2]:text-3xl [&_h2]:leading-tight [&_h2]:tracking-[-0.03em] sm:[&_h2]:text-4xl",
-  "[&_h3]:mb-3 [&_h3]:mt-10 [&_h3]:font-display [&_h3]:text-2xl [&_h3]:tracking-[-0.02em]",
+  "[&_h1]:mb-6 [&_h1]:font-display [&_h1]:text-[40px] [&_h1]:leading-[1.1] [&_h1]:tracking-[-0.035em] sm:[&_h1]:text-5xl sm:[&_h1]:leading-tight sm:[&_h1]:tracking-[-0.03em]",
+  "[&_h2]:mb-4 [&_h2]:mt-14 [&_h2]:font-display [&_h2]:text-[32px] [&_h2]:leading-[1.125] [&_h2]:tracking-[-0.03em] sm:[&_h2]:text-4xl sm:[&_h2]:leading-tight",
+  "[&_h3]:mb-3 [&_h3]:mt-10 [&_h3]:font-display [&_h3]:text-[24px] [&_h3]:leading-[1.17] [&_h3]:tracking-[-0.02em] sm:[&_h3]:text-2xl sm:[&_h3]:leading-normal",
   "[&_h4]:mb-2 [&_h4]:mt-8 [&_h4]:text-lg [&_h4]:font-medium",
   "[&_p]:my-4 [&_p]:text-ink-muted",
   "[&_strong]:font-semibold [&_strong]:text-ink",

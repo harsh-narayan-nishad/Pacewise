@@ -260,10 +260,28 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Amazon's Leadership Principles"
  },
  {
+  "slug": "leadership-principles--apple--01-apple-leadership-principles",
+  "path": "leadership-principles/apple/01-apple-leadership-principles.md",
+  "folder": "leadership-principles/apple",
+  "title": "Apple's Leadership Principles"
+ },
+ {
   "slug": "leadership-principles--google--01-google-leadership-principles",
   "path": "leadership-principles/google/01-google-leadership-principles.md",
   "folder": "leadership-principles/google",
   "title": "Google's Leadership Principles"
+ },
+ {
+  "slug": "leadership-principles--netflix--01-netflix-leadership-principles",
+  "path": "leadership-principles/netflix/01-netflix-leadership-principles.md",
+  "folder": "leadership-principles/netflix",
+  "title": "Netflix's Leadership Principles"
+ },
+ {
+  "slug": "leadership-principles--uber--01-uber-leadership-principles",
+  "path": "leadership-principles/uber/01-uber-leadership-principles.md",
+  "folder": "leadership-principles/uber",
+  "title": "Uber's Leadership Principles"
  },
  {
   "slug": "research--00-pacewise-research-readme",

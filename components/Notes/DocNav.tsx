@@ -122,7 +122,7 @@ function PagerButton({ target, side }: { target: Target; side: "prev" | "next" }
       }}
       aria-busy={loading}
       aria-label={`${side === "prev" ? "Previous" : "Next"}: ${target.title}`}
-      className="group relative flex h-12 w-12 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised text-ink transition-colors hover:bg-overlay/10 focus-visible:bg-overlay/10"
+      className="group relative flex h-12 w-12 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised text-ink"
     >
       {showSpinner ? <TickSpinner /> : <Icon className="h-5 w-5" />}
       <span

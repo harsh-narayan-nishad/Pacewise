@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 600" width="1040" height="600" role="img" aria-labelledby="t d" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+<title id="t">Query flow with latency budget</title><desc id="d">Eight steps from a typed query to highlighted results in about 150 ms at p95.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4b5468"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#306fdb"/></marker></defs>
+<rect width="1040" height="600" rx="22" fill="#ffffff"/><rect x="0.5" y="0.5" width="1039" height="599" rx="22" fill="none" stroke="#dfe3ec"/>
+<rect x="20" y="20" width="1000" height="170" rx="18" fill="#eaf1ff" fill-opacity=".45" stroke="#306fdb" stroke-opacity=".6" stroke-dasharray="6 5"/>
+<text x="36" y="42" font-size="12" font-weight="700" letter-spacing=".08em" fill="#306fdb">PREPARE THE QUERY</text>
+<rect x="44" y="76" width="200" height="70" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="144.0" y="108.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Normalise &amp; parse</text>
+<text x="144.0" y="124.0" text-anchor="middle" font-size="11.5" fill="#4b5468">lowercase · filters</text>
+<text x="144.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#4b5468">type:pdf in:folder</text>
+<circle cx="44" cy="76" r="11" fill="#306fdb"/><text x="44" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">1</text>
+<text x="144" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">5 ms</text>
+<path d="M244 111 L287 111" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<rect x="287" y="76" width="200" height="70" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="387.0" y="108.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Spell &amp; synonyms</text>
+<text x="387.0" y="124.0" text-anchor="middle" font-size="11.5" fill="#4b5468">lexicon + edit distance</text>
+<text x="387.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#4b5468">synonym table</text>
+<circle cx="287" cy="76" r="11" fill="#306fdb"/><text x="287" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">2</text>
+<text x="387" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">10 ms</text>
+<path d="M487 111 L530 111" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<rect x="530" y="76" width="200" height="70" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="630.0" y="108.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Cache lookup</text>
+<text x="630.0" y="124.0" text-anchor="middle" font-size="11.5" fill="#4b5468">userId + query + index ver</text>
+<circle cx="530" cy="76" r="11" fill="#306fdb"/><text x="530" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">3</text>
+<text x="630" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">3 ms · a hit returns here</text>
+<path d="M730 111 L773 111" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<rect x="773" y="76" width="200" height="70" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="873.0" y="108.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Route to shard</text>
+<text x="873.0" y="124.0" text-anchor="middle" font-size="11.5" fill="#4b5468">hash(userId)</text>
+<text x="873.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#4b5468">nearest region</text>
+<circle cx="773" cy="76" r="11" fill="#306fdb"/><text x="773" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">4</text>
+<text x="873" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">5 ms</text>
+<rect x="20" y="220" width="1000" height="250" rx="18" fill="#e7f7ee" fill-opacity=".45" stroke="#1f9d61" stroke-opacity=".6" stroke-dasharray="6 5"/>
+<text x="36" y="242" font-size="12" font-weight="700" letter-spacing=".08em" fill="#1f9d61">RETRIEVE, RANK AND PRESENT</text>
+<rect x="44" y="270" width="230" height="70" rx="12" fill="#e7f7ee" stroke="#1f9d61" stroke-width="1.5"/>
+<text x="159.0" y="302.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">BM25F lexical</text>
+<text x="159.0" y="318.0" text-anchor="middle" font-size="11.5" fill="#4b5468">title ×3 · heading ×2 · body ×1</text>
+<text x="159.0" y="332.0" text-anchor="middle" font-size="11.5" fill="#4b5468">top 100</text>
+<circle cx="44" cy="270" r="11" fill="#1f9d61"/><text x="44" y="274" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">5</text>
+<rect x="44" y="360" width="230" height="70" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="159.0" y="392.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Vector kNN (phase 3)</text>
+<text x="159.0" y="408.0" text-anchor="middle" font-size="11.5" fill="#4b5468">chunk embeddings · ANN</text>
+<text x="159.0" y="422.0" text-anchor="middle" font-size="11.5" fill="#4b5468">top 100</text>
+<circle cx="44" cy="360" r="11" fill="#7a4fd6"/><text x="44" y="364" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">6</text>
+<text x="160" y="456" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">run in parallel · ≤ 40 ms</text>
+<rect x="340" y="300" width="230" height="90" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="455.0" y="342.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Fuse + re-rank</text>
+<text x="455.0" y="358.0" text-anchor="middle" font-size="11.5" fill="#4b5468">Reciprocal Rank Fusion</text>
+<text x="455.0" y="372.0" text-anchor="middle" font-size="11.5" fill="#4b5468">recency · link rank · clicks</text>
+<circle cx="340" cy="300" r="11" fill="#7a4fd6"/><text x="340" y="304" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">7</text>
+<text x="455" y="414" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">15 ms</text>
+<rect x="640" y="300" width="230" height="90" rx="12" fill="#fff4e0" stroke="#d98a0b" stroke-width="1.5"/>
+<text x="755.0" y="342.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Snippets + highlight</text>
+<text x="755.0" y="358.0" text-anchor="middle" font-size="11.5" fill="#4b5468">best chunk · page number</text>
+<text x="755.0" y="372.0" text-anchor="middle" font-size="11.5" fill="#4b5468">OCR bounding boxes</text>
+<circle cx="640" cy="300" r="11" fill="#d98a0b"/><text x="640" y="304" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">8</text>
+<text x="755" y="414" text-anchor="middle" font-size="12" font-weight="700" fill="#306fdb">20 ms</text>
+<path d="M274 305 L307 305 L307 335 L340 335" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M274 395 L307 395 L307 355 L340 355" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M570 345 L640 345" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M870 345 L910 345" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<rect x="910" y="306" width="90" height="78" rx="12" fill="#f3f4f7" stroke="#6b7385" stroke-width="1.5"/>
+<text x="955.0" y="342.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Results</text>
+<text x="955.0" y="358.0" text-anchor="middle" font-size="11.5" fill="#4b5468">top 20</text>
+<path d="M887 146 L887 203 L455 203 L455 300" fill="none" stroke="#4b5468" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="670" y="198" text-anchor="middle" font-size="11" fill="#4b5468" paint-order="stroke" stroke="#fff" stroke-width="4">cache miss → retrieve</text>
+<rect x="44" y="500" width="930" height="70" rx="12" fill="#f3f4f7" stroke="#6b7385" stroke-width="1.5"/>
+<text x="509.0" y="532.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Budget</text>
+<text x="509.0" y="548.0" text-anchor="middle" font-size="11.5" fill="#4b5468">network 50 + steps 1–4 ≈ 23 + retrieval ≤ 40 + fuse 15 + snippets 20  ≈  150 ms at p95   ·   target &lt; 200 ms</text>
+</svg>

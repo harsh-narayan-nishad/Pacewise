@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 620" width="1040" height="620" role="img" aria-labelledby="t d" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+<title id="t">Pacewise search engine: high-level architecture</title><desc id="d">Online query path on top, offline ingestion path below, both meeting in a tenant-routed search cluster.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4b5468"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#306fdb"/></marker></defs>
+<rect width="1040" height="620" rx="22" fill="#ffffff"/><rect x="0.5" y="0.5" width="1039" height="619" rx="22" fill="none" stroke="#dfe3ec"/>
+<rect x="20" y="20" width="1000" height="250" rx="18" fill="#eaf1ff" fill-opacity=".45" stroke="#306fdb" stroke-opacity=".6" stroke-dasharray="6 5"/>
+<text x="36" y="42" font-size="12" font-weight="700" letter-spacing=".08em" fill="#306fdb">ONLINE PATH · QUERY</text>
+<rect x="44" y="110" width="120" height="66" rx="12" fill="#f3f4f7" stroke="#6b7385" stroke-width="1.5"/>
+<text x="104.0" y="140.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Client</text>
+<text x="104.0" y="156.0" text-anchor="middle" font-size="11.5" fill="#4b5468">web · reader</text>
+<text x="104.0" y="170.0" text-anchor="middle" font-size="11.5" fill="#4b5468">search bar</text>
+<rect x="214" y="110" width="130" height="66" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="279.0" y="140.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">API gateway</text>
+<text x="279.0" y="156.0" text-anchor="middle" font-size="11.5" fill="#4b5468">auth · rate limit</text>
+<text x="279.0" y="170.0" text-anchor="middle" font-size="11.5" fill="#4b5468">tenant id</text>
+<rect x="394" y="100" width="170" height="86" rx="12" fill="#eaf1ff" stroke="#306fdb" stroke-width="1.5"/>
+<text x="479.0" y="140.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Query service</text>
+<text x="479.0" y="156.0" text-anchor="middle" font-size="11.5" fill="#4b5468">parse · spell · synonyms</text>
+<text x="479.0" y="170.0" text-anchor="middle" font-size="11.5" fill="#4b5468">cache · route</text>
+<rect x="394" y="206" width="170" height="44" rx="12" fill="#fff4e0" stroke="#d98a0b" stroke-width="1.5"/>
+<text x="479.0" y="225.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Result cache</text>
+<text x="479.0" y="241.0" text-anchor="middle" font-size="11.5" fill="#4b5468">Redis · userId+query+ver</text>
+<rect x="624" y="90" width="190" height="140" rx="12" fill="#e7f7ee" stroke="#1f9d61" stroke-width="1.5"/>
+<text x="719.0" y="157.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Search cluster</text>
+<text x="719.0" y="173.0" text-anchor="middle" font-size="11.5" fill="#4b5468">routed by userId</text>
+<text x="719.0" y="187.0" text-anchor="middle" font-size="11.5" fill="#4b5468">BM25F lexical + vector</text>
+<text x="719.0" y="201.0" text-anchor="middle" font-size="11.5" fill="#4b5468">replicas ×3</text>
+<rect x="864" y="110" width="134" height="66" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="931.0" y="140.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Re-ranker</text>
+<text x="931.0" y="156.0" text-anchor="middle" font-size="11.5" fill="#4b5468">fuse · features</text>
+<text x="931.0" y="170.0" text-anchor="middle" font-size="11.5" fill="#4b5468">snippets</text>
+<path d="M164 143 L214 143" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M344 143 L394 143" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M564 143 L624 143" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M814 143 L864 143" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M479 186 L479 206" fill="none" stroke="#4b5468" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<path d="M931 110 L931 66 L104 66 L104 110" fill="none" stroke="#306fdb" stroke-width="1.8"  marker-end="url(#ab)"/>
+<text x="520" y="60" text-anchor="middle" font-size="11" fill="#4b5468" paint-order="stroke" stroke="#fff" stroke-width="4">ranked results + highlighted snippets</text>
+<rect x="20" y="300" width="1000" height="300" rx="18" fill="#fff4e0" fill-opacity=".45" stroke="#d98a0b" stroke-opacity=".6" stroke-dasharray="6 5"/>
+<text x="36" y="322" font-size="12" font-weight="700" letter-spacing=".08em" fill="#d98a0b">OFFLINE PATH · INGESTION</text>
+<rect x="44" y="380" width="126" height="70" rx="12" fill="#f3f4f7" stroke="#6b7385" stroke-width="1.5"/>
+<text x="107.0" y="412.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Upload / import</text>
+<text x="107.0" y="428.0" text-anchor="middle" font-size="11.5" fill="#4b5468">docs · PDF · image</text>
+<rect x="214" y="380" width="130" height="70" rx="12" fill="#fff4e0" stroke="#d98a0b" stroke-width="1.5"/>
+<text x="279.0" y="412.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Object store</text>
+<text x="279.0" y="428.0" text-anchor="middle" font-size="11.5" fill="#4b5468">originals</text>
+<text x="279.0" y="442.0" text-anchor="middle" font-size="11.5" fill="#4b5468">S3-class</text>
+<rect x="394" y="380" width="120" height="70" rx="12" fill="#fff4e0" stroke="#d98a0b" stroke-width="1.5"/>
+<text x="454.0" y="412.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Event queue</text>
+<text x="454.0" y="428.0" text-anchor="middle" font-size="11.5" fill="#4b5468">Kafka</text>
+<text x="454.0" y="442.0" text-anchor="middle" font-size="11.5" fill="#4b5468">topic per type</text>
+<rect x="564" y="336" width="170" height="46" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="649.0" y="364.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Text / Markdown parser</text>
+<rect x="564" y="392" width="170" height="46" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="649.0" y="420.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">PDF extractor</text>
+<rect x="564" y="448" width="170" height="46" rx="12" fill="#f1ebff" stroke="#7a4fd6" stroke-width="1.5"/>
+<text x="649.0" y="476.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">OCR + image pipeline</text>
+<rect x="780" y="380" width="118" height="70" rx="12" fill="#e7f7ee" stroke="#1f9d61" stroke-width="1.5"/>
+<text x="839.0" y="412.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Indexer</text>
+<text x="839.0" y="428.0" text-anchor="middle" font-size="11.5" fill="#4b5468">analyze · chunk</text>
+<text x="839.0" y="442.0" text-anchor="middle" font-size="11.5" fill="#4b5468">bulk write</text>
+<rect x="924" y="380" width="78" height="70" rx="12" fill="#f3f4f7" stroke="#6b7385" stroke-width="1.5"/>
+<text x="963.0" y="412.0" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2233">Meta DB</text>
+<text x="963.0" y="428.0" text-anchor="middle" font-size="11.5" fill="#4b5468">Postgres</text>
+<path d="M170 415 L214 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M344 415 L394 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M514 415 L540 415 L540 359 L564 359" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M514 415 L564 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M514 415 L540 415 L540 471 L564 471" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M734 359 L757 359 L757 415 L780 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M734 415 L780 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M734 471 L757 471 L757 415 L780 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M898 415 L924 415" fill="none" stroke="#4b5468" stroke-width="1.8"  marker-end="url(#a)"/>
+<path d="M839 380 L839 300 L719 300 L719 230" fill="none" stroke="#306fdb" stroke-width="1.8"  marker-end="url(#ab)"/>
+<text x="780" y="322" text-anchor="middle" font-size="11" fill="#4b5468" paint-order="stroke" stroke="#fff" stroke-width="4">indexed chunks</text>
+<text x="520" y="560" text-anchor="middle" font-size="12" font-weight="400" fill="#4b5468">Failed jobs → retry with backoff → dead-letter queue.  Same file hash → skipped (idempotent).</text>
+</svg>

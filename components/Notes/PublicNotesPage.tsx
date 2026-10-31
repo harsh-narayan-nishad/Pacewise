@@ -17,13 +17,13 @@ export function PublicNotesPage({ userId }: { userId: string }) {
   useEffect(() => { setOwner(devDataStore.findUserById(userId) ?? null); }, [userId]);
   return (
     <PublicShell userId={userId}>
-      <h1 className="font-display text-4xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Notes.</h1>
+      <h1 className="font-display text-[40px] leading-[1.1] tracking-[-0.035em] text-ink sm:text-5xl sm:leading-tight sm:tracking-[-0.03em]">Notes.</h1>
       <p className="mb-8 mt-2 text-ink-muted">
         How CN, OS, OOP and DBMS are used in {BRAND_NAME}, with the tradeoffs.{owner ? <> Shared by {owner.name}.</> : null}
       </p>
       <NotesView />
 
-      <h2 className="mb-2 mt-20 font-display text-3xl leading-tight tracking-[-0.03em] text-ink sm:text-5xl">Documents.</h2>
+      <h2 className="mb-2 mt-20 font-display text-[34px] leading-[1.1] tracking-[-0.035em] text-ink sm:text-5xl sm:leading-tight sm:tracking-[-0.03em]">Documents.</h2>
       <p className="mb-8 text-ink-muted">Every document of the project as a web page. Use the menu, or pick one below.</p>
       <div className="space-y-6">
         {docFolders().map((f) => (
