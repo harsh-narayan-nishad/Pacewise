@@ -6,9 +6,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 
 /** Put your own video at public/videos/landing-hero.mp4 (see public/videos/README.txt). */
-export const VIDEO_SRC = "/videos/landing-hero.mp4";
+export const VIDEO_SRC = "/videos/landing.mp4";
 /** Optional WebM copy (same name, .webm) for browsers without H.264; safe to delete. */
-export const VIDEO_WEBM_SRC = "/videos/landing-hero.webm";
+export const VIDEO_WEBM_SRC = "/videos/landing.mp4";
 export const POSTER_SRC = "/videos/landing-hero-poster.jpg";
 
 const TABS = [
