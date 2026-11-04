@@ -1,0 +1,2 @@
+greedy picks: T1(+8) T2(+4) T3(+2)
+greedy uses 3 sets, the optimum is 2 sets (ratio 1.5, within the H(8) = 2.72 bound)

@@ -1,0 +1,2 @@
+copies per stage: 1 2 2
+total cost = 100 (budget 105), system reliability = 0.648

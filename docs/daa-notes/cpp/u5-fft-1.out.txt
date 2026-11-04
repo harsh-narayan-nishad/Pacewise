@@ -1,0 +1,5 @@
+DFT of [1,2,3,4] (recursive): (10 + 0i) (-2 - 2i) (-2 + 0i) (-2 + 2i) 
+iterative FFT gives the same values (max difference < 1e-9)
+inverse FFT recovers the input: (1 + 0i) (2 + 0i) (3 + 0i) (4 + 0i)
+(1 + 2x + 3x^2)(4 + 5x) = 4 + 13x + 22x^2 + 15x^3
+multiplying degree-2999 by degree-2499 random polynomials: FFT result equals schoolbook result: yes

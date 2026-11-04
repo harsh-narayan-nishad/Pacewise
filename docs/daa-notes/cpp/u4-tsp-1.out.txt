@@ -1,0 +1,5 @@
+4 cities: optimal tour cost = 80, tour: 0 1 3 2 0   (Held-Karp says 80)
+random 10-city instance 1: branch and bound = 144, Held-Karp = 144 (agree), nodes expanded 299 of 986410 possible
+random 10-city instance 2: branch and bound = 227, Held-Karp = 227 (agree), nodes expanded 425 of 986410 possible
+random 10-city instance 3: branch and bound = 186, Held-Karp = 186 (agree), nodes expanded 41 of 986410 possible
+random 10-city instance 4: branch and bound = 178, Held-Karp = 178 (agree), nodes expanded 192 of 986410 possible

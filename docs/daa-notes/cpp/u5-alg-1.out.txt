@@ -1,0 +1,7 @@
+A(3) = 930022 (naive, 66 multiplications) = 930022 (Horner, 10 multiplications)
+Karatsuba equals schoolbook on random polynomials of sizes 100 and 77: yes
+gcd(48, 18) = 6
+gcd(832040, 514229) = 1 after 29 recursive calls (consecutive Fibonacci numbers)
+extGcd(240, 46): gcd = 2, x = -9, y = 47  (240*-9 + 46*47 = 2)
+inverse of 3 modulo 11 = 4,  inverse of 4 modulo 8 = -1 (none)
+2^10 mod 1000 = 24,  3^200 mod 13 = 9,  7^(10^18) mod 1000000007 = 259616729

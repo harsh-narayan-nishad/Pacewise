@@ -1,0 +1,2 @@
+3-SAT <=p Independent Set: formula satisfiable <=> graph has an independent set of size m, agreed on 400 of 400 random formulas (385 satisfiable, 15 not)
+independent set + minimum vertex cover = n, and independent set = clique of the complement graph, on 300 random graphs: yes

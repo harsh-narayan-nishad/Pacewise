@@ -1,0 +1,2 @@
+pushes = 1048576, element copies = 1048575
+copies per push = 0.999999  (< 1, so push is O(1) amortized)

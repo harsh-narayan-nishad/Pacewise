@@ -1,0 +1,6 @@
+certificate 0 1 2 4 3 is a Hamiltonian cycle: accepted
+certificate 0 1 2 3 4 is a Hamiltonian cycle: rejected
+subset-sum certificate {4, 5} (items 2 and 4) for target 9: accepted
+formula 1: satisfiable after trying 2 assignments; model: x1=1 x2=0 x3=0
+formula 2 (all 8 clauses over x1,x2,x3): unsatisfiable after checking all 8 assignments
+verifying one certificate takes O(size of formula); finding one may need 2^n tries.

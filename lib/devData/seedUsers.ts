@@ -67,10 +67,11 @@ const NAMED_USERS: Omit<SeedUser, "password">[] = [
   { id: "user-006", name: "Akhilesh Saini", username: "akhilesh.saini", interests: interestsFor(5, ["coastal", "nature"]) },
   { id: "user-007", name: "Akash Nishad", username: "akash.nishad", interests: interestsFor(6, ["fiction", "biology"]) },
   { id: "user-008", name: "Janhavi", username: "janhavi", interests: interestsFor(7, ["drama", "short-story"]) },
+  { id: "user-009", name: "Hariom Nathani", username: "hariom.nathani", interests: interestsFor(9, []) },
 ];
 
-const GENERIC_USERS: Omit<SeedUser, "password">[] = Array.from({ length: 12 }, (_, i) => {
-  const n = i + 9; // User 9..User 20
+const GENERIC_USERS: Omit<SeedUser, "password">[] = Array.from({ length: 11 }, (_, i) => {
+  const n = i + 10; // User 10..User 20
   return {
     id: `user-${String(n).padStart(3, "0")}`,
     name: `User ${n}`,
@@ -92,7 +93,7 @@ const ORIGINAL_PASSWORDS: Readonly<Record<string, string>> = {
   "user-006": "ZEBRA_58_MOVIE&",
   "user-007": "summer76marble_",
   "user-008": "&Flower879",
-  "user-009": "&5Planet",
+  "user-009": "Lantern.46Cedar",
   "user-010": "Apple39",
   "user-011": "Jersey39#",
   "user-012": "%8Yellow.Ladder",

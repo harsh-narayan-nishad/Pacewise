@@ -1,5 +1,6 @@
 "use client";
 
+import { TickSpinner } from "@/components/ui/loaders/TickSpinner";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -115,7 +116,7 @@ export function DocSearch({ userId }: { userId: string }) {
       />
       {open && q.trim() && (
         <ul role="listbox" className="fixed inset-x-0 top-14 z-[110] max-h-[70vh] w-screen overflow-y-auto rounded-b-[28px] bg-canvas px-3 pb-5 pt-2 sm:px-6">
-          {!index && <li className="mx-auto max-w-3xl px-4 py-3 text-[15px] text-ink-muted">Searching…</li>}
+          {!index && <li className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 text-[15px] text-ink-muted"><TickSpinner size={20} label="Searching" />Searching…</li>}
           {index && results.length === 0 && <li className="mx-auto max-w-3xl px-4 py-3 text-[15px] text-ink-muted">No results for “{q.trim()}”</li>}
           {results.map((h, i) => (
             <li key={`${h.entry.slug}#${h.entry.id}-${i}`} role="option" aria-selected={i === active} className="mx-auto max-w-3xl">

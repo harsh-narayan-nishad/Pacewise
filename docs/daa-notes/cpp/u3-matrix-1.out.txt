@@ -1,0 +1,4 @@
+[[1,2],[3,4]] x [[5,6],[7,8]] = [[19,22],[43,50]]
+n =  8: Strassen uses    343 multiplications (7^log2 n), classical uses 512 (n^3)
+n = 64: Strassen uses 117649 multiplications (7^log2 n), classical uses 262144 (n^3)
+100 x 100 random product equals the classical product: yes

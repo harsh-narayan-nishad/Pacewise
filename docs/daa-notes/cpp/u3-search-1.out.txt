@@ -1,0 +1,3 @@
+binarySearch(23) -> index 5, binarySearch(24) -> -1, lowerBound(24) -> 6
+max subarray sum: divide and conquer = 43, Kadane = 43
+500 random arrays agree: yes

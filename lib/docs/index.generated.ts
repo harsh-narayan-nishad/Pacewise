@@ -62,6 +62,48 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Time analysis (profile → Time spent)"
  },
  {
+  "slug": "daa-notes--01-overview",
+  "path": "daa-notes/01-overview.md",
+  "folder": "daa-notes",
+  "title": "Design and Analysis of Algorithms (NCS-501): Complete Notes with C++"
+ },
+ {
+  "slug": "daa-notes--02-unit-1-introduction-and-sorting",
+  "path": "daa-notes/02-unit-1-introduction-and-sorting.md",
+  "folder": "daa-notes",
+  "title": "Unit I: Introduction and Sorting"
+ },
+ {
+  "slug": "daa-notes--03-unit-2-advanced-data-structures",
+  "path": "daa-notes/03-unit-2-advanced-data-structures.md",
+  "folder": "daa-notes",
+  "title": "Unit II: Advanced Data Structures"
+ },
+ {
+  "slug": "daa-notes--04-unit-3-divide-and-conquer-greedy-methods",
+  "path": "daa-notes/04-unit-3-divide-and-conquer-greedy-methods.md",
+  "folder": "daa-notes",
+  "title": "Unit III: Divide and Conquer, Greedy Methods"
+ },
+ {
+  "slug": "daa-notes--05-unit-4-dynamic-programming-backtracking-branch-and-bound",
+  "path": "daa-notes/05-unit-4-dynamic-programming-backtracking-branch-and-bound.md",
+  "folder": "daa-notes",
+  "title": "Unit IV: Dynamic Programming, Backtracking, Branch and Bound"
+ },
+ {
+  "slug": "daa-notes--06-unit-5-selected-topics",
+  "path": "daa-notes/06-unit-5-selected-topics.md",
+  "folder": "daa-notes",
+  "title": "Unit V: Selected Topics"
+ },
+ {
+  "slug": "daa-notes--07-quick-revision-sheet",
+  "path": "daa-notes/07-quick-revision-sheet.md",
+  "folder": "daa-notes",
+  "title": "Quick Revision Sheet"
+ },
+ {
   "slug": "interview--01-javascript-typescript",
   "path": "interview/01-javascript-typescript.md",
   "folder": "interview",

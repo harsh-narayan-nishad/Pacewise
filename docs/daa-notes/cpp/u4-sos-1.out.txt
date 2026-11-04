@@ -1,0 +1,5 @@
+subsets of {5,10,12,13,15,18} with sum 30:
+  {5, 10, 15}
+  {5, 12, 13}
+  {12, 18}
+state-space nodes visited: 41 (the full tree has 127)

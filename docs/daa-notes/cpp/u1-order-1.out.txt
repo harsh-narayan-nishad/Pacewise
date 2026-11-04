@@ -1,0 +1,8 @@
+k =    1  quickselect =    1  median-of-medians =    1
+k =    2  quickselect =    2  median-of-medians =    2
+k =   10  quickselect =   10  median-of-medians =   10
+k =  500  quickselect =  500  median-of-medians =  500
+k =  999  quickselect =  999  median-of-medians =  999
+k = 1000  quickselect = 1000  median-of-medians = 1000
+min = 1, max = 1000
+all answers match the sorted array: yes

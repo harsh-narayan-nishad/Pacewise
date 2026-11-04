@@ -1,0 +1,5 @@
+m = 1: not possible
+m = 2: not possible
+m = 3: colouring 1 2 3 2
+m = 4: colouring 1 2 3 2
+chromatic number = 3

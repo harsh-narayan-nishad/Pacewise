@@ -1,0 +1,3 @@
+fib(32) = 2178309 using 7049155 recursive calls (about 1.6^n)
+fib(32) = 2178309 using 63 calls with memoization (O(n))
+fib(32) = 2178309 using a bottom-up loop of 31 steps and O(1) memory

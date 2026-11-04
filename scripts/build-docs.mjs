@@ -1,8 +1,8 @@
 // Bundles docs/**/*.md into lib/docs/generated.ts so the public notes pages can show them without
 // reading the file system at run time (works on Vercel). Only Markdown is included: docs/*.csv
 // (demo account credentials) is deliberately left out.
-import { readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
-import { join, relative, basename } from "node:path";
+import { readdirSync, readFileSync, writeFileSync, statSync, existsSync } from "node:fs";
+import { join, relative, basename, dirname, resolve, sep } from "node:path";
 
 const root = join(process.cwd(), "docs");
 const files = [];
@@ -14,9 +14,28 @@ const files = [];
   }
 })(root);
 
+/**
+ * Code kept in its own file. A line `::include cpp/quick-sort.cpp` inside a doc is replaced, at build time, by a
+ * code block holding that file (path shown as the title, colours and Copy button as usual). A `.out.txt` file
+ * becomes an "Output" block. The path is relative to the doc and must stay inside docs/.
+ */
+const LANG = { cpp: "cpp", c: "c", h: "cpp", java: "java", ts: "ts", js: "js", py: "python", sh: "bash", json: "json", txt: "text" };
+function expandIncludes(md, docPath) {
+  return md.replace(/^[ \t]*::include[ \t]+(\S+)[ \t]*$/gm, (_, target) => {
+    const file = resolve(dirname(docPath), target);
+    if (!file.startsWith(root + sep) || !existsSync(file)) throw new Error(`${relative(root, docPath)}: ::include ${target} not found inside docs/`);
+    const text = readFileSync(file, "utf8").replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+    const isOut = /\.out\.txt$/.test(file);
+    const lang = isOut ? "text" : LANG[file.split(".").pop().toLowerCase()] ?? "text";
+    const title = isOut ? "Output" : relative(dirname(docPath), file).split(sep).join("/");
+    if (text.includes("```")) throw new Error(`${target}: contains a code fence`);
+    return "```" + lang + ' title="' + title + '"\n' + text + "\n```";
+  });
+}
+
 const docs = files.map((p) => {
   const rel = relative(root, p).split("\\").join("/");
-  const md = readFileSync(p, "utf8");
+  const md = expandIncludes(readFileSync(p, "utf8"), p);
   const folder = rel.includes("/") ? rel.split("/").slice(0, -1).join("/") : "";
   const title = (md.match(/^#\s+(.+)$/m)?.[1] ?? basename(rel, ".md")).replace(/[`*_]/g, "").trim();
   return { slug: rel.replace(/\.md$/, "").replace(/\//g, "--").toLowerCase(), path: rel, folder, title, md };
@@ -40,7 +59,7 @@ const slugify = (t) => t.toLowerCase().replace(/<[^>]+>/g, "").replace(/[`*_~]/g
 const plain = (t) =>
   t
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[`*_~=+]{1,3}/g, "")
+    .replace(/[`*_~=]{1,3}/g, "")
     .replace(/\|/g, " ")
     .replace(/^[>\s-]+/gm, "")
     .replace(/\s+/g, " ")

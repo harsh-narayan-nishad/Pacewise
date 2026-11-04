@@ -1,0 +1,4 @@
+n = 1000
+best    (sorted)   : 999  (n-1 = 999)
+worst   (reversed) : 499500  (n(n-1)/2 = 499500)
+average (random)   : 246352  (about n^2/4 = 250000)

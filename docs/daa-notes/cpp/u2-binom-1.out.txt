@@ -1,0 +1,5 @@
+13 keys inserted. trees: B0(root 11) B2(root 5) B3(root 1) 
+minimum = 1
+after decreaseKey(30 -> 0) and remove(15), extracting everything: 0 1 3 5 7 8 9 11 12 18 21 25 
+union of two heaps -> trees: B0(root 30) B1(root 10) B2(root 5) 
+5000 shuffled inserts come out in sorted order: yes

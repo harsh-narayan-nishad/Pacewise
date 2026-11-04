@@ -75,4 +75,20 @@ test("html code blocks are coloured and keep indentation", () => {
   const h = renderMarkdown('```html title="index.html"\n<div class="a">\n  <p>Hi</p>\n</div>\n```');
   assert.match(h, /<span class="tk-k">&lt;div<\/span> <span class="tk-p">class<\/span>=<span class="tk-s">&quot;a&quot;<\/span><span class="tk-k">&gt;<\/span>\n  <span class="tk-k">&lt;p<\/span>/);
 });
+test("C++ and i++ are not underlined; sub / sup are allowed; other tags are not", () => {
+  const h = renderMarkdown("C++17 and C++ code, i++ and j++. ++under++ works. n<sub>2</sub> x<sup>2</sup> <b>no</b>");
+  assert.doesNotMatch(h, /<u>[^<]*(C\+\+|i\+\+)/);
+  assert.match(h, /<u>under<\/u>/);
+  assert.match(h, /n<sub>2<\/sub> x<sup>2<\/sup>/);
+  assert.doesNotMatch(h, /<b>/);
+});
+test("DAA notes: C++ files are included from docs/daa-notes/cpp, with their output", () => {
+  const daa = DOCS.filter((d) => d.folder === "daa-notes");
+  assert.equal(daa.length, 7);
+  assert.ok(daa.every((d) => !d.md.includes("::include")), "includes are expanded at build time");
+  const u1 = daa.find((d) => d.path.includes("unit-1"))!;
+  const h = renderMarkdown(u1.md);
+  assert.match(h, /<span class="code-path">cpp\/[\w-]+\.cpp<\/span><span class="code-lang">cpp<\/span><button type="button" class="code-copy"/);
+  assert.match(h, /<span class="code-path">Output<\/span>/);
+});
 console.log(`\n${passed} tests passed`);

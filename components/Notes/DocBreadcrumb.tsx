@@ -7,7 +7,7 @@ import type { Crumb } from "@/lib/docs/library";
 export function DocBreadcrumb({ crumbs, className = "" }: { crumbs: Crumb[]; className?: string }) {
   if (crumbs.length === 0) return null;
   return (
-    <nav aria-label="Breadcrumb" className={className}>
+    <nav aria-label="Breadcrumb" className={`-ml-0 ${className}`}>
       <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;

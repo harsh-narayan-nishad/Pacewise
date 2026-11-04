@@ -1,0 +1,2 @@
+1 5 11 12 22 25 43 64 77 90 
+both gap sequences give the same sorted array

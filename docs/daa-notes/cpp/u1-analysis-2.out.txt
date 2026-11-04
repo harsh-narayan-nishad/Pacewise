@@ -1,0 +1,2 @@
+n = 1000   linear: 1000 comparisons   binary: 10 comparisons
+n = 1000000   linear: 1000000 comparisons   binary: 20 comparisons

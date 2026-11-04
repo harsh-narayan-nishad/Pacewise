@@ -1,0 +1,4 @@
+inorder: 1 5 10 12 15 18 20 25 30 
+valid red-black tree? yes, black-height = 3
+1000 sorted inserts -> height 17 (plain BST would be 1000, bound 2*log2(1001) = 19.9345)
+20000 inserts + 15000 deletes, matches std::set and keeps all 5 properties: yes (n = 12188, height = 17)

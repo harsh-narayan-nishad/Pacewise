@@ -14,9 +14,13 @@ const FOLDER_LABELS: Record<string, string> = {
   "leadership-principles/uber": "Uber's Leadership",
   "leadership-principles/netflix": "Netflix's Leadership",
   "leadership-principles/apple": "Apple's Leadership",
+  "daa-notes": "DAA notes",
   "syllabus/03-methodologies": "Methodologies",
   "syllabus/06-system-design": "System Design",
 };
+
+/** Folders that sit on disk at the top of docs/ but are shown inside another folder in the menu ("" = Project docs). */
+export const FOLDER_PARENT: Readonly<Record<string, string>> = { "daa-notes": "" };
 
 /** Docs grouped by folder (root first), in file-name order, for the menu and the notes index. */
 export function docFolders(): DocFolder[] {
@@ -101,7 +105,12 @@ export function docCrumbs(userId: string, slug: string): Crumb[] {
     const first = (own[0] ?? ordered[0]);
     crumbs.push({ label: folders.find((f) => f.id === id)?.label ?? label, href: first ? docUrl(userId, first.slug) : undefined });
   });
-  if (me.folder === "" ) crumbs.push({ label: FOLDER_LABELS[""] });
+  if (me.folder === "") crumbs.push({ label: FOLDER_LABELS[""] });
+  if (me.folder in FOLDER_PARENT) {
+    const parent = FOLDER_PARENT[me.folder];
+    const first = DOC_INDEX.find((d) => d.folder === parent && !HIDDEN_IN_MENU.has(d.slug));
+    crumbs.unshift({ label: FOLDER_LABELS[parent] ?? parent, href: first ? docUrl(userId, first.slug) : undefined });
+  }
   crumbs.push({ label: me.slug.endsWith("--readme") && me.folder === "syllabus" ? "Overview" : me.title });
   return crumbs;
 }

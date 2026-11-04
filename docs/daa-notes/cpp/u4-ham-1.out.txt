@@ -1,0 +1,2 @@
+graph 1: 0 1 2 4 3 0
+graph 2 (0, 3 and 1 form a triangle and 0, 3 have degree 2, so any tour closes too early): no Hamiltonian cycle

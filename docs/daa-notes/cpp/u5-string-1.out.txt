@@ -1,0 +1,9 @@
+text    = ABABDABACDABABCABAB
+pattern = ABABCABAB
+naive         : 10 
+Rabin-Karp    : 10 
+KMP           : 10 
+automaton     : 10 
+Horspool      : 10 
+prefix function of the pattern: 0 0 1 2 0 1 2 3 4
+2000 random binary strings: all algorithms give identical answers: yes

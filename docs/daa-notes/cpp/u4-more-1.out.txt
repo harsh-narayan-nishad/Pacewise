@@ -1,0 +1,5 @@
+LCS(ABCBDAB, BDCABA) has length 4, one such sequence: BCBA
+matrix chain {10,30,5,60}: 4500 multiplications, order ((A1A2)A3)
+matrix chain {40,20,30,10,30}: 26000 multiplications, order ((A1(A2A3))A4)
+edit distance(kitten, sitting) = 3
+coin change, coins {1,3,4}, amount 6 -> 2 coins (greedy would use 3)

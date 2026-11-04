@@ -1,0 +1,5 @@
+Miller-Rabin: 1000000007 prime; 998244353 prime; 2305843009213693951 prime; 1000036000099 composite; 561 composite; 716539 composite; 
+agrees with trial division for all n < 30000: yes
+Karger: minimum cut found = 2; a single contraction run found it in 234 of 1000 tries (theory: at least 2/(n(n-1)) = 0.0357143 per run)
+Freivalds accepts the correct product (20 rounds): yes
+one wrong entry: a single round detects it in 496 of 1000 trials (theory: at least 50%), 20 rounds detect it: yes

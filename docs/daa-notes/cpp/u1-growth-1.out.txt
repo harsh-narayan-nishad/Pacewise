@@ -1,0 +1,6 @@
+n       log2 n    n log2 n    n^2         n^3           2^n             time for 2^n at 1e9 ops/s
+10      3.32      33          100         1000          1.02e+03        under a second
+20      4.32      86          400         8000          1.05e+06        under a second
+30      4.91      147         900         27000         1.07e+09        1.07 seconds
+50      5.64      282         2500        125000        1.13e+15        13 days
+100     6.64      664         10000       1000000       1.27e+30        4.020e+13 years

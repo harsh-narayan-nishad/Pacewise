@@ -31,7 +31,7 @@ export default function DocPage({ params }: { params: { userId: string; slug: st
       <DocContent html={html} slug={doc.slug} headings={extractHeadings(doc.md)} minutes={readingMinutes(doc.md)} />
       <DocTimeTracker slug={doc.slug} title={doc.title} />
       <DocNav prev={toTarget(prev)} next={toTarget(next)} />
-      <DocBreadcrumb crumbs={crumbs} className="mt-8" />
+      <DocBreadcrumb crumbs={crumbs} className="-mb-24 mt-8 pb-5" />
     </PublicShell>
   );
 }

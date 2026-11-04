@@ -34,7 +34,8 @@ function inline(text: string, opts: MarkdownOptions): string {
     codes.push(`<code>${c}</code>`);
     return `\u0000${codes.length - 1}\u0000`;
   });
-  out = out.replace(/&lt;br\s*\/?&gt;/gi, "<br />"); // the only raw tag allowed: a line break (used in table cells)
+  out = out.replace(/&lt;br\s*\/?&gt;/gi, "<br />"); // raw tags allowed: a line break (used in table cells) and sub / sup (n<sub>2</sub>, x<sup>2</sup>)
+  out = out.replace(/&lt;(sub|sup)&gt;([^<\n]{1,80}?)&lt;\/\1&gt;/g, "<$1>$2</$1>");
   out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
     const raw = href.replace(/&amp;/g, "&");
     const ok = safeHref(raw);
@@ -44,9 +45,9 @@ function inline(text: string, opts: MarkdownOptions): string {
     return `<a href="${escapeHtml(resolved)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${label}</a>`;
   });
   out = out
-    .replace(/==(?:(yellow|green|blue|pink|orange):)?(?=\S)([^=\n]+?)(?<=\S)==/g, (_m, c, t) => `<mark class="hl" data-c="${c ?? "yellow"}">${t}</mark>`)
-    .replace(/\+\+(?=\S)([^+\n]+?)(?<=\S)\+\+/g, "<u>$1</u>")
-    .replace(/~~(?=\S)([^~\n]+?)(?<=\S)~~/g, "<s>$1</s>")
+    .replace(/(?<![\w=])==(?:(yellow|green|blue|pink|orange):)?(?=[^\s=])([^=\n]+?)(?<=[^\s=])==(?![\w=])/g, (_m, c, t) => `<mark class="hl" data-c="${c ?? "yellow"}">${t}</mark>`)
+    .replace(/(?<![\w+])\+\+(?=[^\s+])([^+\n]+?)(?<=[^\s+])\+\+(?![\w+])/g, "<u>$1</u>") // not C++ or i++
+    .replace(/(?<![\w~])~~(?=[^\s~])([^~\n]+?)(?<=[^\s~])~~(?![\w~])/g, "<s>$1</s>")
     .replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>");
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*\w])\*([^*\s][^*]*)\*(?!\w)/g, "$1<em>$2</em>");
   return out.replace(/\u0000(\d+)\u0000/g, (_, i) => codes[Number(i)]);

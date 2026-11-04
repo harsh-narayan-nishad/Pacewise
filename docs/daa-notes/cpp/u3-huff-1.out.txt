@@ -1,0 +1,7 @@
+a (freq 45) -> 0
+b (freq 13) -> 101
+c (freq 12) -> 100
+d (freq 16) -> 111
+e (freq  9) -> 1101
+f (freq  5) -> 1100
+total bits = 224 versus 300 with fixed 3-bit codes

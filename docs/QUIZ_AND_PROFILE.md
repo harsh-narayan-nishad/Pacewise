@@ -117,3 +117,12 @@ Every docs page shows its path (Folder > Tab > Page, each level a link) above th
 ## Leadership principles folder
 
 Added `docs/leadership-principles/` (Documents menu) with sub-folders `amazon/` and `google/`: the headings follow each company's published list and every explanation is original, written for Pacewise.
+
+## DAA notes and code kept in separate files
+
+`docs/daa-notes/` holds the Design and Analysis of Algorithms notes (overview, five units, quick revision sheet). It appears as "DAA notes" under Documents in the docs menu.
+
+- **C++ lives outside the page.** Programs are in `docs/daa-notes/cpp/NAME.cpp` and their real output in `NAME.out.txt`. A page pulls one in with a line on its own: `::include cpp/NAME.cpp` (and `::include cpp/NAME.out.txt` for the output).
+- **At build time** `scripts/build-docs.mjs` replaces each line with a normal code block (file path as title, colours, Copy button; output files become an "Output" block). A missing file, a path outside `docs/`, or a file containing a code fence stops the build with a message.
+- **To add a program:** save `docs/daa-notes/cpp/my-program.cpp`, then put `::include cpp/my-program.cpp` where it should appear.
+- **Small renderer changes:** `<sub>` and `<sup>` are allowed in text (n<sub>2</sub>), and `++`, `==`, `~~` no longer format when they follow a word, so `C++`, `i++` and `a==b` stay as written.

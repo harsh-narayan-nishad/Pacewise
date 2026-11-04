@@ -1,0 +1,9 @@
+instance 1: MST-approximation tour =  326.31, optimal =  262.37, ratio = 1.24
+instance 2: MST-approximation tour =  487.41, optimal =  352.99, ratio = 1.38
+instance 3: MST-approximation tour =  306.76, optimal =  283.18, ratio = 1.08
+instance 4: MST-approximation tour =  324.90, optimal =  282.04, ratio = 1.15
+instance 5: MST-approximation tour =  367.06, optimal =  293.75, ratio = 1.25
+instance 6: MST-approximation tour =  374.24, optimal =  354.70, ratio = 1.06
+instance 7: MST-approximation tour =  243.96, optimal =  198.78, ratio = 1.23
+instance 8: MST-approximation tour =  258.51, optimal =  222.71, ratio = 1.16
+largest ratio seen: 1.38 (guarantee: at most 2)

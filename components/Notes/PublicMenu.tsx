@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, FileText, Menu, X } from "lucide-react";
-import { docFolders, docUrl, HIDDEN_IN_MENU, syllabusOrder } from "@/lib/docs/library";
+import { docFolders, docUrl, FOLDER_PARENT, HIDDEN_IN_MENU, syllabusOrder } from "@/lib/docs/library";
 import { BRAND_NAME } from "@/lib/brand";
 import { TickSpinner } from "@/components/ui/loaders/TickSpinner";
 
@@ -54,6 +54,8 @@ function DocItem({ href, title, active }: { href: string; title: string; active:
 
 /** An expandable folder row (big heading + chevron) listing its documents. */
 function FolderRow({ label, docs, open, onToggle, userId, current }: { label: string; docs: { slug: string; title: string }[]; open: boolean; onToggle: () => void; userId: string; current?: string }) {
+  // A folder with a single page needs no second click: the row opens that page directly.
+  if (docs.length === 1) return <LinkRow label={label} href={docUrl(userId, docs[0].slug)} active={current === docs[0].slug} />;
   return (
     <div>
       <BigRow label={label} open={open} onToggle={onToggle} />
@@ -72,7 +74,7 @@ function FolderRow({ label, docs, open, onToggle, userId, current }: { label: st
 
 /** A folder that also holds sub-folders: its own pages first, then one expandable row per sub-folder. */
 function NestedFolderRow({ folder, subs, openFolder, setOpenFolder, userId, current }: { folder: { id: string; label: string; docs: { slug: string; title: string }[] }; subs: { id: string; label: string; docs: { slug: string; title: string }[] }[]; openFolder: string | null; setOpenFolder: (id: string | null) => void; userId: string; current?: string }) {
-  const open = openFolder === folder.id || (openFolder?.startsWith(folder.id + "/") ?? false);
+  const open = openFolder === folder.id || (openFolder?.startsWith(folder.id + "/") ?? false) || subs.some((s) => s.id === openFolder);
   return (
     <div>
       <BigRow label={folder.label} open={open} onToggle={() => setOpenFolder(open ? null : folder.id)} />
@@ -85,6 +87,7 @@ function NestedFolderRow({ folder, subs, openFolder, setOpenFolder, userId, curr
           </ul>
           {subs.map((s) => {
             const subOpen = openFolder === s.id;
+            if (s.docs.length === 1) return <SubLinkRow key={s.id} label={s.label} href={docUrl(userId, s.docs[0].slug)} active={current === s.docs[0].slug} />;
             return (
               <div key={s.id} className="mt-1 border-l border-overlay/10 pl-3">
                 <button type="button" onClick={() => setOpenFolder(subOpen ? folder.id : s.id)} aria-expanded={subOpen} className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-overlay/5">
@@ -103,6 +106,19 @@ function NestedFolderRow({ folder, subs, openFolder, setOpenFolder, userId, curr
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/** A sub-folder row that holds one page: opens the page directly (same look as the expandable sub-folder row). */
+function SubLinkRow({ label, href, active }: { label: string; href: string; active: boolean }) {
+  const { pending, onClick } = useLinkPending(href);
+  return (
+    <div className="mt-1 border-l border-overlay/10 pl-3">
+      <Link href={href} onClick={onClick} aria-current={active ? "page" : undefined} aria-busy={pending} className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left">
+        <span className="font-display text-2xl leading-tight tracking-[-0.02em] text-ink">{label}</span>
+        {pending ? <span className="flex h-4 w-4 items-center justify-center"><TickSpinner size={16} label="Loading page" /></span> : <ChevronRight className={`h-4 w-4 ${active ? "text-[#306fdb]" : "text-ink"}`} />}
+      </Link>
     </div>
   );
 }
@@ -136,8 +152,9 @@ export function PublicMenu({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const all = docFolders();
   // Top-level folders only; a sub-folder (e.g. "leadership-principles/amazon") is listed inside its parent.
-  const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && !f.id.startsWith("syllabus/") && f.id !== "interview" && !f.id.includes("/"));
-  const subFolders = (parentId: string) => all.filter((f) => f.id.startsWith(parentId + "/"));
+  const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && !f.id.startsWith("syllabus/") && f.id !== "interview" && !f.id.includes("/") && !(f.id in FOLDER_PARENT));
+  // Sub-folders: by path ("leadership-principles/amazon"), plus folders listed in FOLDER_PARENT (DAA notes sits under Project docs).
+  const subFolders = (parentId: string) => all.filter((f) => (parentId !== "" && f.id.startsWith(parentId + "/")) || FOLDER_PARENT[f.id] === parentId);
   const interview = all.find((f) => f.id === "interview");
   const syllabus = all.find((f) => f.id === "syllabus");
   // Chapters that hold several pages (e.g. "System Design" with System Design 1, 2 …) are sub-folders of docs/syllabus.
@@ -221,7 +238,7 @@ export function PublicMenu({ userId }: { userId: string }) {
                         <div className={LABEL}>Documents</div>
                         {folders.map((f) =>
                           subFolders(f.id).length > 0 ? (
-                            <NestedFolderRow key={f.id} folder={f} subs={subFolders(f.id)} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />
+                            <NestedFolderRow key={f.id || "root"} folder={f} subs={subFolders(f.id)} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />
                           ) : (
                             <FolderRow key={f.id || "root"} label={f.label} docs={f.docs} open={openFolder === f.id} onToggle={() => setOpenFolder(openFolder === f.id ? null : f.id)} userId={userId} current={current} />
                           )
