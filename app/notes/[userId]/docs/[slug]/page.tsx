@@ -26,12 +26,17 @@ export default function DocPage({ params }: { params: { userId: string; slug: st
   const crumbs = docCrumbs(params.userId, doc.slug);
   const toTarget = (d?: { slug: string; title: string }) => (d ? { href: docUrl(params.userId, d.slug), title: d.title } : undefined);
   return (
+    <>
     <PublicShell userId={params.userId} autoHideNav>
       <DocBreadcrumb crumbs={crumbs} className="mb-3" />
       <DocContent html={html} slug={doc.slug} headings={extractHeadings(doc.md)} minutes={readingMinutes(doc.md)} />
       <DocTimeTracker slug={doc.slug} title={doc.title} />
       <DocNav prev={toTarget(prev)} next={toTarget(next)} />
-      <DocBreadcrumb crumbs={crumbs} className="-mb-24 mt-8 pb-5" />
     </PublicShell>
+    {/* The path again, just above the footer line, on the footer's own left edge. */}
+    <div className="mx-auto -mt-16 max-w-6xl px-6 pb-5 sm:px-8">
+      <DocBreadcrumb crumbs={crumbs} />
+    </div>
+    </>
   );
 }

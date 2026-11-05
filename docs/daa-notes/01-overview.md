@@ -1,20 +1,4 @@
-# Design and Analysis of Algorithms (NCS-501): Complete Notes with C++
-
-Full notes for all five units of the syllabus: theory, proofs in short form, comparison tables, exam tips, and working C++17 code for every algorithm. Each program is complete (copy, compile with `g++ -std=c++17 file.cpp`, run) and the output printed under it is the real output from a test run.
-
-## Syllabus covered (L-T-P: 3-1-0, 8 lectures per unit)
-
-| Unit | Topics in the syllabus | Where in these notes |
-|---|---|---|
-| I | Introduction: algorithms, analyzing algorithms, complexity, growth of functions, performance measurement, sorting and order statistics (Shell, Quick, Merge, Heap), comparison of sorting algorithms, sorting in linear time | [Unit I](02-unit-1-introduction-and-sorting.md) |
-| II | Advanced data structures: Red-Black trees, B-trees, Binomial heaps, Fibonacci heaps | [Unit II](03-unit-2-advanced-data-structures.md) |
-| III | Divide and conquer (sorting, matrix multiplication, convex hull, searching); Greedy methods (optimal reliability allocation, knapsack, MST: Prim and Kruskal, single-source shortest paths: Dijkstra and Bellman-Ford) | [Unit III](04-unit-3-divide-and-conquer-greedy-methods.md) |
-| IV | Dynamic programming (knapsack, all-pairs shortest paths: Warshall and Floyd, resource allocation); Backtracking and Branch and Bound (travelling salesman, graph colouring, n-Queens, Hamiltonian cycles, sum of subsets) | [Unit IV](05-unit-4-dynamic-programming-backtracking-branch-and-bound.md) |
-| V | Selected topics: algebraic computation, Fast Fourier Transform, string matching, theory of NP-completeness, approximation algorithms, randomized algorithms | [Unit V](06-unit-5-selected-topics.md) |
-
-> **How to use these notes:** for theory exams read the definitions, the tables and the "exam tip" boxes; for practicals and interviews type each program yourself, change the input, and predict the output before running. Code uses `#include <bits/stdc++.h>` (a GCC convenience header) to keep programs short; in a project include the specific headers instead.
-
-**Contents**
+# Overview
 
 - [Unit I: Introduction and sorting](02-unit-1-introduction-and-sorting.md)
 - [Unit II: Advanced data structures](03-unit-2-advanced-data-structures.md)

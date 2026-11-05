@@ -65,7 +65,7 @@ export const DOC_INDEX: DocMeta[] = [
   "slug": "daa-notes--01-overview",
   "path": "daa-notes/01-overview.md",
   "folder": "daa-notes",
-  "title": "Design and Analysis of Algorithms (NCS-501): Complete Notes with C++"
+  "title": "Overview"
  },
  {
   "slug": "daa-notes--02-unit-1-introduction-and-sorting",

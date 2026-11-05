@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useNavLoader } from "@/contexts/NavLoaderContext";
 import { Avatar } from "@/components/ui/Avatar";
 import { useCurrentUser } from "@/lib/devData/useDevStore";
 import { ROUTES } from "@/lib/routes";
@@ -10,13 +10,13 @@ import { useReadingPresence } from "@/lib/useReadingPresence";
 
 /** Navbar profile button: shows the user's photo and opens their profile page directly. */
 export function ProfileMenu() {
-  const router = useRouter();
+  const nav = useNavLoader();
   const currentUser = useCurrentUser();
   const { totalMs } = useReadingPresence();
   return (
     <button
       type="button"
-      onClick={() => currentUser && router.push(ROUTES.profile(currentUser.id))}
+      onClick={() => currentUser && nav.push(ROUTES.profile(currentUser.id))}
       aria-label={`Open your profile — ${formatReadingTotal(totalMs)} read in total`}
       title={`Total reading time: ${formatReadingTotal(totalMs)}`}
       className="flex items-center gap-2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-medium"
