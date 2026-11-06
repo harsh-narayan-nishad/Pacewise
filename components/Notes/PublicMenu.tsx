@@ -39,7 +39,9 @@ function BigRow({ label, open, onToggle }: { label: string; open: boolean; onTog
 
 const LABEL = "mb-2 text-xs font-medium uppercase tracking-wide text-ink-muted";
 const SECTION = "mt-6 border-t border-overlay/10 pt-6 first:mt-0 first:border-t-0 first:pt-0"; // a thin line between sections, like the app menu
-const CORE_CSE_SLUG = "syllabus--04-cn-os-oops-dbms-utilization"; // "Core CSE": opens the CN, OS, OOP, DBMS notes
+const CORE_CSE_SLUG = "syllabus--04-cn-os-oops-dbms-utilization"; // "Core CSE" row
+const CORE_CSE_GROUP = "syllabus/04-core-cse"; // "Core CSE" folder: CN, OS, DBMS, OOPs, each with Frontend / Express backend / Flask backend pages
+const CORE_CSE_ORDER = ["cn", "os", "dbms", "oops"];
 
 /** One document row of a folder; a small spinner replaces the file icon while its page loads. */
 function DocItem({ href, title, active }: { href: string; title: string; active: boolean }) {
@@ -110,6 +112,38 @@ function NestedFolderRow({ folder, subs, openFolder, setOpenFolder, userId, curr
   );
 }
 
+/** "Core CSE": a folder of folders (CN, OS, DBMS, OOPs); each holds a Frontend, Express backend and Flask backend page. */
+function CoreCseRow({ subs, openFolder, setOpenFolder, userId, current }: { subs: { id: string; label: string; docs: { slug: string; title: string }[] }[]; openFolder: string | null; setOpenFolder: (id: string | null) => void; userId: string; current: string | undefined }) {
+  const open = openFolder === CORE_CSE_GROUP || (openFolder?.startsWith(CORE_CSE_GROUP + "/") ?? false);
+  return (
+    <div>
+      <BigRow label="Core CSE" open={open} onToggle={() => setOpenFolder(open ? null : CORE_CSE_GROUP)} />
+      {open && (
+        <div className="mb-4 mt-1">
+          {subs.map((s) => {
+            const subOpen = openFolder === s.id;
+            return (
+              <div key={s.id} className="mt-1 border-l border-overlay/10 pl-3">
+                <button type="button" onClick={() => setOpenFolder(subOpen ? CORE_CSE_GROUP : s.id)} aria-expanded={subOpen} className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-overlay/5">
+                  <span className="font-display text-2xl leading-tight tracking-[-0.02em] text-ink">{s.label}</span>
+                  <ChevronRight className={`h-4 w-4 text-ink transition-transform ${subOpen ? "rotate-90" : ""}`} />
+                </button>
+                {subOpen && (
+                  <ul className="mb-2 mt-0.5 space-y-0.5">
+                    {s.docs.map((d) => (
+                      <li key={d.slug}><DocItem href={docUrl(userId, d.slug)} title={d.title} active={current === d.slug} /></li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** A sub-folder row that holds one page: opens the page directly (same look as the expandable sub-folder row). */
 function SubLinkRow({ label, href, active }: { label: string; href: string; active: boolean }) {
   const { pending, onClick } = useLinkPending(href);
@@ -158,7 +192,8 @@ export function PublicMenu({ userId }: { userId: string }) {
   const interview = all.find((f) => f.id === "interview");
   const syllabus = all.find((f) => f.id === "syllabus");
   // Chapters that hold several pages (e.g. "System Design" with System Design 1, 2 …) are sub-folders of docs/syllabus.
-  const syllabusGroups = all.filter((f) => f.id.startsWith("syllabus/"));
+  const syllabusGroups = all.filter((f) => f.id.startsWith("syllabus/") && !f.id.startsWith(CORE_CSE_GROUP + "/"));
+  const coreCseSubs = CORE_CSE_ORDER.map((k) => all.find((f) => f.id === `${CORE_CSE_GROUP}/${k}`)).filter((f): f is NonNullable<typeof f> => !!f);
   const research = all.find((f) => f.id === "research");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
 
@@ -225,6 +260,7 @@ export function PublicMenu({ userId }: { userId: string }) {
                             if (!d) return null;
                             const isIndex = d.slug.endsWith("--readme");
                             if (d.slug === CORE_CSE_SLUG) {
+                              if (coreCseSubs.length > 0) return <CoreCseRow key={d.slug} subs={coreCseSubs} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />;
                               const notesHref = `/notes/${encodeURIComponent(userId)}`;
                               return <LinkRow key={d.slug} label="Core CSE" href={notesHref} active={pathname === notesHref} />;
                             }

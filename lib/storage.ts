@@ -1,5 +1,6 @@
 import { ReadingHistoryEntry, StoryData } from "@/types";
 import { sessionManager } from "@/lib/session/composition";
+import { backendTracking } from "@/lib/api/backendTracking";
 import {
   DailyActivity,
   LifetimeStats,
@@ -115,19 +116,27 @@ export const storage = {
   /** Adds a reading session (with its per-page times) to the story's time log. */
   recordStoryReading(storyId: string, title: string, ms: number, pageMs: readonly number[] = []): void {
     session().timeLog.recordReading(storyId, title, ms, pageMs);
+    backendTracking.trackTime("story", storyId, title, ms, true);
+    backendTracking.trackCount("storiesRead");
   },
   /** Adds a finished test to the story's time log. */
   recordStoryTest(storyId: string, title: string, ms: number): void {
     session().timeLog.recordTest(storyId, title, ms);
+    backendTracking.trackTime("story", storyId, title, ms, false);
+    backendTracking.trackCount("testsTaken");
   },
   /** Adds time spent on a documentation page to the signed-in user's time log. */
   recordDocReading(slug: string, title: string, ms: number, newVisit: boolean): void {
     session().docTime.record(slug, title, ms, newVisit);
+    backendTracking.trackTime("doc", slug, title, ms, newVisit);
+    if (newVisit) backendTracking.trackCount("docsRead");
   },
   recordTestTime(ms: number): DailyActivity {
     return session().daily.recordTestTime(ms);
   },
   recordSession(input: RecordSessionInput): DailyActivity {
+    // Reading time itself is reported by recordStoryReading (called alongside this); the daily row
+    // is mirrored to the backend automatically (SyncingKeyValueStore).
     return session().daily.recordSession(input);
   },
   /** The single aggregator every "real numbers" surface reads from — see

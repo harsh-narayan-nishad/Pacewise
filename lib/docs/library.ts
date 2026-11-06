@@ -16,6 +16,11 @@ const FOLDER_LABELS: Record<string, string> = {
   "leadership-principles/apple": "Apple's Leadership",
   "daa-notes": "DAA notes",
   "syllabus/03-methodologies": "Methodologies",
+  "syllabus/04-core-cse": "Core CSE",
+  "syllabus/04-core-cse/cn": "CN",
+  "syllabus/04-core-cse/os": "OS",
+  "syllabus/04-core-cse/dbms": "DBMS",
+  "syllabus/04-core-cse/oops": "OOPs",
   "syllabus/06-system-design": "System Design",
 };
 

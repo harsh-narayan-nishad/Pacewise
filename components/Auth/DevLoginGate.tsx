@@ -11,6 +11,8 @@ import { useCurrentUser } from "@/lib/devData/useDevStore";
 import { SEED_USERS } from "@/lib/devData/seedUsers";
 import { useAuth } from "@/lib/api/AuthContext";
 import { ApiError } from "@/lib/api/client";
+import { backendSync } from "@/lib/api/backendSync";
+import { isApiEnabled } from "@/lib/api/config";
 
 /**
  * Development-only login gate — there was no authentication anywhere in
@@ -53,6 +55,15 @@ export function DevLoginGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     devDataStore.hydrate();
   }, []);
+
+  // Backend (MongoDB) sync: follows whoever is signed in. A reloaded page already has backend tokens for
+  // that user, so syncing resumes here; a fresh sign-in starts it from the login handler below.
+  const currentUserId = currentUser?.id ?? null;
+  useEffect(() => {
+    if (!isApiEnabled()) return;
+    if (currentUserId) void backendSync.start(currentUserId);
+    else backendSync.stop();
+  }, [currentUserId]);
 
   // Everything, the notes and docs a QR code opens included, needs a sign-in first.
   if (currentUser) return <>{children}</>;
@@ -111,6 +122,7 @@ function DemoLoginCard({
       const result = devDataStore.login(userId, password);
       setSubmitting(false);
       if (!result.ok) setError(result.error);
+      else if (isApiEnabled()) void backendSync.connect(result.user.id, result.user.username, password);
     }, 150);
   }
 

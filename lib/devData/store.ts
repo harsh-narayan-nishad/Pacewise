@@ -1,4 +1,5 @@
 import { Reaction } from "@/types";
+import type { SyncCollection, SyncRecordData } from "@/lib/api/syncPolicy";
 import { SEED_USERS } from "@/lib/devData/seedUsers";
 import { getContentAuthorId } from "@/lib/devData/contentMeta";
 import {
@@ -117,6 +118,9 @@ class DevDataStore {
 
   private currentUserId: string | null = null;
 
+  /** Called after every local change (see persist) so the backend sync layer can push it. */
+  private changeListeners = new Set<() => void>();
+
   private version = 0;
   private listeners = new Set<Listener>();
   private counters: Record<string, number> = {};
@@ -140,7 +144,10 @@ class DevDataStore {
 
   private nextId(prefix: string): string {
     this.counters[prefix] = (this.counters[prefix] ?? 0) + 1;
-    return `${prefix}-${this.counters[prefix]}`;
+    // A random part keeps ids unique ACROSS browsers/users now that records are stored in one shared
+    // backend (a bare per-browser counter would make two users' "reaction-1" collide).
+    const rand = Math.random().toString(36).slice(2, 8);
+    return `${prefix}-${this.counters[prefix]}-${rand}`;
   }
 
   // =========================================================================
@@ -153,7 +160,11 @@ class DevDataStore {
   private static readonly STORAGE_KEY = "speed-reader:dev-store:v1";
 
   private persist(): void {
-    if (typeof window === "undefined") return;
+    if (typeof window !== "undefined") this.saveLocally();
+    this.changeListeners.forEach((l) => l());
+  }
+
+  private saveLocally(): void {
     try {
       const snapshot = {
         shares: this.shares,
@@ -173,6 +184,72 @@ class DevDataStore {
     } catch {
       // Storage can fail (private browsing, quota, disabled) — the store
       // keeps working in-memory for the rest of this session either way.
+    }
+  }
+
+  // =========================================================================
+  // Backend sync support (see lib/api/backendSync.ts)
+  // =========================================================================
+  /** Subscribe to "something changed locally". Returns an unsubscribe function. */
+  onLocalChange(listener: () => void): () => void {
+    this.changeListeners.add(listener);
+    return () => { this.changeListeners.delete(listener); };
+  }
+
+  /** Every syncable record, by collection, as plain objects (avatars become `{ id, dataUrl }`). */
+  syncCollections(): Record<SyncCollection, SyncRecordData[]> {
+    return {
+      reactions: this.reactions as unknown as SyncRecordData[],
+      comments: this.comments as unknown as SyncRecordData[],
+      commentReactions: this.commentReactions as unknown as SyncRecordData[],
+      shares: this.shares as unknown as SyncRecordData[],
+      notifications: this.notifications as unknown as SyncRecordData[],
+      saves: this.saves as unknown as SyncRecordData[],
+      playlists: this.playlists as unknown as SyncRecordData[],
+      playlistRelationships: this.playlistRelationships as unknown as SyncRecordData[],
+      follows: this.follows as unknown as SyncRecordData[],
+      avatars: Object.entries(this.avatars).map(([id, dataUrl]) => ({ id, dataUrl })),
+    };
+  }
+
+  /** Merges what the backend sent (upserts + deletions) into local state, WITHOUT echoing it back out. */
+  applyServerSnapshot(snap: { upserts: Partial<Record<SyncCollection, SyncRecordData[]>>; deletes: Partial<Record<SyncCollection, string[]>> }): void {
+    const merge = <T extends { id: string }>(list: T[], up: SyncRecordData[] | undefined, del: string[] | undefined): T[] => {
+      if (!up?.length && !del?.length) return list;
+      const byId = new Map(list.map((r) => [r.id, r]));
+      del?.forEach((id) => byId.delete(id));
+      up?.forEach((r) => byId.set(String(r.id), r as unknown as T));
+      return Array.from(byId.values());
+    };
+    const u = snap.upserts;
+    const d = snap.deletes;
+    this.reactions = merge(this.reactions, u.reactions, d.reactions);
+    this.comments = merge(this.comments, u.comments, d.comments);
+    this.commentReactions = merge(this.commentReactions, u.commentReactions, d.commentReactions);
+    this.shares = merge(this.shares, u.shares, d.shares);
+    this.notifications = merge(this.notifications, u.notifications, d.notifications);
+    this.saves = merge(this.saves, u.saves, d.saves);
+    this.playlists = merge(this.playlists, u.playlists, d.playlists).map((p) => ({ ...p, isPublic: p.isPublic ?? false }));
+    this.playlistRelationships = merge(this.playlistRelationships, u.playlistRelationships, d.playlistRelationships);
+    this.follows = merge(this.follows, u.follows, d.follows);
+    if (u.avatars?.length || d.avatars?.length) {
+      const next = { ...this.avatars };
+      u.avatars?.forEach((a) => { if (typeof a.id === "string" && typeof a.dataUrl === "string") next[a.id] = a.dataUrl; });
+      d.avatars?.forEach((id) => { delete next[id]; });
+      this.avatars = next;
+    }
+    // Keep the id counters ahead of any id the server handed us, so new local ids never collide.
+    this.touchQuiet();
+  }
+
+  /** Re-render subscribers and save locally, without telling the sync layer (the data came FROM the server). */
+  private touchQuiet(): void {
+    const saved = this.changeListeners;
+    this.changeListeners = new Set();
+    try {
+      this.touch();
+    } finally {
+      this.changeListeners = saved;
     }
   }
 

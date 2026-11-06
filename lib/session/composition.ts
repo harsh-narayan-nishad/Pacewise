@@ -2,6 +2,7 @@ import { devDataStore } from "@/lib/devData/store";
 import { createDefaultKeyValueStore } from "@/lib/session/storage/KeyValueStore";
 import { DevStoreIdentityProvider } from "@/lib/session/identity/DevStoreIdentityProvider";
 import { registerCustomStoryOwnerResolver } from "@/lib/devData/contentMeta";
+import { SyncingKeyValueStore } from "@/lib/api/SyncingKeyValueStore";
 import { SessionManager } from "@/lib/session/SessionManager";
 
 /**
@@ -10,8 +11,11 @@ import { SessionManager } from "@/lib/session/SessionManager";
  * else in lib/session depends only on interfaces, so changing the storage
  * medium or the identity source is an edit to this file alone.
  */
+/** Browser storage + a decorator that also mirrors the reading data to the backend (MongoDB). */
+export const syncingStore = new SyncingKeyValueStore(createDefaultKeyValueStore());
+
 export const sessionManager = new SessionManager(
-  createDefaultKeyValueStore(),
+  syncingStore,
   new DevStoreIdentityProvider(devDataStore)
 );
 

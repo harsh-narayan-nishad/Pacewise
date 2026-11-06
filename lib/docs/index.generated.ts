@@ -380,6 +380,78 @@ export const DOC_INDEX: DocMeta[] = [
   "title": "Core CSE"
  },
  {
+  "slug": "syllabus--04-core-cse--cn--01-frontend",
+  "path": "syllabus/04-core-cse/cn/01-frontend.md",
+  "folder": "syllabus/04-core-cse/cn",
+  "title": "Frontend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--cn--02-express-backend",
+  "path": "syllabus/04-core-cse/cn/02-express-backend.md",
+  "folder": "syllabus/04-core-cse/cn",
+  "title": "Express backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--cn--03-flask-backend",
+  "path": "syllabus/04-core-cse/cn/03-flask-backend.md",
+  "folder": "syllabus/04-core-cse/cn",
+  "title": "Flask backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--dbms--01-frontend",
+  "path": "syllabus/04-core-cse/dbms/01-frontend.md",
+  "folder": "syllabus/04-core-cse/dbms",
+  "title": "Frontend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--dbms--02-express-backend",
+  "path": "syllabus/04-core-cse/dbms/02-express-backend.md",
+  "folder": "syllabus/04-core-cse/dbms",
+  "title": "Express backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--dbms--03-flask-backend",
+  "path": "syllabus/04-core-cse/dbms/03-flask-backend.md",
+  "folder": "syllabus/04-core-cse/dbms",
+  "title": "Flask backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--oops--01-frontend",
+  "path": "syllabus/04-core-cse/oops/01-frontend.md",
+  "folder": "syllabus/04-core-cse/oops",
+  "title": "Frontend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--oops--02-express-backend",
+  "path": "syllabus/04-core-cse/oops/02-express-backend.md",
+  "folder": "syllabus/04-core-cse/oops",
+  "title": "Express backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--oops--03-flask-backend",
+  "path": "syllabus/04-core-cse/oops/03-flask-backend.md",
+  "folder": "syllabus/04-core-cse/oops",
+  "title": "Flask backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--os--01-frontend",
+  "path": "syllabus/04-core-cse/os/01-frontend.md",
+  "folder": "syllabus/04-core-cse/os",
+  "title": "Frontend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--os--02-express-backend",
+  "path": "syllabus/04-core-cse/os/02-express-backend.md",
+  "folder": "syllabus/04-core-cse/os",
+  "title": "Express backend"
+ },
+ {
+  "slug": "syllabus--04-core-cse--os--03-flask-backend",
+  "path": "syllabus/04-core-cse/os/03-flask-backend.md",
+  "folder": "syllabus/04-core-cse/os",
+  "title": "Flask backend"
+ },
+ {
   "slug": "syllabus--05-challenges",
   "path": "syllabus/05-challenges.md",
   "folder": "syllabus",
