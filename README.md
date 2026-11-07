@@ -8,3 +8,6 @@ reading WPM improvemnt
 - MongoDB with tradeoff 
 - Docker
 
+
+- Admin portal created
+- User will be required to ask
