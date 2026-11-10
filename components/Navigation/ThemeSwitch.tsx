@@ -16,11 +16,10 @@ export function ThemeSwitch() {
       aria-checked={dark}
       aria-label="Dark mode"
       onClick={() => dispatch({ type: "UPDATE_FONTS", fonts: { brightness: dark ? "light" : "dark" } })}
-      className={`relative h-7 w-12 shrink-0 rounded-full border border-overlay/15 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-medium ${dark ? "bg-ink/90" : "bg-overlay/10"}`}
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-overlay/[0.08] text-ink-muted transition-colors hover:bg-overlay/[0.14] hover:text-ink active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-medium"
     >
-      <span className={`absolute left-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-canvas text-ink shadow-sm transition-transform duration-200 ${dark ? "translate-x-5" : "translate-x-0"}`}>
-        {dark ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
-      </span>
+      <Sun className={`absolute h-4 w-4 transition-all duration-300 ${dark ? "-rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
+      <Moon className={`absolute h-4 w-4 transition-all duration-300 ${dark ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"}`} />
     </button>
   );
 }

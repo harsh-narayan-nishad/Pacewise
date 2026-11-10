@@ -15,6 +15,7 @@ import { HomeDashboard } from "@/components/Dashboard/HomeDashboard";
 import { TestAttemptsPanel } from "@/components/Account/TestAttemptsPanel";
 import { ReadingHistoryPanel } from "@/components/Account/ReadingHistoryPanel";
 import { AnalyticsPanel } from "@/components/Account/AnalyticsPanel";
+import { CalendarPanel } from "@/components/Account/CalendarPanel";
 import { TimeAnalysisPanel } from "@/components/Profile/TimeAnalysisPanel";
 import { NotesView } from "@/components/Notes/NotesView";
 import { ProfileQr } from "@/components/Profile/ProfileQr";
@@ -22,10 +23,11 @@ import { SettingsPanel } from "@/components/Account/SettingsPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAvatarUpload } from "@/components/Profile/useAvatarUpload";
 
-type ProfileTab = "dashboard" | "notes" | "readingHistory" | "analytics" | "time" | "attempts" | "settings";
+type ProfileTab = "dashboard" | "calendar" | "notes" | "readingHistory" | "analytics" | "time" | "attempts" | "settings";
 
 const TABS: { id: ProfileTab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
+  { id: "calendar", label: "Calendar" },
   { id: "notes", label: "Notes" },
   { id: "readingHistory", label: "Reading history" },
   { id: "analytics", label: "Analytics" },
@@ -150,6 +152,7 @@ export function UserProfile({ userId }: UserProfileProps) {
       </h2>
 
       {isSelf && tab === "dashboard" && <HomeDashboard />}
+      {isSelf && tab === "calendar" && <CalendarPanel />}
       {isSelf && tab === "notes" && <NotesPanel userId={userId} />}
       {isSelf && tab === "readingHistory" && <ReadingHistoryPanel />}
       {isSelf && tab === "analytics" && <AnalyticsPanel />}

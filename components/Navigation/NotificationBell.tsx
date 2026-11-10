@@ -96,7 +96,7 @@ export function NotificationBell() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-overlay/5 hover:text-ink"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-overlay/[0.08] text-ink-muted transition-colors hover:bg-overlay/[0.14] hover:text-ink active:scale-95"
       >
         <Bell className="h-4 w-4" />
         {unread > 0 && (

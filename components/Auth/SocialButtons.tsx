@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { Apple } from "lucide-react";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -25,10 +24,21 @@ function GoogleMark() {
 }
 
 /**
- * "Continue with Google" and "Continue with Apple", then an "or" divider.
+ * "Continue with Google" and "Continue with Microsoft", then an "or" divider.
  * Google works when NEXT_PUBLIC_GOOGLE_CLIENT_ID is set (Google's own button hands back a signed ID token, which the backend verifies).
- * Apple is a placeholder for now: it is shown but not connected.
+ * Microsoft is a placeholder for now: it is shown but not connected.
  */
+function MicrosoftMark() {
+  return (
+    <svg viewBox="0 0 21 21" className="h-5 w-5" aria-hidden>
+      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+    </svg>
+  );
+}
+
 export function SocialButtons({ onGoogleToken, onUnavailable, disabled }: { onGoogleToken: (idToken: string) => void; onUnavailable: (message: string) => void; disabled?: boolean }) {
   const slot = useRef<HTMLDivElement>(null);
   // Latest handler without re-initialising Google's button on every render.
@@ -67,8 +77,8 @@ export function SocialButtons({ onGoogleToken, onUnavailable, disabled }: { onGo
           <GoogleMark /> Continue with Google
         </button>
       )}
-      <button type="button" disabled={disabled} onClick={() => onUnavailable("Apple sign-in is not available yet.")} className={PILL}>
-        <Apple className="h-5 w-5 fill-current" aria-hidden /> Continue with Apple
+      <button type="button" disabled={disabled} onClick={() => onUnavailable("Microsoft sign-in is not available yet.")} className={PILL}>
+        <MicrosoftMark /> Continue with Microsoft
       </button>
       <div className="my-2 flex items-center gap-3 text-sm text-ink-muted" role="separator">
         <span className="h-px flex-1 bg-overlay/20" />

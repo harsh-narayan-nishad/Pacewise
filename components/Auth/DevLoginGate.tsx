@@ -64,7 +64,7 @@ export function DevLoginGate({ children }: { children: React.ReactNode }) {
   if (currentUser) return <>{children}</>;
 
   return (
-    <div className="min-h-screen w-full bg-canvas">
+    <div className="min-h-screen min-h-dvh w-full bg-canvas">
       <AuthCard />
     </div>
   );
@@ -192,8 +192,8 @@ function AuthCard() {
   const title = mode === "login" ? "Sign in to continue." : mode === "signup" ? "Create your account." : mode === "verify-otp" ? "Enter your confirmation code." : mode === "reset-otp" ? "Enter your reset code." : "Reset your password.";
 
   return (
-    <div className="grid h-screen w-full grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[2fr_3fr]">
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex h-full min-h-0 flex-col overflow-y-auto px-6 py-10 sm:px-12 lg:px-[8vw]">
+    <div className="grid h-screen h-dvh w-full grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[2fr_3fr]">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex h-full min-h-0 flex-col overflow-y-auto px-6 py-6 sm:px-12 sm:py-10 lg:px-[8vw]">
     <div className="my-auto">
       <div className="mb-3 font-display text-xl tracking-[-0.02em] text-ink-muted">{BRAND_NAME}</div>
       {mode !== "signup" && <h1 className="mb-10 font-display text-4xl leading-[1.08] tracking-[-0.03em] text-ink sm:text-5xl">{BRAND_HEADLINE}</h1>}
@@ -289,7 +289,7 @@ function AuthCard() {
         )}
       </form>
       </div>
-      <p className="mt-12 text-xs text-ink-faint">&copy; {new Date().getFullYear()} {BRAND_NAME}</p>
+      <p className="mt-8 text-xs text-ink-faint sm:mt-12">&copy; {new Date().getFullYear()} {BRAND_NAME}</p>
     </div>
     </motion.div>
     <div aria-hidden className="hidden h-full overflow-hidden lg:block" style={{ background: "radial-gradient(60% 55% at 12% 12%, #5f7a5c 0%, transparent 70%), radial-gradient(55% 50% at 92% 25%, #8da586 0%, transparent 70%), radial-gradient(70% 55% at 70% 85%, #b88a2e 0%, transparent 70%), radial-gradient(60% 60% at 30% 60%, #8f8333 0%, transparent 75%), #a99b57" }}>

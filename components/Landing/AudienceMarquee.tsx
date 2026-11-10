@@ -2,7 +2,7 @@
 import { BRAND_NAME } from "@/lib/brand";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BookMarked, Briefcase, Calculator, ChevronLeft, ChevronRight, Code2, Gavel, GraduationCap, Landmark, Microscope, Rocket, Scale, Stethoscope, Wrench, type LucideIcon } from "lucide-react";
+import { Calculator, ChevronLeft, ChevronRight, GraduationCap, Landmark, Stethoscope, Wrench, type LucideIcon } from "lucide-react";
 
 interface Audience { label: string; icon: LucideIcon; hue: string; lead: string; text: string }
 
@@ -11,14 +11,7 @@ const AUDIENCES: Audience[] = [
   { label: "Engineers", icon: Wrench, hue: "#2A3139", lead: "Read specs at the speed of thought.", text: "Skim long documentation and standards without losing the details that matter, and check your understanding as you go." },
   { label: "Doctors & NEET", icon: Stethoscope, hue: "#4A3B58", lead: "Revise more in the same hours.", text: "Compress dense medical chapters into your own notes and track how your speed and recall improve each week." },
   { label: "CA & finance", icon: Calculator, hue: "#6B5A3C", lead: "Keep standards and sections at hand.", text: "Read through circulars, case law and reports quickly, with a quiz after every session to lock in the numbers." },
-  { label: "Entrepreneurs", icon: Rocket, hue: "#7A3E32", lead: "Learn from more books, not fewer.", text: "Get through market reports, books and decks in minutes, and share the best notes with your team." },
-  { label: "Law students", icon: Scale, hue: "#34495E", lead: "Read judgments without the fatigue.", text: "Work through long case material at your own pace and test yourself on the holding, not just the headline." },
-  { label: "Researchers", icon: Microscope, hue: "#2F5D62", lead: "Stay on top of the literature.", text: "Triage papers faster, keep your notes as stories, and come back to them with questions you wrote yourself." },
-  { label: "Developers", icon: Code2, hue: "#3D3A5C", lead: "Make reading docs a habit.", text: "Paste code and prose into one story, read it fast, and quiz yourself before the interview or the release." },
   { label: "Teachers", icon: GraduationCap, hue: "#5C4A2E", lead: "Share notes your class can quiz on.", text: "Write a lesson once, add questions, and let students read at a pace that suits them." },
-  { label: "MBA & CAT", icon: Briefcase, hue: "#44525C", lead: "Build the reading speed CAT rewards.", text: "Practise passages at a rising words-per-minute target and watch comprehension hold steady." },
-  { label: "Judiciary prep", icon: Gavel, hue: "#5A3A4A", lead: "Cover bare acts and commentaries.", text: "Turn statutes and judgments into revision stories, and quiz yourself on the sections that keep coming up." },
-  { label: "Lifelong learners", icon: BookMarked, hue: "#365A44", lead: "Read more of what you love.", text: "Keep a library of your own notes, share it, and let your streak keep you coming back." },
 ];
 
 /** Image for a card: public/audiences/<slug>.jpg (e.g. "Doctors & NEET" -> doctors-neet.jpg). */

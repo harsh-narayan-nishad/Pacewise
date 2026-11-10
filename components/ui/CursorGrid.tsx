@@ -69,7 +69,7 @@ type Settings = {
   dpr?: number;
 };
 
-type Pulse = { x: number; y: number; t0: number; strength: number };
+type Pulse = { x: number; y: number; t0: number; strength: number; click?: boolean };
 
 type Program = { program: WebGLProgram; uniforms: Record<string, WebGLUniformLocation | null> };
 
@@ -610,7 +610,9 @@ const CursorGrid = ({
       const s = settingsRef.current;
       const { x, y, inside } = locate(event);
       if (!inside || !s.clickPulse || reduce) return;
-      pulses.push({ x, y, t0: clock, strength: 1 });
+      // One ripple at a time: a click while a click-ripple is still travelling does nothing.
+      if (pulses.some(p => p.click)) return;
+      pulses.push({ x, y, t0: clock, strength: 1, click: true });
       wake();
     };
 

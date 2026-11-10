@@ -222,3 +222,30 @@ export const uploadsApi = {
     if (!res.ok) throw new Error(`Upload failed with status ${res.status}`);
   },
 };
+
+// ---------------------------------------------------------------------------
+// Calendar (the Calendar tab of the profile)
+// ---------------------------------------------------------------------------
+export type CalendarVariant = "primary" | "secondary" | "outline";
+export interface ApiCalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  variant: CalendarVariant;
+}
+export interface CalendarEventInput {
+  title?: string;
+  start?: string;
+  end?: string;
+  allDay?: boolean;
+  variant?: CalendarVariant;
+}
+
+export const calendarApi = {
+  list: () => apiFetch<ApiCalendarEvent[]>("/calendar/events"),
+  create: (input: CalendarEventInput & { title: string; start: string; end: string }) => apiFetch<ApiCalendarEvent>("/calendar/events", { method: "POST", body: input }),
+  update: (id: string, input: CalendarEventInput) => apiFetch<ApiCalendarEvent>(`/calendar/events/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+  remove: (id: string) => apiFetch<void>(`/calendar/events/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
