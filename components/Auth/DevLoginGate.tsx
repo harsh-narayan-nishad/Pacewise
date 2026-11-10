@@ -293,10 +293,10 @@ function AuthCard() {
     </div>
     </motion.div>
     <div aria-hidden className="hidden h-full overflow-hidden lg:block" style={{ background: "radial-gradient(60% 55% at 12% 12%, #5f7a5c 0%, transparent 70%), radial-gradient(55% 50% at 92% 25%, #8da586 0%, transparent 70%), radial-gradient(70% 55% at 70% 85%, #b88a2e 0%, transparent 70%), radial-gradient(60% 60% at 30% 60%, #8f8333 0%, transparent 75%), #a99b57" }}>
-      <CursorGrid cellSize={56} color="#ffffff" gridColor="#ffffff" highlight="area" gridStyle="lines" radius={140} holdTime={400} fadeDuration={800} fillOpacity={0.16} gridOpacity={0.12} spotlight={0.5} edgeFade={0} restBlocks={0.07} restLevel={0.8} clickPulse>
+      <CursorGrid cellSize={56} color="#ffffff" gridColor="#ffffff" highlight="area" gridStyle="lines" radius={140} holdTime={400} fadeDuration={800} fillOpacity={0.16} gridOpacity={0.12} spotlight={0} hover={false} edgeFade={0} restBlocks={0.07} restLevel={0.8} clickPulse>
         <div className="flex h-full w-full items-center justify-center">
           <svg viewBox="0 0 420 520" className="h-[78vh] w-auto">
-            <text x="210" y="470" textAnchor="middle" fontSize="640" fontWeight="700" fill="none" stroke="#ffffff" strokeOpacity="0.7" strokeWidth="2" style={{ fontFamily: "Roobert, Inter, ui-sans-serif, system-ui, sans-serif" }}>P</text>
+            <text x="210" y="470" textAnchor="middle" fontSize="640" fontWeight="700" fill="#ffffff" fillOpacity="0.85" stroke="#ffffff" strokeWidth="2" style={{ fontFamily: "Roobert, Inter, ui-sans-serif, system-ui, sans-serif" }}>P</text>
           </svg>
         </div>
       </CursorGrid>

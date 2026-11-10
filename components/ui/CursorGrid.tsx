@@ -25,6 +25,8 @@ export interface CursorGridProps {
   cellGap?: number;
   spotlight?: number;
   clickPulse?: boolean;
+  /** false: the cursor does not light cells on hover (clicks still pulse). */
+  hover?: boolean;
   pulseSpeed?: number;
   ambient?: number;
   edgeFade?: number;
@@ -57,6 +59,7 @@ type Settings = {
   cellGap: number;
   spotlight: number;
   clickPulse: boolean;
+  hover: boolean;
   pulseSpeed: number;
   ambient: number;
   edgeFade: number;
@@ -289,6 +292,7 @@ const CursorGrid = ({
   cellGap = 0,
   spotlight = 0.6,
   clickPulse = true,
+  hover = true,
   pulseSpeed = 600,
   ambient = 0,
   edgeFade = 0.2,
@@ -323,6 +327,7 @@ const CursorGrid = ({
     cellGap: Math.max(0, cellGap),
     spotlight: clamp(spotlight, 0, 1),
     clickPulse,
+    hover,
     pulseSpeed: Math.max(1, pulseSpeed),
     ambient: clamp(ambient, 0, 1),
     edgeFade: clamp(edgeFade, 0, 0.5),
@@ -597,7 +602,7 @@ const CursorGrid = ({
         mouse.x = x;
         mouse.y = y;
       }
-      energize(x, y);
+      if (settingsRef.current.hover) energize(x, y);
       wake();
     };
 
