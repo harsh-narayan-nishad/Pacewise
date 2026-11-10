@@ -5,6 +5,9 @@ import { BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/Pagination";
 import { storage } from "@/lib/storage";
+import { historyApi } from "@/lib/api/endpoints";
+import { isApiEnabled } from "@/lib/api/config";
+import { tokenStore } from "@/lib/api/tokenStore";
 import { groupByDateBucket } from "@/lib/dateGroups";
 import { ReadingHistoryEntry } from "@/types";
 
@@ -14,7 +17,23 @@ const PAGE_SIZE = 10;
 export function ReadingHistoryPanel() {
   const [entries, setEntries] = useState<ReadingHistoryEntry[] | null>(null);
   const [page, setPage] = useState(1);
-  useEffect(() => setEntries(storage.getHistory()), []);
+  useEffect(() => {
+    const local = storage.getHistory();
+    // Signed in: the list comes from the database, plus anything this browser has that the server doesn't yet.
+    if (!isApiEnabled() || !tokenStore.getAccessToken()) { setEntries(local); return; }
+    let cancelled = false;
+    historyApi.list(1, 100).then((res) => {
+      if (cancelled) return;
+      const remote: ReadingHistoryEntry[] = res.items.filter((r) => r.wpm > 0).map((r) => ({
+        id: r.id, backendId: r.id, title: r.title ?? "Reading session", date: r.createdAt, wpm: r.wpm, accuracy: r.accuracy ?? 0, wordCount: r.wordCount ?? 0,
+      }));
+      const known = new Set(remote.map((r) => r.id));
+      const near = (a: ReadingHistoryEntry) => remote.some((r) => r.title === a.title && Math.abs(new Date(r.date).getTime() - new Date(a.date).getTime()) < 120_000);
+      const extra = local.filter((l) => !(l.backendId && known.has(l.backendId)) && !near(l));
+      setEntries([...remote, ...extra].sort((a, b) => b.date.localeCompare(a.date)));
+    }).catch(() => { if (!cancelled) setEntries(local); });
+    return () => { cancelled = true; };
+  }, []);
 
   const groups = useMemo(() => (entries ? groupByDateBucket(entries, (e) => e.date) : []), [entries]);
   const pageCount = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));

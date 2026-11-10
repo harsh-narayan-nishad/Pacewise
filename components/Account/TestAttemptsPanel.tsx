@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Check, X } from "lucide-react";
+import { ClipboardList, Check, ChevronDown, X } from "lucide-react";
 import { BRAND_BLUE } from "@/lib/brand";
 import { Card } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/Pagination";
@@ -9,6 +9,7 @@ import { storage } from "@/lib/storage";
 import { ReadingHistoryEntry } from "@/types";
 import { formatDuration } from "@/lib/wpmCalculator";
 import { groupByDateBucket } from "@/lib/dateGroups";
+import { TopicBreakdown } from "@/components/ResultCard/TopicBreakdown";
 
 const PAGE_SIZE = 10;
 
@@ -17,6 +18,7 @@ export function TestAttemptsPanel({ showHeading = true }: { showHeading?: boolea
   const [attempts, setAttempts] = useState<ReadingHistoryEntry[] | null>(null);
   const [stats, setStats] = useState<ReturnType<typeof storage.getQuizStats> | null>(null);
   const [page, setPage] = useState(1);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     setAttempts(storage.getQuizAttempts());
@@ -51,7 +53,8 @@ export function TestAttemptsPanel({ showHeading = true }: { showHeading?: boolea
                 <div className="mb-2 px-3 font-display text-xl tracking-[-0.02em] text-ink-muted">{label}</div>
                 <Card className="divide-y divide-overlay/10 overflow-hidden rounded-[32px] bg-canvas-raised p-0">
                   {group.map((a) => (
-                    <div key={a.id} className="flex items-center gap-3 px-5 py-4 sm:px-7">
+                    <div key={a.id}>
+                    <div className="flex items-center gap-3 px-5 py-4 sm:px-7">
                       <ClipboardList className="h-4 w-4 shrink-0 text-ink-muted" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm text-ink">{a.title}</div>
@@ -74,6 +77,21 @@ export function TestAttemptsPanel({ showHeading = true }: { showHeading?: boolea
                         {a.accuracy >= 70 ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
                         {a.accuracy.toFixed(0)}%
                       </div>
+                      {a.topics && a.topics.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setOpenId(openId === a.id ? null : a.id)}
+                          aria-expanded={openId === a.id}
+                          aria-label="Topics"
+                          className="shrink-0 rounded-full p-1.5 text-ink-muted hover:bg-overlay/5 hover:text-ink"
+                        >
+                          <ChevronDown className={`h-4 w-4 transition-transform ${openId === a.id ? "rotate-180" : ""}`} />
+                        </button>
+                      )}
+                    </div>
+                    {openId === a.id && a.topics && a.topics.length > 0 && (
+                      <TopicBreakdown bare entryId={a.id} attemptedAt={a.date} backendId={a.backendId} topics={a.topics} onSaved={() => setAttempts(storage.getQuizAttempts())} />
+                    )}
                     </div>
                   ))}
                 </Card>

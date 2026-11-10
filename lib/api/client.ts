@@ -118,6 +118,11 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (!res.ok) {
     const err = (payload as { error?: { message?: string; code?: string; details?: unknown } } | null)?.error;
+    // An admin banned this account while it was signed in: drop the session and reload to the sign-in screen.
+    if (res.status === 403 && !options.skipAuth && (err?.code === "ACCOUNT_BANNED" || err?.code === "ACCOUNT_REJECTED") && typeof window !== "undefined") {
+      tokenStore.clear();
+      window.location.reload();
+    }
     throw new ApiError(res.status, err?.message ?? `Request failed with status ${res.status}`, err?.code, err?.details);
   }
 

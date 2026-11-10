@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BRAND_BLUE } from "@/lib/brand";
+import { useDocsLang } from "@/lib/docs/lang";
+import { ui } from "@/lib/docs/i18n";
 
 interface Target { href: string; title: string }
 interface Mark { id: string; text: string; level: number }
@@ -101,6 +103,8 @@ const SPINNER_DELAY_MS = 150;
 
 /** Round icon-only link; the page it leads to shows on hover or keyboard focus. */
 function PagerButton({ target, side }: { target: Target; side: "prev" | "next" }) {
+  const lang = useDocsLang();
+  const word = ui(lang, side === "prev" ? "previous" : "next");
   const Icon = side === "prev" ? ArrowLeft : ArrowRight;
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
@@ -121,7 +125,7 @@ function PagerButton({ target, side }: { target: Target; side: "prev" | "next" }
         setLoading(true);
       }}
       aria-busy={loading}
-      aria-label={`${side === "prev" ? "Previous" : "Next"}: ${target.title}`}
+      aria-label={`${word}: ${target.title}`}
       className="group relative flex h-12 w-12 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised text-ink"
     >
       {showSpinner ? <TickSpinner /> : <Icon className="h-5 w-5" />}
@@ -129,7 +133,7 @@ function PagerButton({ target, side }: { target: Target; side: "prev" | "next" }
         role="tooltip"
         className={`pointer-events-none absolute bottom-full mb-2 max-w-[70vw] whitespace-nowrap rounded-xl border border-overlay/10 bg-canvas-raised px-3 py-1.5 text-sm text-ink opacity-0 shadow-themed transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 ${side === "prev" ? "left-0" : "right-0"}`}
       >
-        <span className="block text-[10px] font-medium uppercase tracking-wide text-ink-muted">{side === "prev" ? "Previous" : "Next"}</span>
+        <span className="block text-[10px] font-medium uppercase tracking-wide text-ink-muted">{word}</span>
         <span className="block max-w-[60vw] truncate">{target.title}</span>
       </span>
     </Link>
@@ -141,7 +145,11 @@ function PagerButton({ target, side }: { target: Target; side: "prev" | "next" }
  * in blue; hover for its name, click to jump), and icon-only Previous / Next buttons placed after the
  * ending content of the page.
  */
-export function DocNav({ prev, next }: { prev?: Target; next?: Target }) {
+/** `prevHi` / `nextHi` are the same targets titled in Hindi, shown when the page language is Hindi. */
+export function DocNav({ prev, next, prevHi, nextHi }: { prev?: Target; next?: Target; prevHi?: Target; nextHi?: Target }) {
+  const lang = useDocsLang();
+  const prevShown = lang === "hi" ? prevHi ?? prev : prev;
+  const nextShown = lang === "hi" ? nextHi ?? next : next;
   const [marks, setMarks] = useState<Mark[]>([]);
   const [active, setActive] = useState(0);
   // The bar lines ride up with the footer instead of overlapping it: once the footer's top edge reaches them they are pushed up by exactly the overlap.
@@ -166,7 +174,7 @@ export function DocNav({ prev, next }: { prev?: Target; next?: Target }) {
       .map((el) => ({ id: el.id, text: el.textContent?.trim() ?? "", level: Number(el.tagName[1]) }));
     // Very long pages: keep only the main headings so the column stays short.
     setMarks(found.length > 28 ? found.filter((m) => m.level === 2) : found);
-  }, []);
+  }, [lang]); // the headings change text (not ids) when the language changes
 
   useEffect(() => {
     if (marks.length === 0) return;
@@ -186,7 +194,7 @@ export function DocNav({ prev, next }: { prev?: Target; next?: Target }) {
   return (
     <>
       {marks.length > 1 && (
-        <nav ref={rail} aria-label="Sections on this page" style={{ transform: `translateY(calc(-50% - ${lift}px))` }} className="fixed right-4 top-1/2 z-[90] hidden flex-col items-end md:flex">
+        <nav ref={rail} aria-label={ui(lang, "onThisPage")} style={{ transform: `translateY(calc(-50% - ${lift}px))` }} className="fixed right-4 top-1/2 z-[90] hidden flex-col items-end md:flex">
           {marks.map((m, i) => (
             <a
               key={m.id}
@@ -209,10 +217,10 @@ export function DocNav({ prev, next }: { prev?: Target; next?: Target }) {
           ))}
         </nav>
       )}
-      {(prev || next) && (
-        <nav aria-label="Previous and next page" className="mt-16 flex items-center justify-between border-t border-overlay/10 pt-6">
-          {prev ? <PagerButton target={prev} side="prev" /> : <span />}
-          {next ? <PagerButton target={next} side="next" /> : <span />}
+      {(prevShown || nextShown) && (
+        <nav aria-label={`${ui(lang, "previous")} / ${ui(lang, "next")}`} className="mt-16 flex items-center justify-between border-t border-overlay/10 pt-6">
+          {prevShown ? <PagerButton target={prevShown} side="prev" /> : <span />}
+          {nextShown ? <PagerButton target={nextShown} side="next" /> : <span />}
         </nav>
       )}
     </>

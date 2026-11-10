@@ -143,6 +143,10 @@ export interface ReadingHistoryEntry {
   avgTimePerQuestionMs?: number;
   /** ISO time the quiz was started (set when the test begins); `date` is when it was saved. */
   quizStartedAt?: string;
+  /** Per-topic result of this test (strong / medium / weak is worked out from these counts). Editable for 2 days. */
+  topics?: { topic: string; correct: number; total: number }[];
+  /** Id of the same attempt on the backend (when signed in), used to save topic edits there too. */
+  backendId?: string;
 }
 
 export interface FontSettings {

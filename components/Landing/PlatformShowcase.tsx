@@ -10,6 +10,9 @@ import { storage, toDateKey } from "@/lib/storage";
 import { getAllStories } from "@/lib/storyLibrary";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
 import type { ReadingHistoryEntry, StoryData } from "@/types";
+import { historyApi } from "@/lib/api/endpoints";
+import { isApiEnabled } from "@/lib/api/config";
+import { tokenStore } from "@/lib/api/tokenStore";
 
 /**
  * The landing page's second "page": sits under the story feed, just above
@@ -129,13 +132,28 @@ function bestOf(history: ReadingHistoryEntry[], pick: (h: ReadingHistoryEntry) =
 function Performance() {
   const [cols, setCols] = useState<Array<{ title: string; rows: Row[] }> | null>(null);
   useEffect(() => {
-    const history = storage.getHistory();
-    const topWpm = Math.max(400, ...history.map((h) => h.wpm));
-    setCols([
-      { title: "Speed", rows: bestOf(history, (h) => h.wpm, topWpm, (n) => `${Math.round(n)} wpm`) },
-      { title: "Comprehension", rows: bestOf(history, (h) => h.accuracy, 100, (n) => `${Math.round(n)}%`) },
-      { title: "Consistency", rows: lastWeeksActiveDays(4) },
-    ]);
+    let cancelled = false;
+    const fromThisBrowser = () => {
+      const history = storage.getHistory();
+      const topWpm = Math.max(400, ...history.map((h) => h.wpm));
+      setCols([
+        { title: "Speed", rows: bestOf(history, (h) => h.wpm, topWpm, (n) => `${Math.round(n)} wpm`) },
+        { title: "Comprehension", rows: bestOf(history, (h) => h.accuracy, 100, (n) => `${Math.round(n)}%`) },
+        { title: "Consistency", rows: lastWeeksActiveDays(4) },
+      ]);
+    };
+    // Signed in: the numbers come from the database (through the backend). Otherwise, or if the backend can't be reached, this browser's own data is shown.
+    if (!isApiEnabled() || !tokenStore.getAccessToken()) { fromThisBrowser(); return; }
+    historyApi.highlights(toDateKey()).then((h) => {
+      if (cancelled) return;
+      const topWpm = Math.max(400, ...h.speed.map((r) => r.wpm));
+      setCols([
+        { title: "Speed", rows: h.speed.map((r) => ({ label: r.title, value: Math.min(1, r.wpm / topWpm), display: `${Math.round(r.wpm)} wpm` })) },
+        { title: "Comprehension", rows: h.comprehension.map((r) => ({ label: r.title, value: Math.min(1, r.accuracy / 100), display: `${Math.round(r.accuracy)}%` })) },
+        { title: "Consistency", rows: h.consistency.map((c) => ({ label: c.weeksAgo === 0 ? "Last 7 days" : c.weeksAgo === 1 ? "Week before" : `${c.weeksAgo + 1} weeks ago`, value: c.activeDays / 7, display: `${c.activeDays}/7 days` })) },
+      ]);
+    }).catch(() => { if (!cancelled) fromThisBrowser(); });
+    return () => { cancelled = true; };
   }, []);
 
   return (

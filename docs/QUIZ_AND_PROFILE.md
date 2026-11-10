@@ -50,7 +50,7 @@ A PDF's pages are images, so a big one can exceed the ~5 MB browser storage quot
 - `/notes/<userId>` (after signing in) shows the notes, then every document of this `docs/` folder; `/notes/<userId>/docs/<slug>` shows one document as a web page. Links between documents work, and `#section` links jump to headings.
 - The page has the landing navbar (glass bar, hamburger and name on the left, theme switch on the right). The hamburger has no personal data (no playlists, search history, uploads or sign-out); it lists the notes and one row per docs folder (**Project docs**, **Interview prep**). Opening a folder lists its documents; the one being read is highlighted.
 - How it works: `scripts/build-docs.mjs` bundles `docs/**/*.md` into `lib/docs/generated.ts` (full text, server only) and `lib/docs/index.generated.ts` (titles only, used by the menu). It runs automatically before `dev` and `build`, so new or edited docs appear without extra steps; run `npm run docs:build` to refresh by hand. `lib/docs/markdown.ts` turns Markdown into escaped HTML (tests: `npm run test:docs`).
-- Only `.md` files are published. `docs/DEMO_ACCOUNTS.csv` (demo passwords) is deliberately excluded. Anything you write in a `docs/*.md` file becomes public through the QR link, so keep secrets out of those files.
+- Only `.md` files are published. Non-markdown files are never published. Anything you write in a `docs/*.md` file becomes public through the QR link, so keep secrets out of those files.
 
 ## Document pages (public notes)
 

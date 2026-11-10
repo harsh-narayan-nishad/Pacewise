@@ -12,6 +12,11 @@ import { highlight, parseFenceInfo } from "./highlight";
  *   ```mermaid           a diagram that becomes an interactive viewer on the doc page
  */
 export interface MarkdownOptions {
+  /**
+   * Ids for the headings, in document order. A translated (Hindi) page uses the English page's ids, so the same
+   * "#section" links work in both languages. The array is consumed as headings are rendered, so pass a copy.
+   */
+  headingIds?: string[];
   /** Maps a link target found in the text (e.g. "OOP_ARCHITECTURE.md#x") to a real URL, or null to leave it. */
   resolveLink?: (href: string) => string | null;
 }
@@ -20,7 +25,7 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const slugify = (s: string) =>
-  s.toLowerCase().replace(/<[^>]+>/g, "").replace(/[`*_~]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+  s.toLowerCase().replace(/<[^>]+>/g, "").replace(/[`*_~]/g, "").replace(/[^a-z0-9\u0900-\u097f\s-]/g, "").trim().replace(/\s+/g, "-");
 
 function safeHref(href: string): string | null {
   const h = href.trim();
@@ -115,7 +120,7 @@ export function renderMarkdown(md: string, opts: MarkdownOptions = {}): string {
     const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
     if (h) {
       const level = h[1].length;
-      const id = slugify(h[2]);
+      const id = opts.headingIds?.shift() ?? slugify(h[2]);
       html.push(`<h${level} id="${id}">${inline(h[2], opts)}${level >= 2 ? `<a class="anchor" href="#${id}" aria-label="Link to this section">#</a>` : ""}</h${level}>`);
       i++;
       continue;
@@ -179,14 +184,30 @@ export function firstHeading(md: string, fallback: string): string {
 export interface Heading { level: number; text: string; id: string }
 
 /** h2 / h3 headings (outside code fences), for the "On this page" list. */
-export function extractHeadings(md: string): Heading[] {
+export function extractHeadings(md: string, ids?: string[]): Heading[] {
   const out: Heading[] = [];
+  let fenced = false;
+  let n = 0; // index over ALL headings, matching the order the renderer uses for `headingIds`
+  for (const line of md.replace(/\r\n?/g, "\n").split("\n")) {
+    if (/^\s*```/.test(line)) fenced = !fenced;
+    if (fenced) continue;
+    const any = line.match(/^#{1,6}\s+/);
+    const m = line.match(/^(#{2,3})\s+(.*?)\s*#*\s*$/);
+    if (m) out.push({ level: m[1].length, text: m[2].replace(/[`*_=+~]/g, "").trim(), id: ids?.[n] ?? slugify(m[2]) });
+    if (any) n++;
+  }
+  return out;
+}
+
+/** The id of every heading (any level, outside code fences) in order: what the renderer gives them. */
+export function allHeadingIds(md: string): string[] {
+  const out: string[] = [];
   let fenced = false;
   for (const line of md.replace(/\r\n?/g, "\n").split("\n")) {
     if (/^\s*```/.test(line)) fenced = !fenced;
     if (fenced) continue;
-    const m = line.match(/^(#{2,3})\s+(.*?)\s*#*\s*$/);
-    if (m) out.push({ level: m[1].length, text: m[2].replace(/[`*_=+~]/g, "").trim(), id: slugify(m[2]) });
+    const m = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
+    if (m) out.push(slugify(m[2]));
   }
   return out;
 }

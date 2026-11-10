@@ -98,7 +98,6 @@ export interface DevPlaylist {
 
 type Listener = () => void;
 
-type LoginResult = { ok: true; user: DevUser } | { ok: false; error: string };
 type ShareResult = { ok: true; share: DevShare } | { ok: false; error: string };
 type CommentResult = { ok: true; comment: DevComment } | { ok: false; error: string };
 
@@ -179,6 +178,7 @@ class DevDataStore {
         avatars: this.avatars,
         currentUserId: this.currentUserId,
         counters: this.counters,
+        signedUpUsers: this.users.filter((u) => !u.isDemoUser),
       };
       window.localStorage.setItem(DevDataStore.STORAGE_KEY, JSON.stringify(snapshot));
     } catch {
@@ -280,7 +280,13 @@ class DevDataStore {
         avatars: Record<string, string>;
         currentUserId: string | null;
         counters: Record<string, number>;
+        signedUpUsers: DevUser[];
       }>;
+      // Real (signed-up) accounts first, so a restored sign-in below can find its user.
+      if (saved.signedUpUsers?.length) {
+        const known = new Set(this.users.map((u) => u.id));
+        this.users = [...this.users, ...saved.signedUpUsers.filter((u) => !known.has(u.id)).map((u) => ({ ...u }))];
+      }
       this.shares = saved.shares ?? this.shares;
       this.notifications = saved.notifications ?? this.notifications;
       this.comments = saved.comments ?? this.comments;
@@ -359,19 +365,43 @@ class DevDataStore {
     return this.currentUserId ? this.findUserById(this.currentUserId) ?? null : null;
   }
 
-  /** Development-only credential check — plaintext comparison against the
-   *  seeded demo accounts. There is no hashing, no session token, and no
-   *  server round-trip, because there is no backend yet; this exists only
-   *  so the UI has *some* concept of "who is logged in" to attribute
-   *  shares/comments/reactions to. Must be replaced by real
-   *  authentication before production. */
-  login(userId: string, password: string): LoginResult {
-    const user = this.findUserById(userId);
-    if (!user) return { ok: false, error: "Unknown development user." };
-    if (user.password !== password) return { ok: false, error: "Incorrect development password." };
+  /**
+   * Makes `account` the signed-in person. Called ONLY after the backend has verified the credentials
+   * (see lib/api/AuthContext.tsx): this store no longer checks any password itself. Accounts that
+   * are not part of the built-in list (everyone who signs up for real) are added to it and remembered.
+   */
+  signInAs(account: { id: string; name: string; username: string; interests?: string[] }): DevUser {
+    let user = this.findUserById(account.id);
+    if (!user) {
+      user = { id: account.id, name: account.name, username: account.username, interests: account.interests ?? [], isDemoUser: false };
+      this.users = [...this.users, user];
+    }
     this.currentUserId = user.id;
     this.touch();
-    return { ok: true, user };
+    return user;
+  }
+
+  /**
+   * Adds / refreshes the people the backend knows (real sign-ups and the seeded ones), so follow and
+   * share lists show them. Existing entries keep their id; name, username and interests are refreshed.
+   */
+  mergeUsers(people: { id: string; name: string; username: string; interests: string[]; isDemoUser: boolean }[]): void {
+    if (people.length === 0) return;
+    const byId = new Map(this.users.map((u) => [u.id, u]));
+    let changed = false;
+    for (const p of people) {
+      const known = byId.get(p.id);
+      if (!known) {
+        byId.set(p.id, { id: p.id, name: p.name, username: p.username, interests: p.interests, isDemoUser: p.isDemoUser });
+        changed = true;
+      } else if (known.name !== p.name || known.username !== p.username || known.interests.join() !== p.interests.join()) {
+        byId.set(p.id, { ...known, name: p.name, username: p.username, interests: p.interests });
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    this.users = Array.from(byId.values());
+    this.touchQuiet();
   }
 
   /** The user's profile photo, if they uploaded one. */

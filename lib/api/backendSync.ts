@@ -1,7 +1,7 @@
-import { apiFetch, ApiError } from "@/lib/api/client";
+import { apiFetch } from "@/lib/api/client";
+import { listPeople } from "@/lib/api/endpoints";
 import { isApiEnabled } from "@/lib/api/config";
 import { tokenStore } from "@/lib/api/tokenStore";
-import * as endpoints from "@/lib/api/endpoints";
 import { backendTracking, fetchTrackingState } from "@/lib/api/backendTracking";
 import { SyncCollection, SyncOp, SyncRecordData, SYNC_COLLECTIONS, mayPush } from "@/lib/api/syncPolicy";
 import { devDataStore } from "@/lib/devData/store";
@@ -46,21 +46,6 @@ class BackendSync {
     this.listeners.forEach((l) => l());
   }
 
-  /** Sign this demo user in to the backend (same username + password as the demo login), then start syncing. */
-  async connect(userId: string, username: string, password: string): Promise<boolean> {
-    if (!isApiEnabled()) return false;
-    this.setStatus("connecting");
-    try {
-      await endpoints.login({ identifier: username, password });
-    } catch (err) {
-      // 401 = the demo accounts were not seeded yet (npm run seed); anything else = backend unreachable.
-      this.setStatus(err instanceof ApiError && err.status === 401 ? "off" : "offline");
-      return false;
-    }
-    await this.start(userId);
-    return true;
-  }
-
   /** Start syncing for a user who already has backend tokens (e.g. after a page reload). */
   async start(userId: string): Promise<void> {
     if (!isApiEnabled() || !tokenStore.getAccessToken()) { this.setStatus("off"); return; }
@@ -69,6 +54,7 @@ class BackendSync {
     this.userId = userId;
     this.baseline = new Map();
     this.seq = 0;
+    this.peopleSince = undefined;
     backendTracking.setUser(userId);
     this.unsubscribe = devDataStore.onLocalChange(() => this.schedulePush());
     if (typeof document !== "undefined") document.addEventListener("visibilitychange", this.onVisible);
@@ -203,6 +189,16 @@ class BackendSync {
       }
     }
     this.seq = Math.max(this.seq, snap.seq);
+    await this.pullPeople();
+  }
+
+  /** Real sign-ups (and everyone else with an account) become visible in follow / share lists. */
+  private peopleSince: string | undefined;
+  private async pullPeople(): Promise<void> {
+    const people = await listPeople(this.peopleSince);
+    if (people.length === 0) return;
+    devDataStore.mergeUsers(people);
+    this.peopleSince = people[people.length - 1].updatedAt;
   }
 
   // --- reading data on a new device ---------------------------------------------------------------

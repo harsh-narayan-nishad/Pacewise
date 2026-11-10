@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import { ListTree } from "lucide-react";
 import { MermaidViewer } from "@/components/Notes/MermaidViewer";
 import type { Heading as DocHeading } from "@/lib/docs/markdown";
+import { useDocsLang } from "@/lib/docs/lang";
+import { ui } from "@/lib/docs/i18n";
 
 /** The look of a rendered document: display headings, readable body, scrollable tables and code. */
 const PROSE = [
@@ -76,7 +78,14 @@ const CSS = `
  * A document as a page: Mermaid blocks become interactive diagrams, code blocks get a Copy button,
  * and there is an "On this page" list.
  */
-export function DocContent({ html, headings = [], minutes }: { html: string; slug?: string; headings?: DocHeading[]; minutes?: number }) {
+export function DocContent({ html: htmlEn, headings: headingsEn = [], minutes: minutesEn, hi }: { html: string; slug?: string; headings?: DocHeading[]; minutes?: number; hi?: { html: string; headings: DocHeading[]; minutes: number } }) {
+  const lang = useDocsLang();
+  // Hindi chosen: show the Hindi version when this page has one, otherwise the English page with a short notice.
+  const hiShown = lang === "hi" ? hi : undefined;
+  const hindi = hiShown !== undefined;
+  const html = hiShown ? hiShown.html : htmlEn;
+  const headings = hiShown ? hiShown.headings : headingsEn;
+  const minutes = hiShown ? hiShown.minutes : minutesEn;
   const ref = useRef<HTMLElement>(null);
   const [diagrams, setDiagrams] = useState<{ el: HTMLElement; source: string }[]>([]);
   const [tocOpen, setTocOpen] = useState(false);
@@ -112,16 +121,16 @@ export function DocContent({ html, headings = [], minutes }: { html: string; slu
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {(minutes || toc.length > 1) && (
         <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-muted">
-          {minutes ? <span>{minutes} min read</span> : null}
+          {minutes ? <span>{lang === "hi" ? `${minutes} ${ui(lang, "minRead")}` : `${minutes} min read`}</span> : null}
           {toc.length > 1 && (
             <button type="button" onClick={() => setTocOpen((v) => !v)} aria-expanded={tocOpen} className="inline-flex items-center gap-1.5 rounded-full border border-overlay/15 px-3 py-1 text-ink transition-colors hover:bg-overlay/10">
-              <ListTree className="h-4 w-4" /> On this page
+              <ListTree className="h-4 w-4" /> {ui(lang, "onThisPage")}
             </button>
           )}
         </div>
       )}
       {tocOpen && (
-        <nav aria-label="On this page" className="mb-10 rounded-[32px] border border-overlay/10 bg-canvas-raised p-6">
+        <nav aria-label={ui(lang, "onThisPage")} className="mb-10 rounded-[32px] border border-overlay/10 bg-canvas-raised p-6">
           <ul className="space-y-1.5">
             {toc.map((h) => (
               <li key={h.id} style={{ paddingLeft: (h.level - 2) * 16 }}>
@@ -131,7 +140,8 @@ export function DocContent({ html, headings = [], minutes }: { html: string; slu
           </ul>
         </nav>
       )}
-      <article ref={ref} onClick={onArticleClick} className={`doc-prose min-w-0 [overflow-wrap:anywhere] ${PROSE}`} dangerouslySetInnerHTML={{ __html: html }} />
+      {lang === "hi" && !hindi && <p className="mb-6 rounded-2xl border border-overlay/10 bg-canvas-raised px-5 py-3 text-sm text-ink-muted" lang="hi">{ui("hi", "notTranslated")}</p>}
+      <article ref={ref} lang={hindi ? "hi" : undefined} onClick={onArticleClick} className={`doc-prose min-w-0 [overflow-wrap:anywhere] ${PROSE}`} dangerouslySetInnerHTML={{ __html: html }} />
       {diagrams.map((d, i) => createPortal(<MermaidViewer source={d.source} />, d.el, `d${i}`))}
     </>
   );

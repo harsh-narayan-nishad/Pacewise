@@ -13,6 +13,7 @@ import { groupByDateBucket } from "@/lib/dateGroups";
 import { ThemePanel } from "@/components/Navigation/ThemePanel";
 import { Pagination } from "@/components/ui/Pagination";
 import { devDataStore } from "@/lib/devData/store";
+import { useAuth } from "@/lib/api/AuthContext";
 import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
 
 /**
@@ -58,6 +59,7 @@ export function HamburgerMenu() {
   const nav = useNavLoader();
   const dispatch = useReadingDispatch();
   const currentUser = useCurrentUser();
+  const { logout: signOut } = useAuth();
   useDevStoreVersion();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -448,7 +450,7 @@ export function HamburgerMenu() {
                     )}
                     {currentUser && (
                       <button
-                        onClick={() => { setOpen(false); devDataStore.logout(); }}
+                        onClick={() => { setOpen(false); void signOut(); }}
                         className="mt-4 flex items-center gap-2 text-base text-accent-extreme transition-opacity hover:opacity-80"
                       >
                         <LogOut className="h-4 w-4" /> Log out

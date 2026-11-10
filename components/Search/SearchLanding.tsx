@@ -10,7 +10,7 @@ import DotField from "@/components/DotField";
 import { useThemeName } from "@/lib/useThemeName";
 import { LandingBackground } from "@/components/Landing/LandingBackground";
 import { themeFilter, useLandingTheme } from "@/lib/landingTheme";
-import { BRAND_HEADLINE, BRAND_TAGLINE } from "@/lib/brand";
+import { BRAND_HEADLINE } from "@/lib/brand";
 
 /** Per-theme colours for the dot-grid background (a canvas can't read CSS variables). */
 const DOT_FIELD_PALETTES: Record<
@@ -108,8 +108,7 @@ export function SearchLanding() {
           transition={{ duration: 0.4 }}
           className="relative z-10 flex w-full max-w-3xl flex-col items-center text-center"
         >
-          <h1 className="mb-4 font-display text-4xl text-ink sm:text-6xl">{BRAND_HEADLINE}</h1>
-          <p className="mb-10 text-sm text-ink-muted sm:text-base">{BRAND_TAGLINE}</p>
+          <h1 className="mb-10 font-display text-4xl text-ink sm:text-6xl">{BRAND_HEADLINE}</h1>
           <SearchBar />
         </motion.div>
       </div>

@@ -1,13 +1,20 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { Crumb } from "@/lib/docs/library";
+import { useDocsLang } from "@/lib/docs/lang";
+import { ui } from "@/lib/docs/i18n";
 
 /** "Folder > Tab > Page": where this page lives. Every level but the last is a link. */
-export function DocBreadcrumb({ crumbs, className = "" }: { crumbs: Crumb[]; className?: string }) {
+/** `crumbsHi` is the same path in Hindi, shown when the page language is Hindi. */
+export function DocBreadcrumb({ crumbs: crumbsEn, crumbsHi, className = "" }: { crumbs: Crumb[]; crumbsHi?: Crumb[]; className?: string }) {
+  const lang = useDocsLang();
+  const crumbs = lang === "hi" ? crumbsHi ?? crumbsEn : crumbsEn;
   if (crumbs.length === 0) return null;
   return (
-    <nav aria-label="Breadcrumb" className={`-ml-0 ${className}`}>
+    <nav aria-label={ui(lang, "breadcrumb")} className={`-ml-0 ${className}`}>
       <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-muted">
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;

@@ -8,6 +8,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, FileText, Menu, X } from "lucide-react";
 import { docFolders, docUrl, FOLDER_PARENT, HIDDEN_IN_MENU, syllabusOrder } from "@/lib/docs/library";
 import { BRAND_NAME } from "@/lib/brand";
+import { setDocsLang, useDocsLang, type DocsLang } from "@/lib/docs/lang";
+import { ui } from "@/lib/docs/i18n";
 import { TickSpinner } from "@/components/ui/loaders/TickSpinner";
 
 /** True from the click on a menu link until the new page arrives, but only once the wait passes 150 ms (quicker loads never show it). */
@@ -42,6 +44,33 @@ const SECTION = "mt-6 border-t border-overlay/10 pt-6 first:mt-0 first:border-t-
 const CORE_CSE_SLUG = "syllabus--04-cn-os-oops-dbms-utilization"; // "Core CSE" row
 const CORE_CSE_GROUP = "syllabus/04-core-cse"; // "Core CSE" folder: CN, OS, DBMS, OOPs, each with Frontend / Express backend / Flask backend pages
 const CORE_CSE_ORDER = ["cn", "os", "dbms", "oops"];
+
+/**
+ * English / Hindi switch, placed just above "Syllabus" in the menu. It changes the language of the whole docs
+ * pages (menu, titles, every document that has a Hindi version) and is remembered in this browser.
+ */
+function LanguageToggle({ lang }: { lang: DocsLang }) {
+  const options: { id: DocsLang; label: string }[] = [{ id: "en", label: "English" }, { id: "hi", label: "हिन्दी" }];
+  return (
+    <section aria-label={`${ui("en", "language")} / ${ui("hi", "language")}`} className={SECTION}>
+      <div className={LABEL}>{ui("en", "language")} / {ui("hi", "language")}</div>
+      <div role="group" aria-label={`${ui("en", "language")} / ${ui("hi", "language")}`} className="inline-flex rounded-full border border-overlay/15 bg-canvas-raised p-1">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            lang={o.id}
+            onClick={() => setDocsLang(o.id)}
+            aria-pressed={lang === o.id}
+            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${lang === o.id ? "bg-ink text-canvas" : "text-ink-muted hover:text-ink"}`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 /** One document row of a folder; a small spinner replaces the file icon while its page loads. */
 function DocItem({ href, title, active }: { href: string; title: string; active: boolean }) {
@@ -113,11 +142,11 @@ function NestedFolderRow({ folder, subs, openFolder, setOpenFolder, userId, curr
 }
 
 /** "Core CSE": a folder of folders (CN, OS, DBMS, OOPs); each holds a Frontend, Express backend and Flask backend page. */
-function CoreCseRow({ subs, openFolder, setOpenFolder, userId, current }: { subs: { id: string; label: string; docs: { slug: string; title: string }[] }[]; openFolder: string | null; setOpenFolder: (id: string | null) => void; userId: string; current: string | undefined }) {
+function CoreCseRow({ label, subs, openFolder, setOpenFolder, userId, current }: { label: string; subs: { id: string; label: string; docs: { slug: string; title: string }[] }[]; openFolder: string | null; setOpenFolder: (id: string | null) => void; userId: string; current: string | undefined }) {
   const open = openFolder === CORE_CSE_GROUP || (openFolder?.startsWith(CORE_CSE_GROUP + "/") ?? false);
   return (
     <div>
-      <BigRow label="Core CSE" open={open} onToggle={() => setOpenFolder(open ? null : CORE_CSE_GROUP)} />
+      <BigRow label={label} open={open} onToggle={() => setOpenFolder(open ? null : CORE_CSE_GROUP)} />
       {open && (
         <div className="mb-4 mt-1">
           {subs.map((s) => {
@@ -184,7 +213,9 @@ export function PublicMenu({ userId }: { userId: string }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const all = docFolders();
+  const lang = useDocsLang();
+  const t = (k: Parameters<typeof ui>[1]) => ui(lang, k);
+  const all = docFolders(lang);
   // Top-level folders only; a sub-folder (e.g. "leadership-principles/amazon") is listed inside its parent.
   const folders = all.filter((f) => f.id !== "research" && f.id !== "syllabus" && !f.id.startsWith("syllabus/") && f.id !== "interview" && !f.id.includes("/") && !(f.id in FOLDER_PARENT));
   // Sub-folders: by path ("leadership-principles/amazon"), plus folders listed in FOLDER_PARENT (DAA notes sits under Project docs).
@@ -217,7 +248,7 @@ export function PublicMenu({ userId }: { userId: string }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} aria-label="Open menu" aria-haspopup="dialog" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-overlay/5 hover:text-ink">
+      <button onClick={() => setOpen(true)} aria-label={t("openMenu")} aria-haspopup="dialog" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-overlay/5 hover:text-ink">
         <Menu className="h-5 w-5" />
       </button>
       {mounted &&
@@ -228,7 +259,7 @@ export function PublicMenu({ userId }: { userId: string }) {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-modal-backdrop bg-[rgb(var(--shadow-color))]/50" onClick={() => setOpen(false)} />
                 <motion.div
                   role="dialog"
-                  aria-label="Notes and documents"
+                  aria-label={t("menuLabel")}
                   initial={{ x: "-100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "-100%" }}
@@ -237,15 +268,16 @@ export function PublicMenu({ userId }: { userId: string }) {
                 >
                   <div className="flex items-center justify-between px-6 pb-2 pt-5">
                     <span className="text-[13px] font-medium tracking-tight text-ink">{BRAND_NAME}</span>
-                    <button onClick={() => setOpen(false)} aria-label="Close menu" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised text-ink md:h-auto md:w-auto md:border-0 md:bg-transparent md:p-2">
+                    <button onClick={() => setOpen(false)} aria-label={t("closeMenu")} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised text-ink md:h-auto md:w-auto md:border-0 md:bg-transparent md:p-2">
                       <X className="h-6 w-6" />
                     </button>
                   </div>
 
-                  <nav className="flex-1 overflow-y-auto px-6 pb-8 pt-4" aria-label="Notes navigation">
+                  <nav className="flex-1 overflow-y-auto px-6 pb-8 pt-4" aria-label={t("navLabel")}>
+                    <LanguageToggle lang={lang} />
                     {syllabus && (
-                      <section aria-label="Syllabus" className={SECTION}>
-                        <div className={LABEL}>Syllabus</div>
+                      <section aria-label={t("syllabus")} className={SECTION}>
+                        <div className={LABEL}>{t("syllabus")}</div>
                         {[
                           ...syllabus.docs
                             .filter((d) => !HIDDEN_IN_MENU.has(d.slug))
@@ -260,18 +292,18 @@ export function PublicMenu({ userId }: { userId: string }) {
                             if (!d) return null;
                             const isIndex = d.slug.endsWith("--readme");
                             if (d.slug === CORE_CSE_SLUG) {
-                              if (coreCseSubs.length > 0) return <CoreCseRow key={d.slug} subs={coreCseSubs} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />;
+                              if (coreCseSubs.length > 0) return <CoreCseRow key={d.slug} label={t("coreCse")} subs={coreCseSubs} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />;
                               const notesHref = `/notes/${encodeURIComponent(userId)}`;
-                              return <LinkRow key={d.slug} label="Core CSE" href={notesHref} active={pathname === notesHref} />;
+                              return <LinkRow key={d.slug} label={t("coreCse")} href={notesHref} active={pathname === notesHref} />;
                             }
-                            return <LinkRow key={d.slug} label={isIndex ? "Overview" : d.title.replace(/^\d+\.\s*/, "")} href={docUrl(userId, d.slug)} active={current === d.slug} />;
+                            return <LinkRow key={d.slug} label={isIndex ? t("overview") : d.title.replace(/^\d+\.\s*/, "")} href={docUrl(userId, d.slug)} active={current === d.slug} />;
                           })}
                       </section>
                     )}
 
                     {folders.length > 0 && (
-                      <section aria-label="Documents" className={SECTION}>
-                        <div className={LABEL}>Documents</div>
+                      <section aria-label={t("documents")} className={SECTION}>
+                        <div className={LABEL}>{t("documents")}</div>
                         {folders.map((f) =>
                           subFolders(f.id).length > 0 ? (
                             <NestedFolderRow key={f.id || "root"} folder={f} subs={subFolders(f.id)} openFolder={openFolder} setOpenFolder={setOpenFolder} userId={userId} current={current} />
@@ -283,21 +315,21 @@ export function PublicMenu({ userId }: { userId: string }) {
                     )}
 
                     {research && (
-                      <section aria-label="Research" className={SECTION}>
-                        <div className={LABEL}>Research</div>
-                        <FolderRow label="Research" docs={research.docs} open={openFolder === "research"} onToggle={() => setOpenFolder(openFolder === "research" ? null : "research")} userId={userId} current={current} />
+                      <section aria-label={t("research")} className={SECTION}>
+                        <div className={LABEL}>{t("research")}</div>
+                        <FolderRow label={t("research")} docs={research.docs} open={openFolder === "research"} onToggle={() => setOpenFolder(openFolder === "research" ? null : "research")} userId={userId} current={current} />
                       </section>
                     )}
 
                     {interview && (
-                      <section aria-label="Interview prep" className={SECTION}>
-                        <div className={LABEL}>Interview</div>
+                      <section aria-label={t("interview")} className={SECTION}>
+                        <div className={LABEL}>{t("interview")}</div>
                         <FolderRow label={interview.label} docs={interview.docs} open={openFolder === interview.id} onToggle={() => setOpenFolder(openFolder === interview.id ? null : interview.id)} userId={userId} current={current} />
                       </section>
                     )}
 
                     <div className="mt-10 border-t border-overlay/10 pt-5">
-                      <Link href="/" className="text-base text-ink transition-opacity hover:opacity-70">Open {BRAND_NAME}</Link>
+                      <Link href="/" className="text-base text-ink transition-opacity hover:opacity-70">{lang === "hi" ? `${BRAND_NAME} ${t("open")}` : `${t("open")} ${BRAND_NAME}`}</Link>
                     </div>
                   </nav>
                 </motion.div>

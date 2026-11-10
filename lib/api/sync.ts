@@ -15,10 +15,12 @@ import { historyApi, RecordSessionInput } from "@/lib/api/endpoints";
  * the backend happens to be unreachable at that moment — the local copy
  * is already safely written by the time this is called.
  */
-export function syncReadingSession(input: RecordSessionInput): void {
-  if (!isApiEnabled() || !tokenStore.getAccessToken()) return;
-  historyApi.record(input).catch((err) => {
+export function syncReadingSession(input: RecordSessionInput): Promise<string | null> {
+  if (!isApiEnabled() || !tokenStore.getAccessToken()) return Promise.resolve(null);
+  // Resolves with the attempt's id on the backend (so topic edits can be saved there), or null on failure.
+  return historyApi.record(input).then((row) => row.id).catch((err) => {
     // eslint-disable-next-line no-console
     console.warn("Could not sync reading session to backend:", err);
+    return null;
   });
 }

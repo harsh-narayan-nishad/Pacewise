@@ -1,6 +1,6 @@
 /** npx tsx scripts/docs.test.ts — the docs renderer is safe and covers the Markdown the docs use. */
 import assert from "node:assert/strict";
-import { extractHeadings, readingMinutes, renderMarkdown } from "../lib/docs/markdown";
+import { allHeadingIds, extractHeadings, readingMinutes, renderMarkdown } from "../lib/docs/markdown";
 import { DOCS } from "../lib/docs/generated";
 
 let passed = 0;
@@ -90,5 +90,19 @@ test("DAA notes: C++ files are included from docs/daa-notes/cpp, with their outp
   const h = renderMarkdown(u1.md);
   assert.match(h, /<span class="code-path">cpp\/[\w-]+\.cpp<\/span><span class="code-lang">cpp<\/span><button type="button" class="code-copy"/);
   assert.match(h, /<span class="code-path">Output<\/span>/);
+});
+test("Hindi pages keep the English heading ids, so #section links work in both languages", () => {
+  const withHindi = DOCS.filter((d) => d.hi);
+  assert.ok(withHindi.length > 0, "the Hindi files are bundled");
+  const ids = (html: string) => [...html.matchAll(/<h[1-6] id="([^"]*)"/g)].map((m) => m[1]);
+  for (const d of withHindi) {
+    const en = allHeadingIds(d.md);
+    assert.equal(allHeadingIds(d.hi!.md).length, en.length, `${d.slug}: same number of headings`);
+    assert.deepEqual(ids(renderMarkdown(d.hi!.md, { headingIds: [...en] })), ids(renderMarkdown(d.md)), d.slug);
+    assert.deepEqual(extractHeadings(d.hi!.md, en).map((h) => h.id), extractHeadings(d.md).map((h) => h.id), d.slug);
+  }
+});
+test("Devanagari headings get usable ids when no English ids are given", () => {
+  assert.match(renderMarkdown("## नमस्ते दुनिया"), /id="नमस्ते-दुनिया"/);
 });
 console.log(`\n${passed} tests passed`);

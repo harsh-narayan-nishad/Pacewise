@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FileText } from "lucide-react";
 import { docFolders, docUrl } from "@/lib/docs/library";
+import { useDocsLang } from "@/lib/docs/lang";
+import { ui } from "@/lib/docs/i18n";
 import type { SearchEntry } from "@/lib/docs/search.generated";
 
 /* The pill follows the site theme (data-theme), not the OS: light gradient in light/sepia, dark glass in dark. */
@@ -63,6 +65,7 @@ function Marked({ text, q }: { text: string; q: string }) {
  * section; Enter opens the first result.
  */
 export function DocSearch({ userId }: { userId: string }) {
+  const lang = useDocsLang();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -101,8 +104,8 @@ export function DocSearch({ userId }: { userId: string }) {
         type="text"
         name="text"
         value={q}
-        placeholder="Search docs"
-        aria-label="Search everything in the documents"
+        placeholder={ui(lang, "searchDocs")}
+        aria-label={ui(lang, "searchAria")}
         autoComplete="off"
         onChange={(e) => { setQ(e.target.value); setOpen(true); load(); }}
         onFocus={() => { setOpen(true); load(); }}

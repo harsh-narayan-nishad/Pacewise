@@ -9,7 +9,17 @@ export interface ApiUser {
   name: string;
   interests: string[];
   avatarUrl: string | null;
+  emailVerified?: boolean;
 }
+
+/** "Continue with Google" answer: tokens are absent when a brand-new account still has to be approved by an admin. */
+export type GoogleResult = (AuthResponse & { approvalRequired?: false }) | { user: ApiUser; approvalRequired: true };
+
+/** Sign-up answer: tokens are absent when the backend requires the e-mail to be confirmed first. */
+export type SignupResult =
+  | { user: ApiUser; verificationRequired: true; approvalRequired?: boolean }
+  | { user: ApiUser; verificationRequired: false; approvalRequired: true }
+  | (AuthResponse & { verificationRequired: false; approvalRequired?: false });
 
 export interface AuthResponse {
   user: ApiUser;
@@ -95,6 +105,8 @@ export interface ApiReadingSession {
   id: string;
   userId: string;
   storyId: string | null;
+  title?: string;
+  wordCount?: number;
   wpm: number;
   minutes: number;
   completed: boolean;
@@ -106,6 +118,10 @@ export interface ApiReadingSession {
   totalQuestions: number | null;
   correctAnswers: number | null;
   createdAt: string;
+  /** Per-topic result with the level worked out by the server, and until when the topics can still be edited. */
+  topics?: { topic: string; correct: number; total: number; accuracy: number; level: "strong" | "medium" | "weak" }[];
+  topicsEditableUntil?: string;
+  topicsLocked?: boolean;
 }
 
 export interface ApiHistoryStats {
@@ -114,4 +130,14 @@ export interface ApiHistoryStats {
   bestWpm: number;
   averageAccuracy: number | null;
   totalMinutes: number;
+}
+
+/** One person in the backend's directory (for follow / share lists). */
+export interface ApiPerson {
+  id: string;
+  username: string;
+  name: string;
+  interests: string[];
+  isDemoUser: boolean;
+  updatedAt: string;
 }

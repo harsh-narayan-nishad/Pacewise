@@ -13,6 +13,8 @@ import { QuizResult, ReadingHistoryEntry } from "@/types";
 import { effectiveWpm as computeEffectiveWpm, storyWordCount, wpmReductionPercent } from "@/lib/wpmCalculator";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { syncReadingSession } from "@/lib/api/sync";
+import { computeTopicScores } from "@/lib/topicAnalytics";
+import { TopicBreakdown } from "@/components/ResultCard/TopicBreakdown";
 
 export default function ResultsPage() {
   const state = useReadingState();
@@ -53,6 +55,10 @@ export default function ResultsPage() {
     [state.story, state.quizQuestionCount]
   );
 
+  const topicScores = useMemo(() => computeTopicScores(quizQuestions, state.answers), [quizQuestions, state.answers]);
+  // The history entry this attempt was saved as (so its topics can be edited here for 2 days).
+  const [attempt, setAttempt] = useState<{ id: string; at: string; backendId?: string } | null>(null);
+
   const actualWpm = state.actualWpmSamples.length
     ? state.actualWpmSamples.reduce((a, b) => a + b, 0) / state.actualWpmSamples.length
     : state.selectedWpm;
@@ -80,10 +86,13 @@ export default function ResultsPage() {
       // No reading happened: log the quiz attempt itself (speed 0 = "not a reading session"), nothing else.
       if (!quizOnlyRecorded.current) {
         quizOnlyRecorded.current = true;
+        const quizOnlyId = crypto.randomUUID();
+        const quizOnlyAt = new Date().toISOString();
+        setAttempt({ id: quizOnlyId, at: quizOnlyAt });
         storage.addHistoryEntry({
-          id: crypto.randomUUID(),
+          id: quizOnlyId,
           title: state.story.title,
-          date: new Date().toISOString(),
+          date: quizOnlyAt,
           wpm: 0,
           accuracy: result.accuracy,
           wordCount: 0,
@@ -92,6 +101,7 @@ export default function ResultsPage() {
           quizTotalTimeMs: result.totalTimeMs,
           avgTimePerQuestionMs: result.avgTimePerQuestionMs,
           quizStartedAt: quizStartedIso,
+          topics: topicScores,
         });
       }
       setHistory(storage.getHistory());
@@ -107,7 +117,9 @@ export default function ResultsPage() {
         quizTotalTimeMs: result.totalTimeMs,
         avgTimePerQuestionMs: result.avgTimePerQuestionMs,
         quizStartedAt: quizStartedIso,
+        topics: topicScores,
       });
+      setAttempt({ id: latest.id, at: latest.date });
     }
     setHistory(storage.getHistory());
 
@@ -115,6 +127,8 @@ export default function ResultsPage() {
     // if a backend account is connected — see lib/api/sync.ts. No-op when
     // the backend isn't configured/signed into, so this is purely additive.
     syncReadingSession({
+      title: state.story.title,
+      wordCount: storyWordCount(state.story),
       wpm: Math.round(actualWpm),
       minutes: Math.round(readingDurationMs / 60_000),
       completed: true,
@@ -125,6 +139,11 @@ export default function ResultsPage() {
       accuracy: result.accuracy,
       totalQuestions: result.total,
       correctAnswers: result.correct,
+      topics: topicScores,
+    }).then((backendId) => {
+      if (!backendId) return;
+      if (latest) storage.updateHistoryEntry(latest.id, { backendId });
+      setAttempt((a) => (a ? { ...a, backendId } : a));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.story, result.accuracy]);
@@ -145,6 +164,8 @@ export default function ResultsPage() {
           router.push("/");
         }}
       />
+
+      {attempt && result.total > 0 && <TopicBreakdown entryId={attempt.id} attemptedAt={attempt.at} backendId={attempt.backendId} topics={topicScores} />}
 
       {history.length > 0 && (
         <TrendTiles

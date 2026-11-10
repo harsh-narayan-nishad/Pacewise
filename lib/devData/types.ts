@@ -29,9 +29,10 @@ export interface DevUser {
   id: string; // "user-001".."user-020" — stable, never re-ordered or reused
   name: string;
   username: string;
-  password: string; // plaintext, development-only — see seedUsers.ts
+  /** Seed accounts only (used to create them in the backend with `npm run seed`); real accounts have none. */
+  password?: string;
   interests: string[];
-  isDemoUser: true;
+  isDemoUser: boolean;
 }
 
 export interface DevShare {

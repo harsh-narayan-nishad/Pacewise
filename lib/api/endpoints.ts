@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api/client";
 import { tokenStore } from "@/lib/api/tokenStore";
 import {
+  GoogleResult,
   ApiComment,
   ApiHistoryStats,
   ApiNotification,
@@ -8,23 +9,56 @@ import {
   ApiReadingSession,
   ApiStory,
   ApiUser,
+  ApiPerson,
   AuthResponse,
+  SignupResult,
   Paginated,
 } from "@/lib/api/types";
 
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
-export async function signup(input: { email: string; username: string; password: string; name: string }) {
-  const result = await apiFetch<AuthResponse>("/auth/signup", { method: "POST", body: { ...input, device: "web" }, skipAuth: true });
-  tokenStore.setTokens(result.accessToken, result.refreshToken);
-  return result.user;
+/** Create an account. Returns the user + tokens; the CALLER stores the tokens (see AuthContext), because they are saved per signed-in user. */
+export function signup(input: { email: string; username: string; password: string; name: string }) {
+  return apiFetch<SignupResult>("/auth/signup", { method: "POST", body: { ...input, device: "web" }, skipAuth: true });
 }
 
-export async function login(input: { identifier: string; password: string }) {
-  const result = await apiFetch<AuthResponse>("/auth/login", { method: "POST", body: { ...input, device: "web" }, skipAuth: true });
-  tokenStore.setTokens(result.accessToken, result.refreshToken);
-  return result.user;
+/** Verify credentials (email OR username + password). Returns the user + tokens. */
+export function login(input: { identifier: string; password: string }) {
+  return apiFetch<AuthResponse>("/auth/login", { method: "POST", body: { ...input, device: "web" }, skipAuth: true });
+}
+
+/** Sign in or sign up with the ID token Google gave the browser. The backend verifies it with Google. */
+export function loginWithGoogle(idToken: string) {
+  return apiFetch<GoogleResult>("/auth/google", { method: "POST", body: { idToken, device: "web" }, skipAuth: true });
+}
+
+/** Who the current access token belongs to (refreshes the token first if it has expired). */
+export async function me(): Promise<ApiUser> {
+  return (await apiFetch<{ user: ApiUser }>("/auth/me")).user;
+}
+
+/** Changes the password; every other device is signed out and this one gets fresh tokens. */
+export function changePassword(input: { currentPassword: string; newPassword: string }) {
+  return apiFetch<AuthResponse>("/auth/change-password", { method: "POST", body: input });
+}
+
+/** E-mail flows (links arrive by e-mail; see the backend's docs/AUTH_AND_POSTMAN.md). */
+export const verifyEmail = (token: string) => apiFetch<{ verified: boolean }>("/auth/verify-email", { method: "POST", body: { token }, skipAuth: true });
+export const resendVerification = (email: string) => apiFetch<{ sent: boolean }>("/auth/resend-verification", { method: "POST", body: { email }, skipAuth: true });
+export const forgotPassword = (email: string) => apiFetch<{ sent: boolean }>("/auth/forgot-password", { method: "POST", body: { email }, skipAuth: true });
+export const resetPassword = (input: { token: string; newPassword: string }) => apiFetch<{ reset: boolean }>("/auth/reset-password", { method: "POST", body: input, skipAuth: true });
+
+/** Same two actions with the 6-digit code from the e-mail instead of the link. */
+export const verifyEmailOtp = (input: { email: string; otp: string }) => apiFetch<{ verified: boolean }>("/auth/verify-email-otp", { method: "POST", body: input, skipAuth: true });
+export const resetPasswordOtp = (input: { email: string; otp: string; newPassword: string }) => apiFetch<{ reset: boolean }>("/auth/reset-password-otp", { method: "POST", body: input, skipAuth: true });
+
+/** Everyone with an account (optionally only those changed after a date), for the follow / share lists. */
+export const listPeople = (updatedSince?: string) => apiFetch<ApiPerson[]>("/users", { query: { updatedSince } });
+
+/** Live "is this username / email free?" check for the sign-up form. */
+export function availability(q: { username?: string; email?: string }) {
+  return apiFetch<{ username?: boolean; email?: boolean }>("/auth/availability", { skipAuth: true, query: q });
 }
 
 export async function logout(): Promise<void> {
@@ -135,8 +169,16 @@ export const playlistsApi = {
 // ---------------------------------------------------------------------------
 // Reading history
 // ---------------------------------------------------------------------------
+export interface ApiHighlights {
+  speed: { title: string; wpm: number }[];
+  comprehension: { title: string; accuracy: number }[];
+  consistency: { weeksAgo: number; activeDays: number }[];
+}
+
 export interface RecordSessionInput {
   storyId?: string;
+  title?: string;
+  wordCount?: number;
   wpm: number;
   minutes: number;
   completed: boolean;
@@ -147,12 +189,18 @@ export interface RecordSessionInput {
   accuracy?: number;
   totalQuestions?: number;
   correctAnswers?: number;
+  topics?: { topic: string; correct: number; total: number }[];
 }
 
 export const historyApi = {
   record: (input: RecordSessionInput) => apiFetch<ApiReadingSession>("/history", { method: "POST", body: input }),
   list: (page = 1, pageSize = 20) => apiFetch<Paginated<ApiReadingSession>>("/history", { query: { page, pageSize } }),
   stats: () => apiFetch<ApiHistoryStats>("/history/stats"),
+  /** Best speeds, best quiz scores and active days per week, worked out by the server (landing page). */
+  highlights: (today: string) => apiFetch<ApiHighlights>("/history/highlights", { query: { today } }),
+  /** Edit the topic labels of one attempt (allowed for 2 days after the test; the score itself never changes). */
+  updateTopics: (id: string, topics: { topic: string; correct: number; total: number }[]) =>
+    apiFetch<{ id: string; topicsLocked: boolean; topicsEditableUntil: string }>(`/history/${encodeURIComponent(id)}/topics`, { method: "PATCH", body: { topics } }),
 };
 
 // ---------------------------------------------------------------------------

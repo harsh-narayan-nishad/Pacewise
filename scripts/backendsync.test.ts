@@ -38,7 +38,7 @@ t("reconcile uploads real local data and restores missing data from the server",
 t("store: local changes are announced; server snapshots merge without echo", () => {
   let changes = 0;
   const off = devDataStore.onLocalChange(() => { changes += 1; });
-  devDataStore.login("user-001", (devDataStore.listUsers().find((u) => u.id === "user-001") as { password: string }).password);
+  devDataStore.signInAs({ id: "user-001", name: "Test", username: "test" });
   assert.ok(changes >= 1);
   const before = changes;
   devDataStore.applyServerSnapshot({
@@ -50,6 +50,16 @@ t("store: local changes are announced; server snapshots merge without echo", () 
   devDataStore.applyServerSnapshot({ upserts: {}, deletes: { reactions: ["reaction-x"] } });
   assert.equal(devDataStore.syncCollections().reactions.some((r) => r.id === "reaction-x"), false);
   off();
+});
+
+t("mergeUsers adds real sign-ups, refreshes names, and never needs a password", () => {
+  const before = devDataStore.listUsers().length;
+  devDataStore.mergeUsers([{ id: "real-1", name: "Real Person", username: "real_person", interests: ["art"], isDemoUser: false }]);
+  assert.equal(devDataStore.listUsers().length, before + 1);
+  devDataStore.mergeUsers([{ id: "real-1", name: "Renamed", username: "real_person", interests: ["art"], isDemoUser: false }]);
+  assert.equal(devDataStore.listUsers().find((u) => u.id === "real-1")?.name, "Renamed");
+  assert.equal(devDataStore.listUsers().length, before + 1);
+  assert.equal(devDataStore.listUsers().some((u) => "password" in u && u.password), false, "no user carries a password");
 });
 
 console.log(`\n${passed} passed`);
