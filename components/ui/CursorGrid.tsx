@@ -462,7 +462,8 @@ const CursorGrid = ({
           continue;
         }
         if (ringR < 0) continue;
-        const envelope = pulse.strength * Math.pow(Math.max(0, 1 - ringR / (far + behind)), 0.6);
+        // Like a stone dropped in water: the further the ring travels, the weaker it gets.
+        const envelope = pulse.strength * Math.pow(Math.max(0, 1 - ringR / (far * 0.85)), 1.7);
         const outer = ringR + ahead * 2;
         const minCol = Math.max(0, Math.floor((pulse.x - outer - grid.offX) / size));
         const maxCol = Math.min(grid.cols - 1, Math.floor((pulse.x + outer - grid.offX) / size));
