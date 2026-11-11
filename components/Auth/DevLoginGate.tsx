@@ -100,11 +100,7 @@ function AuthCard() {
   /** Field names are shown on the sign-up form; elsewhere the placeholder says it and the name is for screen readers only. */
   const LBL = mode === "signup" ? "mb-1.5 block text-sm text-ink-muted" : "sr-only";
 
-  /** Which way the form slides in when the page changes: forward (1) or back (-1), with a little spring. */
-  const [dir, setDir] = useState<1 | -1>(1);
   function switchMode(m: "login" | "signup" | "forgot" | "verify-otp" | "reset-otp") {
-    const order = ["login", "signup", "forgot", "verify-otp", "reset-otp"];
-    setDir(order.indexOf(m) >= order.indexOf(mode) ? 1 : -1);
     setMode(m);
     setOtp("");
     setError(null);
@@ -197,11 +193,11 @@ function AuthCard() {
 
   return (
     <div className="grid h-screen h-dvh w-full grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[2fr_3fr]">
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden px-6 py-6 sm:px-12 sm:py-10 lg:px-[8vw]">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex h-full min-h-0 flex-col overflow-y-auto px-6 py-6 sm:px-12 sm:py-10 lg:px-[8vw]">
     <div className="my-auto">
       <div className="mb-3 font-display text-xl tracking-[-0.02em] text-ink-muted">{BRAND_NAME}</div>
       {mode !== "signup" && <h1 className="mb-10 font-display text-4xl leading-[1.08] tracking-[-0.03em] text-ink sm:text-5xl">{BRAND_HEADLINE}</h1>}
-      <motion.div key={mode} initial={{ opacity: 0, x: dir * 36 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", stiffness: 220, damping: 26, mass: 0.9 }} className="w-full max-w-sm">
+      <div className="w-full max-w-sm">
       {mode !== "login" && mode !== "signup" && <p className="mb-5 font-display text-2xl tracking-[-0.02em] text-ink">{title}</p>}
       {(mode === "login" || mode === "signup") && <SocialButtons disabled={submitting} onGoogleToken={(t) => void handleGoogle(t)} onUnavailable={(m) => { setNotice(null); setError(m); }} />}
 
@@ -292,7 +288,7 @@ function AuthCard() {
           </button>
         )}
       </form>
-      </motion.div>
+      </div>
     </div>
     <p className="pt-6 text-xs text-ink-faint">&copy; {new Date().getFullYear()} {BRAND_NAME}</p>
     </motion.div>
