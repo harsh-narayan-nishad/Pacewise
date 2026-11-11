@@ -83,6 +83,9 @@ function errorText(err: unknown): string {
   return "Could not sign in. Please try again.";
 }
 
+/** Fine monochrome noise (SVG turbulence), tiled, used for the paper texture on the sign-in artwork. */
+const GRAIN = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
+
 function AuthCard() {
   const { signup, login, google } = useAuth();
   const [mode, setMode] = useState<"login" | "signup" | "forgot" | "verify-otp" | "reset-otp">("login");
@@ -292,7 +295,7 @@ function AuthCard() {
     </div>
     <p className="pt-6 text-xs text-ink-faint">&copy; {new Date().getFullYear()} {BRAND_NAME}</p>
     </motion.div>
-    <div aria-hidden className="hidden h-full select-none overflow-hidden lg:block" style={{ background: "radial-gradient(60% 55% at 12% 12%, #5f7a5c 0%, transparent 70%), radial-gradient(55% 50% at 92% 25%, #8da586 0%, transparent 70%), radial-gradient(70% 55% at 70% 85%, #b88a2e 0%, transparent 70%), radial-gradient(60% 60% at 30% 60%, #8f8333 0%, transparent 75%), #a99b57" }}>
+    <div aria-hidden className="relative hidden h-full select-none overflow-hidden lg:block" style={{ background: "radial-gradient(60% 55% at 12% 12%, #5f7a5c 0%, transparent 70%), radial-gradient(55% 50% at 92% 25%, #8da586 0%, transparent 70%), radial-gradient(70% 55% at 70% 85%, #b88a2e 0%, transparent 70%), radial-gradient(60% 60% at 30% 60%, #8f8333 0%, transparent 75%), #a99b57" }}>
       <CursorGrid cellSize={56} color="#ffffff" gridColor="#ffffff" highlight="area" gridStyle="lines" radius={140} holdTime={400} fadeDuration={800} fillOpacity={0.14} gridOpacity={0.07} maxOpacity={0.3} spotlight={0} hover={false} edgeFade={0} restBlocks={0.07} restLevel={0.8} clickPulse>
         <div className="flex h-full w-full items-center justify-center">
           <svg viewBox="0 0 420 520" className="h-[78vh] w-auto">
@@ -300,6 +303,8 @@ function AuthCard() {
           </svg>
         </div>
       </CursorGrid>
+      {/* Paper-like film grain over the whole panel. */}
+      <div className="pointer-events-none absolute inset-0 z-10" style={{ backgroundImage: GRAIN, backgroundSize: "220px 220px", opacity: 0.5, mixBlendMode: "overlay" }} />
     </div>
     </div>
   );
