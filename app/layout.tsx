@@ -21,7 +21,7 @@ import { AuthProvider } from "@/lib/api/AuthContext";
 import { SessionBoundary } from "@/components/Session/SessionBoundary";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pacewise-backend-o4qu.onrender.com/api/v1"),
+  metadataBase: new URL("https://pacewise-backend-o4qu.onrender.com"),
   title: { default: BRAND_NAME, template: `%s · ${BRAND_NAME}` },
   description: "Improve your English reading speed, comprehension, and focus.",
   applicationName: BRAND_NAME,
