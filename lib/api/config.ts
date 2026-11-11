@@ -5,10 +5,10 @@
  * (devData/localStorage) behavior when it's unset, so wiring this up is
  * additive: nothing here breaks the app if the backend isn't running.
  *
- * Set NEXT_PUBLIC_API_URL in .env.local to point at it, e.g.
- * NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+ * The address is written directly here (no .env file is read). To point the app at another backend,
+ * change the URL below.
  */
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ?? "";
+export const API_BASE_URL = "https://pacewise-backend-o4qu.onrender.com/api/v1";
 
 export function isApiEnabled(): boolean {
   return API_BASE_URL.length > 0;
