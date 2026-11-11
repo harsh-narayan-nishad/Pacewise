@@ -610,8 +610,8 @@ const CursorGrid = ({
       const s = settingsRef.current;
       const { x, y, inside } = locate(event);
       if (!inside || !s.clickPulse || reduce) return;
-      // One ripple at a time: a click while a click-ripple is still travelling does nothing.
-      if (pulses.some(p => p.click)) return;
+      // One ripple at a time: a new click replaces the click-ripple that is still travelling.
+      for (let k = pulses.length - 1; k >= 0; k--) if (pulses[k].click) pulses.splice(k, 1);
       pulses.push({ x, y, t0: clock, strength: 1, click: true });
       wake();
     };

@@ -16,6 +16,7 @@ import { TestAttemptsPanel } from "@/components/Account/TestAttemptsPanel";
 import { ReadingHistoryPanel } from "@/components/Account/ReadingHistoryPanel";
 import { AnalyticsPanel } from "@/components/Account/AnalyticsPanel";
 import { CalendarPanel } from "@/components/Account/CalendarPanel";
+import { FollowList } from "@/components/Profile/FollowList";
 import { TimeAnalysisPanel } from "@/components/Profile/TimeAnalysisPanel";
 import { NotesView } from "@/components/Notes/NotesView";
 import { ProfileQr } from "@/components/Profile/ProfileQr";
@@ -57,6 +58,8 @@ export function UserProfile({ userId }: UserProfileProps) {
   const photo = useAvatarUpload(currentUser?.id);
   /** null = the default "content posted by you" grid. */
   const [tab, setTab] = useState<ProfileTab | null>(null);
+  /** Which follow list (followers / following) is open, if any. */
+  const [relList, setRelList] = useState<"followers" | "following" | null>(null);
 
   const user = devDataStore.findUserById(userId);
   const allStories = useMemo(() => getAllStories(), []);
@@ -105,7 +108,9 @@ export function UserProfile({ userId }: UserProfileProps) {
           <div>
             <h1 className="font-display text-xl text-ink">{user.name}</h1>
             <p className="text-sm text-ink-muted">
-              {devDataStore.followerCount(userId)} followers · {devDataStore.followingCount(userId)} following
+              <button type="button" onClick={() => setRelList("followers")} className="transition-colors hover:text-ink hover:underline">{devDataStore.followerCount(userId)} followers</button>
+              {" · "}
+              <button type="button" onClick={() => setRelList("following")} className="transition-colors hover:text-ink hover:underline">{devDataStore.followingCount(userId)} following</button>
               {user.isDemoUser && <span className="ml-2 text-xs text-ink-faint">(development account)</span>}
             </p>
           </div>
@@ -152,6 +157,7 @@ export function UserProfile({ userId }: UserProfileProps) {
       </h2>
 
       {isSelf && tab === "dashboard" && <HomeDashboard />}
+      {relList && <FollowList userId={userId} kind={relList} onClose={() => setRelList(null)} />}
       {isSelf && tab === "calendar" && <CalendarPanel />}
       {isSelf && tab === "notes" && <NotesPanel userId={userId} />}
       {isSelf && tab === "readingHistory" && <ReadingHistoryPanel />}

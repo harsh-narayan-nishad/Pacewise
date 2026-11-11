@@ -882,6 +882,13 @@ class DevDataStore {
     return this.follows.some((f) => f.followerId === followerId && f.followingId === followingId);
   }
 
+  /** Ids of the people who follow `userId` (kind "followers") or whom `userId` follows ("following"), from this browser's copy. */
+  relationIds(userId: string, kind: "followers" | "following"): string[] {
+    return kind === "followers"
+      ? this.follows.filter((f) => f.followingId === userId).map((f) => f.followerId)
+      : this.follows.filter((f) => f.followerId === userId).map((f) => f.followingId);
+  }
+
   followerCount(userId: string): number {
     return this.follows.filter((f) => f.followingId === userId).length;
   }

@@ -249,3 +249,14 @@ export const calendarApi = {
   update: (id: string, input: CalendarEventInput) => apiFetch<ApiCalendarEvent>(`/calendar/events/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
   remove: (id: string) => apiFetch<void>(`/calendar/events/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
+
+// ---------------------------------------------------------------------------
+// Followers / following lists (public)
+// ---------------------------------------------------------------------------
+export interface ApiRelationPerson { id: string; username: string; name: string; avatarUrl: string | null }
+export interface ApiRelationPage { items: ApiRelationPerson[]; total: number; page: number; pageSize: number }
+
+export const relationsApi = {
+  followers: (userId: string, page = 1, pageSize = 30) => apiFetch<ApiRelationPage>(`/users/${encodeURIComponent(userId)}/followers`, { query: { page, pageSize } }),
+  following: (userId: string, page = 1, pageSize = 30) => apiFetch<ApiRelationPage>(`/users/${encodeURIComponent(userId)}/following`, { query: { page, pageSize } }),
+};
