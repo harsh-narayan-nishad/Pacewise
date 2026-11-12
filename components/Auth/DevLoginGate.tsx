@@ -15,7 +15,7 @@ import * as authApi from "@/lib/api/endpoints";
 import { SocialButtons } from "@/components/Auth/SocialButtons";
 import CursorGrid from "@/components/ui/CursorGrid";
 import { backendSync } from "@/lib/api/backendSync";
-import { isApiEnabled } from "@/lib/api/config";
+import { API_HEALTH_URL, isApiEnabled } from "@/lib/api/config";
 import { getOfflineSession } from "@/lib/api/offlineDemo";
 
 /**
@@ -101,6 +101,23 @@ function AuthCard() {
   const [notice, setNotice] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [backendConnected, setBackendConnected] = useState(false);
+
+  // On every load/refresh of the sign-in page, check the backend's health and briefly confirm it is reachable.
+  useEffect(() => {
+    if (!isApiEnabled()) return;
+    let cancelled = false;
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    fetch(API_HEALTH_URL, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { status?: string } | null) => {
+        if (cancelled || body?.status !== "ok") return;
+        setBackendConnected(true);
+        hideTimer = setTimeout(() => setBackendConnected(false), 3000);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; if (hideTimer) clearTimeout(hideTimer); };
+  }, []);
 
   /** Field names are shown on the sign-up form; elsewhere the placeholder says it and the name is for screen readers only. */
   const LBL = mode === "signup" ? "mb-1.5 block text-sm text-ink-muted" : "sr-only";
@@ -198,6 +215,11 @@ function AuthCard() {
 
   return (
     <div className="grid h-screen h-dvh w-full grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[2fr_3fr]">
+    {backendConnected && (
+      <motion.div role="status" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-overlay/10 bg-canvas-raised px-4 py-2 text-sm text-ink shadow-lg">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" /> Backend connected
+      </motion.div>
+    )}
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex h-full min-h-0 flex-col overflow-y-auto px-6 py-6 sm:px-12 sm:py-10 lg:px-[8vw]">
     <div className="my-auto">
       <div className="mb-3 font-display text-xl tracking-[-0.02em] text-ink-muted">{BRAND_NAME}</div>
