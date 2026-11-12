@@ -77,6 +77,8 @@ export function TopNav() {
 
   // Public pages (shared notes) have their own header and no account menu.
   if (isPublicPath(pathname)) return null;
+  // The flip book is a full-screen reader with its own controls.
+  if (pathname === "/flipbook") return null;
 
   return (
     // overflow-visible is explicit (not just the default) on both the bar

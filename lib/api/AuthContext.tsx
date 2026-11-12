@@ -1,10 +1,11 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { isApiEnabled } from "@/lib/api/config";
+import { isApiEnabled, pingBackend } from "@/lib/api/config";
 import { ApiError } from "@/lib/api/client";
 import { tokenStore } from "@/lib/api/tokenStore";
 import * as api from "@/lib/api/endpoints";
+import { findOfflineDemoUser, getOfflineSession, offlineUserFor, setOfflineSession } from "@/lib/api/offlineDemo";
 import { devDataStore } from "@/lib/devData/store";
 import { useCurrentUser } from "@/lib/devData/useDevStore";
 import { ApiUser, AuthResponse } from "@/lib/api/types";
@@ -41,6 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const currentUser = useCurrentUser();
   const currentUserId = currentUser?.id ?? null;
 
+  // Wake the backend (health check) as soon as the app opens.
+  useEffect(() => { pingBackend(); }, []);
+
   // Re-check the saved session whenever the signed-in person changes (including after the saved one is restored on load).
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +53,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setLoading(false);
         return;
+      }
+      // A demo person signed in without the backend: there is nothing to confirm, the session stays as it is.
+      if (getOfflineSession() === currentUserId) {
+        const demo = offlineUserFor(currentUserId);
+        if (demo) {
+          setUser(demo);
+          setLoading(false);
+          return;
+        }
       }
       if (!isApiEnabled() || !tokenStore.getAccessToken()) {
         // A session that exists only in this browser (made before real sign-in existed) is not a session.
@@ -89,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /** Order matters: the person must be "current" BEFORE the tokens are saved, because tokens are stored per user. */
   const establish = useCallback((result: AuthResponse) => {
+    setOfflineSession(null);
     devDataStore.signInAs({ id: result.user.id, name: result.user.name, username: result.user.username, interests: result.user.interests });
     tokenStore.setTokens(result.accessToken, result.refreshToken);
     setUser(result.user);
@@ -104,7 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [establish]);
 
   const login = useCallback(async (input: { identifier: string; password: string }) => {
-    establish(await api.login(input));
+    try {
+      establish(await api.login(input));
+    } catch (err) {
+      // The backend answered (wrong password, banned ...): that is final. Only when it could not be reached
+      // (asleep, offline, not set up) can a built-in demo person still get in.
+      const answered = err instanceof ApiError && err.status > 0 && err.status < 500 && err.code !== "API_DISABLED";
+      const demo = answered ? null : findOfflineDemoUser(input.identifier, input.password);
+      if (!demo) throw err;
+      devDataStore.signInAs({ id: demo.id, name: demo.name, username: demo.username, interests: demo.interests });
+      setOfflineSession(demo.id);
+      setUser(demo);
+    }
   }, [establish]);
 
   const google = useCallback(async (idToken: string) => {
@@ -115,7 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [establish]);
 
   const logout = useCallback(async () => {
-    await api.logout(); // revokes the refresh token on the server, then clears the saved tokens
+    if (getOfflineSession()) setOfflineSession(null);
+    else await api.logout(); // revokes the refresh token on the server, then clears the saved tokens
     devDataStore.logout();
     setUser(null);
   }, []);

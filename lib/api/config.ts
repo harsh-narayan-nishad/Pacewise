@@ -10,6 +10,18 @@
  */
 export const API_BASE_URL = "https://pacewise-backend-o4qu.onrender.com/api/v1";
 
+/** Health-check address of the backend (`GET .../api/v1/health` answers `{ "status": "ok" }`). */
+export const API_HEALTH_URL = `${API_BASE_URL}/health`;
+
+/**
+ * Quietly calls the health check. Used when the app opens so a sleeping backend (free hosting spins down when idle)
+ * starts waking up before the first sign-in or request. Shows nothing and never throws.
+ */
+export function pingBackend(): void {
+  if (typeof window === "undefined" || !isApiEnabled()) return;
+  fetch(API_HEALTH_URL, { cache: "no-store" }).catch(() => undefined);
+}
+
 export function isApiEnabled(): boolean {
   return API_BASE_URL.length > 0;
 }

@@ -16,6 +16,7 @@ import { SocialButtons } from "@/components/Auth/SocialButtons";
 import CursorGrid from "@/components/ui/CursorGrid";
 import { backendSync } from "@/lib/api/backendSync";
 import { isApiEnabled } from "@/lib/api/config";
+import { getOfflineSession } from "@/lib/api/offlineDemo";
 
 /**
  * Sign-in gate. Everything in the app (notes and docs a QR code opens included) needs a real account,
@@ -47,6 +48,7 @@ export function DevLoginGate({ children }: { children: React.ReactNode }) {
   const currentUserId = currentUser?.id ?? null;
   useEffect(() => {
     if (!isApiEnabled()) return;
+    if (currentUserId && getOfflineSession() === currentUserId) return; // a demo session without the backend has nothing to sync
     if (currentUserId) void backendSync.start(currentUserId);
     else backendSync.stop();
   }, [currentUserId]);

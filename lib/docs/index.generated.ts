@@ -121,6 +121,48 @@ export const DOC_INDEX: DocMeta[] = [
   "titleHi": "Quick Revision Sheet"
  },
  {
+  "slug": "flip-book--01-architecture-and-requirements",
+  "path": "flip-book/01-architecture-and-requirements.md",
+  "folder": "flip-book",
+  "title": "Architecture and requirements",
+  "titleHi": "Architecture और requirements"
+ },
+ {
+  "slug": "flip-book--02-rendering-and-performance",
+  "path": "flip-book/02-rendering-and-performance.md",
+  "folder": "flip-book",
+  "title": "Rendering pipeline and performance",
+  "titleHi": "Rendering pipeline और performance"
+ },
+ {
+  "slug": "flip-book--03-search-system",
+  "path": "flip-book/03-search-system.md",
+  "folder": "flip-book",
+  "title": "Search system",
+  "titleHi": "Search system"
+ },
+ {
+  "slug": "flip-book--04-editing-and-export",
+  "path": "flip-book/04-editing-and-export.md",
+  "folder": "flip-book",
+  "title": "Editing and export",
+  "titleHi": "Editing और export"
+ },
+ {
+  "slug": "flip-book--05-security-reliability-interview",
+  "path": "flip-book/05-security-reliability-interview.md",
+  "folder": "flip-book",
+  "title": "Security, reliability and the interview playbook",
+  "titleHi": "Security, reliability और interview playbook"
+ },
+ {
+  "slug": "flip-book--readme",
+  "path": "flip-book/README.md",
+  "folder": "flip-book",
+  "title": "PDF Flip Book — engineering overview",
+  "titleHi": "PDF Flip Book — engineering overview"
+ },
+ {
   "slug": "interview--01-javascript-typescript",
   "path": "interview/01-javascript-typescript.md",
   "folder": "interview",

@@ -9,6 +9,7 @@ import "./globals.css";
 import "@/components/Reader/richContent.css";
 import "@/components/ReadingMode/readingMode.css";
 import "@/components/Editor/editor.css";
+import "@/components/FlipReader/flipReader.css";
 import { ReadingProvider } from "@/contexts/ReadingContext";
 import { ThemeSync } from "@/components/ThemeSync";
 import { PresenceTracker } from "@/components/Session/PresenceTracker";

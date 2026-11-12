@@ -17,6 +17,7 @@ const FOLDER_LABELS: Record<string, string> = {
   "leadership-principles/netflix": "Netflix's Leadership",
   "leadership-principles/apple": "Apple's Leadership",
   "daa-notes": "DAA notes",
+  "flip-book": "Flip book engineering",
   "syllabus/03-methodologies": "Methodologies",
   "syllabus/04-core-cse": "Core CSE",
   "syllabus/04-core-cse/cn": "CN",

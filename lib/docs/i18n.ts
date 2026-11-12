@@ -41,6 +41,7 @@ export const FOLDER_LABELS_HI: Record<string, string> = {
   "leadership-principles/netflix": "Netflix की लीडरशिप",
   "leadership-principles/apple": "Apple की लीडरशिप",
   "daa-notes": "DAA नोट्स",
+  "flip-book": "फ्लिप बुक इंजीनियरिंग",
   "syllabus/03-methodologies": "मेथडोलॉजी",
   "syllabus/04-core-cse": "कोर CSE",
   "syllabus/04-core-cse/cn": "CN",

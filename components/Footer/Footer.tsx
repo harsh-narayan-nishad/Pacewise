@@ -47,7 +47,7 @@ export function Footer() {
   const user = useCurrentUser();
   const [copied, setCopied] = React.useState(false);
   // /reader is a full-screen fixed experience: an in-flow footer would sit on top of it (it is the only content in the document flow there).
-  if (pathname === "/questions" || pathname === "/reader") return null;
+  if (pathname === "/questions" || pathname === "/reader" || pathname === "/flipbook") return null;
 
   async function copyLink() {
     try {

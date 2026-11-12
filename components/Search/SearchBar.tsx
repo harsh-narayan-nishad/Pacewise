@@ -9,6 +9,7 @@ import { StoryData } from "@/types";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage, SearchHistoryEntry } from "@/lib/storage";
 import { getAllStories, searchStories, addCustomStory } from "@/lib/storyLibrary";
+import { setPendingFiles } from "@/lib/flipreader/handoff";
 import { buildMediaStory, isMediaFile, MediaStoryError } from "@/lib/mediaStory";
 import { AddStoryModal } from "@/components/Search/AddStoryModal";
 import { PdfQuestionsModal } from "@/components/Search/PdfQuestionsModal";
@@ -463,6 +464,13 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
     // play/pause, the Speedometer, etc.) already applying to it — see
     // that module's header comment for why this skips the JSON
     // validation/persistence path below rather than reusing it.
+    // A PDF opens straight in the flip book reader.
+    if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+      setPendingFiles([file]);
+      router.push("/flipbook");
+      return;
+    }
+
     if (isMediaFile(file)) {
       setMediaStatus({ kind: "loading" });
       buildMediaStory(file)
