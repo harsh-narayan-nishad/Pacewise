@@ -101,21 +101,22 @@ function AuthCard() {
   const [notice, setNotice] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [backendConnected, setBackendConnected] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<"connected" | "disconnected" | null>(null);
 
-  // On every load/refresh of the sign-in page, check the backend's health and briefly confirm it is reachable.
+  // On every load/refresh of the sign-in page, check the backend's health and briefly show whether it is reachable.
   useEffect(() => {
-    if (!isApiEnabled()) return;
     let cancelled = false;
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const show = (status: "connected" | "disconnected") => {
+      if (cancelled) return;
+      setBackendStatus(status);
+      hideTimer = setTimeout(() => setBackendStatus(null), 3000);
+    };
+    if (!isApiEnabled()) { show("disconnected"); return () => { cancelled = true; if (hideTimer) clearTimeout(hideTimer); }; }
     fetch(API_HEALTH_URL, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
-      .then((body: { status?: string } | null) => {
-        if (cancelled || body?.status !== "ok") return;
-        setBackendConnected(true);
-        hideTimer = setTimeout(() => setBackendConnected(false), 3000);
-      })
-      .catch(() => undefined);
+      .then((body: { status?: string } | null) => show(body?.status === "ok" ? "connected" : "disconnected"))
+      .catch(() => show("disconnected"));
     return () => { cancelled = true; if (hideTimer) clearTimeout(hideTimer); };
   }, []);
 
@@ -215,9 +216,10 @@ function AuthCard() {
 
   return (
     <div className="grid h-screen h-dvh w-full grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[2fr_3fr]">
-    {backendConnected && (
-      <motion.div role="status" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-overlay/10 bg-canvas-raised px-4 py-2 text-sm text-ink shadow-lg">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" /> Backend connected
+    {backendStatus && (
+      <motion.div role={backendStatus === "connected" ? "status" : "alert"} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-overlay/10 bg-canvas-raised px-4 py-2 text-sm text-ink shadow-lg">
+        <span className={`h-2 w-2 rounded-full ${backendStatus === "connected" ? "bg-emerald-500" : "bg-red-500"}`} />
+        {backendStatus === "connected" ? "Backend connected" : "Backend not connected"}
       </motion.div>
     )}
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex h-full min-h-0 flex-col overflow-y-auto px-6 py-6 sm:px-12 sm:py-10 lg:px-[8vw]">

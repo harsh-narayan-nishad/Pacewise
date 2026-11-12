@@ -55,6 +55,9 @@ function getSnapshot(): Toast[] {
   return toasts;
 }
 
+/** One shared empty list for the server snapshot: a new `[]` on every call makes React warn about an infinite loop. */
+const SERVER_SNAPSHOT: Toast[] = [];
+
 export function useToasts(): Toast[] {
-  return useSyncExternalStore(subscribe, getSnapshot, () => []);
+  return useSyncExternalStore(subscribe, getSnapshot, () => SERVER_SNAPSHOT);
 }
