@@ -72,6 +72,69 @@ export const DOC_INDEX: DocMeta[] = [
   "titleHi": "Time analysis (profile → Time spent)"
  },
  {
+  "slug": "architecture--01-folder-and-component-map",
+  "path": "architecture/01-folder-and-component-map.md",
+  "folder": "architecture",
+  "title": "Folder and component map",
+  "titleHi": "Folder और component map"
+ },
+ {
+  "slug": "architecture--02-data-flows",
+  "path": "architecture/02-data-flows.md",
+  "folder": "architecture",
+  "title": "Data flows",
+  "titleHi": "Data flows"
+ },
+ {
+  "slug": "architecture--03-design-patterns-and-trade-offs",
+  "path": "architecture/03-design-patterns-and-trade-offs.md",
+  "folder": "architecture",
+  "title": "Design patterns and trade-offs",
+  "titleHi": "Design patterns और trade-offs"
+ },
+ {
+  "slug": "architecture--04-cs-fundamentals-by-component",
+  "path": "architecture/04-cs-fundamentals-by-component.md",
+  "folder": "architecture",
+  "title": "CS fundamentals by component",
+  "titleHi": "Component के हिसाब से CS fundamentals"
+ },
+ {
+  "slug": "architecture--05-api-design-rest-graphql-grpc",
+  "path": "architecture/05-api-design-rest-graphql-grpc.md",
+  "folder": "architecture",
+  "title": "API design: REST, GraphQL and gRPC",
+  "titleHi": "API design: REST, GraphQL और gRPC"
+ },
+ {
+  "slug": "architecture--06-performance-testing-and-reliability",
+  "path": "architecture/06-performance-testing-and-reliability.md",
+  "folder": "architecture",
+  "title": "Performance, testing and reliability",
+  "titleHi": "Performance, testing और reliability"
+ },
+ {
+  "slug": "architecture--07-scaling-to-100m-users",
+  "path": "architecture/07-scaling-to-100m-users.md",
+  "folder": "architecture",
+  "title": "Scaling to 100M users",
+  "titleHi": "100M users तक scaling"
+ },
+ {
+  "slug": "architecture--08-jd-consumer-product-engineering",
+  "path": "architecture/08-jd-consumer-product-engineering.md",
+  "folder": "architecture",
+  "title": "JD prep: Consumer Product Engineering",
+  "titleHi": "JD तैयारी: Consumer Product Engineering"
+ },
+ {
+  "slug": "architecture--readme",
+  "path": "architecture/README.md",
+  "folder": "architecture",
+  "title": "Architecture overview",
+  "titleHi": "आर्किटेक्चर ओवरव्यू"
+ },
+ {
   "slug": "daa-notes--01-overview",
   "path": "daa-notes/01-overview.md",
   "folder": "daa-notes",
@@ -462,6 +525,13 @@ export const DOC_INDEX: DocMeta[] = [
   "folder": "research",
   "title": "Docs writing tool — strategy and challenges",
   "titleHi": "Docs writing tool — strategy और challenges"
+ },
+ {
+  "slug": "research--06-world-engineering-references",
+  "path": "research/06-world-engineering-references.md",
+  "folder": "research",
+  "title": "World engineering references",
+  "titleHi": "दुनिया के engineering references"
  },
  {
   "slug": "research--readme",
