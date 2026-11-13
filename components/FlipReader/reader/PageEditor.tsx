@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
     AlignCenter,
     AlignHorizontalJustifyCenter,
@@ -18,6 +19,10 @@ import {
     ChevronRight,
     ChevronUp,
     Copy,
+    Eye,
+    EyeOff,
+    FilePlus2,
+    FileText,
     FlipHorizontal2,
     FlipVertical2,
     Image as ImageIcon,
@@ -39,6 +44,7 @@ import {
     Undo2,
     Unlock,
     Upload,
+    X,
     ZoomIn,
     ZoomOut,
 } from 'lucide-react';
@@ -46,15 +52,27 @@ import {
 import LiquidGlass from '@/components/FlipReader/ui/LiquidGlass';
 import { fileToImageSource, getBitmap, renderEdit, toBlob } from '@/lib/flipreader/imageops';
 import { openPdfSource } from '@/lib/flipreader/loaders';
-import { FONT_LABELS, fontString, newBackgroundOverlay, newDrawOverlay, newImageOverlay, newShapeOverlay, newTextOverlay, overlayBox } from '@/lib/flipreader/overlays';
+import { drawOverlays, FONT_LABELS, fontString, newBackgroundOverlay, newDrawOverlay, newImageOverlay, newShapeOverlay, newTextOverlay, overlayBox } from '@/lib/flipreader/overlays';
 import { newId } from '@/lib/flipreader/pages';
 import type { ImageSource, Overlay, PageItem, ShapeKind, TextFont, TextOverlay } from '@/lib/flipreader/types';
 import { OverlayLayer } from './OverlayLayer';
+import { useRouter } from 'next/navigation';
+import { useReadingDispatch } from '@/contexts/ReadingContext';
+import { startSwitchLoader } from '@/lib/switchLoader';
+import { BRAND_NAME } from '@/lib/brand';
+import MagicBento, { DEFAULT_ITEMS as DEFAULT_BENTO_ITEMS } from '@/components/ui/MagicBento';
+import { StoryTextEditor, clearEditorDraft } from '@/components/Editor/StoryTextEditor';
+import { RichDocument, defaultMeta } from '@/lib/editor/model/RichDocument';
+import { pageToDocHtml } from '@/lib/flipreader/pageToDoc';
+import { elementToPageImages } from '@/lib/flipreader/domToImage';
+import { MediconnectSpinner } from '@/components/ui/loaders/MediconnectSpinner';
 
 type Handle = 'nw' | 'ne' | 'se' | 'sw' | 'w' | 'e' | 'n' | 's' | 'rot';
 
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
 const BASE_SIDE = 1600; // resolution of the page shown in the editor
+/** height taken by the page bar above the page and the Add page bar under it (with their gaps) */
+const PAGE_CHROME_H = 112;
 
 function Slider({ label, value, min, max, step = 1, suffix = '', onStart, onChange, onEnd }: { label: string; value: number; min: number; max: number; step?: number; suffix?: string; onStart: () => void; onChange: (v: number) => void; onEnd: () => void }) {
     return (
@@ -211,7 +229,7 @@ const labelOf = (o: Overlay) => (o.type === 'text' ? o.text.replace(/\s+/g, ' ')
  * in the middle, a library of pictures, elements, text styles and backgrounds on the right. Drag from the library onto
  * the page, or tap an item to add it; drag to move, corner handles to resize, the round handle to turn.
  */
-export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, onDeletePage }: { item: PageItem; onApply: (overlays: Overlay[]) => void; onCancel: () => void; pageNo?: number; pageCount?: number; onGo?: (overlays: Overlay[], delta: number) => void; onDeletePage?: () => void }) {
+export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, onDeletePage, onInsertPage, onHidePage, windowPages, onWindowOp, bookRatio, onReplacePage }: { item: PageItem; onApply: (overlays: Overlay[], extraPages?: ImageSource[]) => void; onCancel: () => void; pageNo?: number; pageCount?: number; onGo?: (overlays: Overlay[], delta: number, extraPages?: ImageSource[]) => void; onDeletePage?: () => void; onInsertPage?: (overlays: Overlay[], extraPages: ImageSource[], blank?: ImageSource) => void; onHidePage?: (overlays: Overlay[], hidden: boolean) => void; windowPages?: { item: PageItem; index: number }[]; onWindowOp?: (op: 'hide' | 'show' | 'lock' | 'unlock' | 'duplicate' | 'delete' | 'blank', index: number, blank?: ImageSource) => void; bookRatio?: number; onReplacePage?: (src: ImageSource) => void }) {
     const [overlays, setOverlays] = useState<Overlay[]>(item.overlays);
     const ref = useRef<Overlay[]>(item.overlays);
     const past = useRef<Overlay[][]>([]);
@@ -227,6 +245,32 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const [confirmDel, setConfirmDel] = useState(false);
     /** the text item being typed into straight on the page */
     const [editingId, setEditingId] = useState<string | null>(null);
+    /*
+     * Document mode: the page canvas becomes the rich text editor (components/Editor, the Google Docs-like one),
+     * filled with this page's text (headings, paragraphs and code blocks, see lib/flipreader/pageToDoc). Leaving it,
+     * or Apply, draws the document onto the page as one full-page layer, so the text becomes part of the page.
+     */
+    const [docMode, setDocMode] = useState(false);
+    const docModeRef = useRef(false);
+    docModeRef.current = docMode;
+    const [docInit, setDocInit] = useState<RichDocument | null>(null);
+    const docLatest = useRef<RichDocument | null>(null);
+    const docLayerId = useRef<string | null>(null);
+    /** pages the document runs on to after this one: added after this page on Apply (or when moving to another page) */
+    const docExtra = useRef<ImageSource[]>([]);
+    const docWrapRef = useRef<HTMLDivElement>(null);
+    /** the pages' header, footer and page numbers: none until you add them (double-click a page's top / bottom margin) */
+    const [docHf, setDocHf] = useState<DocHf>({ header: '', footer: '', pageNumbers: false });
+    /** the document is being put on the page(s): Mediconnect's loader runs in the button that started it */
+    const [baking, setBaking] = useState<null | 'apply' | 'back' | 'prev' | 'next' | 'add' | 'dup'>(null);
+    const docSlot = `flipbook-page-${item.id}`;
+    useEffect(() => {
+        setDocMode(false);
+        setDocInit(null);
+        docLatest.current = null;
+        docLayerId.current = null;
+        docExtra.current = [];
+    }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!confirmDel) return undefined;
         const t = setTimeout(() => setConfirmDel(false), 3500);
@@ -244,6 +288,8 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const fileRef = useRef<HTMLInputElement>(null);
     const textRef = useRef<HTMLTextAreaElement>(null);
     const [base, setBase] = useState({ w: 1, h: 1 });
+    /** the page underneath has been drawn (until then Mediconnect's loader shows on the canvas) */
+    const [baseReady, setBaseReady] = useState(false);
     const [stage, setStage] = useState({ w: 0, h: 0 });
     const [failed, setFailed] = useState(false);
 
@@ -257,6 +303,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     /* ---- the page underneath ---- */
     useEffect(() => {
         let alive = true;
+        setBaseReady(false);
         (async () => {
             try {
                 let out: HTMLCanvasElement;
@@ -280,6 +327,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                 baseRef.current.height = out.height;
                 baseRef.current.getContext('2d')?.drawImage(out, 0, 0);
                 setBase({ w: out.width, h: out.height });
+                setBaseReady(true);
             } catch {
                 if (alive) setFailed(true);
             }
@@ -287,7 +335,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         return () => {
             alive = false;
         };
-    }, [item]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [item.id, item.type === 'image' ? item.src.id : '']); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         const el = stageRef.current;
@@ -355,10 +403,12 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         };
     }, [setZoom]);
 
-    const fit = Math.min((stage.w - 40) / base.w, (stage.h - 40) / base.h) || 1;
+    const fit = Math.min((stage.w - 40) / base.w, (stage.h - 40 - PAGE_CHROME_H) / base.h) || 1;
     const dispW = Math.max(1, base.w * fit * zoom);
     const dispH = Math.max(1, base.h * fit * zoom);
     const pageAspect = base.w / base.h;
+    /** height / width of the document's sheets: the book's page shape, so a written page fills a book page */
+    const docAspect = bookRatio && bookRatio > 0 ? bookRatio : base.h / Math.max(1, base.w);
 
     /* ---- changing overlays, with undo / redo ---- */
     const set = useCallback((next: Overlay[], record = true) => {
@@ -572,6 +622,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
 
     useEffect(() => {
         const onPaste = (e: ClipboardEvent) => {
+            if (docModeRef.current) return; // the document editor handles its own pasting
             const t = e.target as HTMLElement | null;
             if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
             const files = Array.from(e.clipboardData?.files ?? []);
@@ -778,6 +829,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     /* ---- keyboard ---- */
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            if (docModeRef.current && e.key !== 'Escape') return; // page shortcuts are off while the document is shown
             const t = e.target as HTMLElement | null;
             const typing = !!t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !(t as HTMLInputElement).type?.match(/range|color|checkbox/));
             if (e.key === 'Escape') {
@@ -801,7 +853,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
             } else if (!typing && onGo && pageNo !== undefined && pageCount !== undefined && (e.key === 'PageUp' || e.key === 'PageDown')) {
                 e.preventDefault();
                 const delta = e.key === 'PageUp' ? -1 : 1;
-                if (pageNo + delta >= 1 && pageNo + delta <= pageCount) onGo(ref.current, delta);
+                void stepPage(delta as -1 | 1);
             } else if (!typing && sel && !sel.locked && (e.key === 'Delete' || e.key === 'Backspace')) {
                 e.preventDefault();
                 remove();
@@ -1035,44 +1087,358 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         </div>
     );
 
+    /* ---- document mode ---- */
+    async function openDoc() {
+        setBusy(true);
+        setMessage(null);
+        try {
+            let doc = docLatest.current;
+            if (!doc) {
+                // a page with no text (a picture or a scanned page) simply opens as an empty document
+                const html = await pageToDocHtml(item);
+                doc = RichDocument.fromHtml(html ?? '<p></p>', defaultMeta(pageNo ? `Page ${pageNo}` : 'Page'));
+                docLatest.current = doc;
+            }
+            setDocInit(doc);
+            setSelId(null);
+            setEditingId(null);
+            setDocMode(true);
+        } catch {
+            setMessage('The text of this page could not be read.');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    /**
+     * Draws the document onto the page as one locked, full-page layer (under the other layers) and returns the layers.
+     * A document longer than one page is split into pages: the first goes on this page, the rest are kept in
+     * `docExtra` and added as new pages right after this one on Apply.
+     */
+    async function bakeDoc(): Promise<Overlay[]> {
+        const pageEl = docWrapRef.current?.querySelector<HTMLElement>('.sr-page');
+        if (!pageEl) return ref.current;
+        // let the editor finish its last change
+        await new Promise((r) => setTimeout(r, 220));
+        const bg = '#ffffff'; // the sheets are white paper
+        // the pages are made in the book's own page shape, so they fill the book's pages edge to edge
+        const sheets = { height: pageEl.offsetWidth * docAspect, gap: DOC_SHEET_GAP, count: Number(pageEl.style.getPropertyValue('--pe-pages')) || 1 };
+        const [src, ...more] = await elementToPageImages(pageEl, base.w, Math.round(base.w * docAspect), bg, pageNo ? `Page ${pageNo} document` : 'Page document', sheets);
+        docExtra.current = more;
+        if (more.length) setMessage(`The document runs to ${more.length + 1} pages: the other ${more.length === 1 ? 'page is' : `${more.length} pages are`} added after this one when you apply.`);
+        if (onReplacePage) {
+            // the document becomes this page itself (not a layer over the old page, which may be a different shape)
+            const next = docLayerId.current ? ref.current.filter((o) => o.id !== docLayerId.current) : ref.current;
+            docLayerId.current = null;
+            if (next !== ref.current) set(next);
+            onReplacePage(src);
+            return next;
+        }
+        const id = docLayerId.current ?? newId();
+        docLayerId.current = id;
+        const layer: Overlay = { id, type: 'image', src, x: 0, y: 0, w: 1, h: 1, rotation: 0, opacity: 1, locked: true };
+        const next = [layer, ...ref.current.filter((o) => o.id !== id)];
+        set(next);
+        return next;
+    }
+
+    async function leaveDoc(from: 'apply' | 'back' | 'prev' | 'next' | 'add' | 'dup' = 'back'): Promise<Overlay[] | null> {
+        setBusy(true);
+        setBaking(from);
+        setMessage(null);
+        try {
+            // at least 0.6 s on screen, like the app's other Mediconnect loaders, so it never just flashes
+            const [next] = await Promise.all([bakeDoc(), new Promise((r) => setTimeout(r, 600))]);
+            setDocMode(false);
+            return next;
+        } catch (err) {
+            setMessage(err instanceof Error ? err.message : 'The document could not be put on the page.');
+            return null;
+        } finally {
+            setBusy(false);
+            setBaking(null);
+        }
+    }
+
+    /** A white page the size of this one, for "Add page". */
+    async function blankPage(): Promise<ImageSource> {
+        const c = document.createElement('canvas');
+        c.width = base.w > 1 ? base.w : 1240;
+        c.height = base.h > 1 ? base.h : 1754;
+        const ctx = c.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        const blob: Blob = await new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('The new page could not be made.'))), 'image/png'));
+        return { id: newId(), kind: 'image', name: 'Blank page', blob, width: c.width, height: c.height };
+    }
+
+    /** "Add page" (a blank page) or "Duplicate page" (a copy of this one): keeps this page's work, then opens the new page. */
+    async function insertPage(kind: 'blank' | 'copy') {
+        if (!onInsertPage) return;
+        let layers = ref.current;
+        if (docModeRef.current) {
+            const next = await leaveDoc(kind === 'blank' ? 'add' : 'dup');
+            if (!next) return;
+            layers = next;
+        }
+        onInsertPage(layers, docExtra.current, kind === 'blank' ? await blankPage() : undefined);
+    }
+
+    /**
+     * Page bar ↑ / ↓: go to the previous / next page in the editor (this page's work is kept). It only moves through the
+     * pages; the order of the pages in the PDF is not changed.
+     */
+    async function stepPage(dir: -1 | 1) {
+        // only through the window's own pages, never into the rest of the PDF
+        const target = windowList[windowPos + dir];
+        if (target) await stepTo(target.index - here);
+    }
+
+    /** Opens another page of the window (clicked in the stack) for editing; this page's work is kept. */
+    async function openPage(index: number) {
+        const here = (pageNo ?? 1) - 1;
+        if (index !== here) await stepTo(index - here);
+    }
+    async function stepTo(delta: number) {
+        if (!onGo || delta === 0) return;
+        if (docModeRef.current) {
+            const next = await leaveDoc(delta < 0 ? 'prev' : 'next');
+            if (next) onGo(next, delta, docExtra.current);
+            return;
+        }
+        onGo(ref.current, delta, docExtra.current);
+    }
+    const here = (pageNo ?? 1) - 1;
+    /**
+     * The window: the page it was opened on and the pages made in it, kept apart from the rest of the PDF (they become
+     * part of it only on Apply). Its arrows, page numbers and stack count only these pages.
+     */
+    const windowList = windowPages && windowPages.some((w) => w.item.id === item.id) ? windowPages : [{ item, index: here }];
+    const windowPos = Math.max(0, windowList.findIndex((w) => w.item.id === item.id));
+    const stackBefore = windowList.filter((w) => w.index < here);
+    const stackAfter = windowList.filter((w) => w.index > here);
+    const windowNo = (index: number) => windowList.findIndex((w) => w.index === index) + 1;
+    const currentRef = useRef<HTMLDivElement>(null);
+    // with other pages above it in the stack, bring the page being edited into view
+    useEffect(() => {
+        const stageEl = stageRef.current;
+        const cur = currentRef.current;
+        if (!baseReady || !stageEl || !cur) return;
+        stageEl.scrollTop += cur.getBoundingClientRect().top - stageEl.getBoundingClientRect().top - 12;
+    }, [baseReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    /** Page bar: lock / unlock everything on this page. */
+    const allLocked = overlays.length > 0 && overlays.every((o) => o.locked);
+    const toggleLockAll = () => {
+        if (overlays.length === 0) return;
+        set(ref.current.map((o) => ({ ...o, locked: !allLocked })));
+        if (!allLocked) setSelId(null);
+    };
+
+    const [addMenu, setAddMenu] = useState(false);
+    /** the one side panel shows the tools or the library */
+    const [panelTab, setPanelTab] = useState<'tools' | 'library'>('tools');
+    /** a Library item shown large in the preview window */
+    const [preview, setPreview] = useState<Lib | null>(null);
+    // Escape closes the preview (and only the preview, not the editor)
+    useEffect(() => {
+        if (!preview) return undefined;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            setPreview(null);
+        };
+        window.addEventListener('keydown', onKey, true);
+        return () => window.removeEventListener('keydown', onKey, true);
+    }, [preview]);
+
+    /* inertia in the preview: the wheel moves a target and the scroll eases toward it, so a flick glides and settles
+       (the window itself, or long text inside it, whichever can move) */
+    const previewRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const root = previewRef.current;
+        if (!preview || !root) return undefined;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+        const glide = new Map<HTMLElement, { target: number; raf: number }>();
+        const scrollerFor = (start: EventTarget | null, dy: number): HTMLElement | null => {
+            for (let n = start as HTMLElement | null; n; n = n.parentElement) {
+                const can = n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY);
+                const room = dy < 0 ? n.scrollTop > 0 : n.scrollTop + n.clientHeight < n.scrollHeight - 1;
+                if (can && (room || n === root)) return n;
+                if (n === root) break;
+            }
+            return null;
+        };
+        const onWheel = (e: WheelEvent) => {
+            if (e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+            const el = scrollerFor(e.target, e.deltaY);
+            if (!el) return;
+            e.preventDefault();
+            const unit = e.deltaMode === 1 ? 32 : e.deltaMode === 2 ? el.clientHeight : 1;
+            const max = el.scrollHeight - el.clientHeight;
+            let g = glide.get(el);
+            if (!g) {
+                g = { target: el.scrollTop, raf: 0 };
+                glide.set(el, g);
+            }
+            g.target = clamp(g.target + e.deltaY * unit, 0, max);
+            const step = () => {
+                const st = glide.get(el);
+                if (!st) return;
+                const d = st.target - el.scrollTop;
+                if (Math.abs(d) < 0.5) {
+                    el.scrollTop = st.target;
+                    glide.delete(el);
+                    return;
+                }
+                el.scrollTop += d * 0.16;
+                st.raf = requestAnimationFrame(step);
+            };
+            if (!g.raf) g.raf = requestAnimationFrame(step);
+        };
+        root.addEventListener('wheel', onWheel, { passive: false });
+        return () => {
+            root.removeEventListener('wheel', onWheel);
+            glide.forEach((g) => cancelAnimationFrame(g.raf));
+        };
+    }, [preview]);
+    /** "Pacewise" in the top bar: to the landing page, like the navbar's Pacewise */
+    const router = useRouter();
+    const readingDispatch = useReadingDispatch();
+    const goHome = () => {
+        readingDispatch({ type: 'CLEAR_STORY' });
+        startSwitchLoader('home', '/');
+        router.push('/');
+    };
+    /** the Library card's buttons: scroll to that section's card and mark it for a moment */
+    const [libFocus, setLibFocus] = useState('Uploads');
+    const jumpToLib = (from: HTMLElement, label: string) => {
+        setLibFocus(label);
+        const bento = from.closest('.pe-bento-lib');
+        const title = Array.from(bento?.querySelectorAll<HTMLElement>('.magic-bento__card h3') ?? []).find((h) => h.textContent === label);
+        const card = title?.closest<HTMLElement>('.magic-bento__card');
+        if (!card) return;
+        // scroll only the panel itself (scrollIntoView would also move the whole editor screen)
+        const panel = card.closest<HTMLElement>('.rd-ied-scroll');
+        if (panel) panel.scrollTo({ top: panel.scrollTop + card.getBoundingClientRect().top - panel.getBoundingClientRect().top - 12, behavior: 'smooth' });
+        card.classList.remove('pe-lib-flash');
+        void card.offsetWidth; // restart the mark
+        card.classList.add('pe-lib-flash');
+        window.setTimeout(() => card.classList.remove('pe-lib-flash'), 1200);
+    };
+
+    /* the left panel can be made narrower or wider by dragging its edge (remembered); double-click resets it */
+    const LEFT_KEY = 'pacewise.pageEditor.leftWidth';
+    const [leftW, setLeftW] = useState<number | null>(null);
+    useEffect(() => {
+        try {
+            const v = Number(localStorage.getItem(LEFT_KEY));
+            if (v > 0) setLeftW(v);
+        } catch {
+            /* default width */
+        }
+    }, []);
+    const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
+        const aside = e.currentTarget.parentElement;
+        const body = aside?.parentElement;
+        if (!aside || !body) return;
+        e.preventDefault();
+        const x0 = e.clientX;
+        const w0 = aside.getBoundingClientRect().width;
+        // keep at least ~360px for the page
+        const max = Math.max(260, body.getBoundingClientRect().width - 360 - 30);
+        let last = w0;
+        const move = (ev: PointerEvent) => {
+            last = clamp(w0 + ev.clientX - x0, 240, max);
+            setLeftW(last);
+        };
+        const up = () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            try {
+                localStorage.setItem(LEFT_KEY, String(Math.round(last)));
+            } catch {
+                /* not remembered */
+            }
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+    };
+    const resetResize = () => {
+        setLeftW(null);
+        try {
+            localStorage.removeItem(LEFT_KEY);
+        } catch {
+            /* nothing to forget */
+        }
+    };
+
+    async function applyAll() {
+        if (!docModeRef.current) {
+            if (docLatest.current) clearEditorDraft(docSlot);
+            onApply(ref.current, docExtra.current);
+            return;
+        }
+        const next = await leaveDoc('apply');
+        if (next) {
+            clearEditorDraft(docSlot);
+            onApply(next, docExtra.current);
+        }
+    }
+
     return (
         <div className="rd-ied rd-ied-canva" role="dialog" aria-label="Add pictures, text and shapes to this page">
-            <div className="rd-ied-top">
-              <LiquidGlass width="100%" height="auto" radius={28} blur={4} className="rd-ied-glass">
-                <div className="rd-ied-toprow">
-                <button type="button" className="rd-btn rd-wide" onClick={onCancel}>
-                    Cancel
-                </button>
+            {/* Top bar in the landing page navbar's design: Pacewise on the left (home), the page tools in the middle,
+                Cancel and Apply on the right */}
+            <div className="rd-ied-top pe-nav">
+                <div className="pe-nav-left">
+                    <button type="button" className="pe-nav-brand" onClick={goHome} aria-label={`${BRAND_NAME} — back to the home page`}>
+                        {BRAND_NAME}
+                    </button>
+                </div>
                 <div className="rd-ied-mid">
                     {onGo && pageNo !== undefined && pageCount !== undefined && (
                         <>
-                            <button type="button" className="rd-btn" onClick={() => onGo(ref.current, -1)} disabled={pageNo <= 1} aria-label="Previous page" title="Previous page (Page Up)">
-                                <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+                            <button type="button" className="rd-btn" onClick={() => void stepPage(-1)} disabled={windowPos <= 0 || busy} aria-label="Previous page" title="Previous page (Page Up)">
+                                {baking === 'prev' ? <ButtonSpinner /> : <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />}
                             </button>
                             <span className="rd-ied-pageno" aria-live="polite">
-                                {pageNo} / {pageCount}
+                                {windowPos + 1} / {windowList.length}
                             </span>
-                            <button type="button" className="rd-btn" onClick={() => onGo(ref.current, 1)} disabled={pageNo >= pageCount} aria-label="Next page" title="Next page (Page Down)">
-                                <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+                            <button type="button" className="rd-btn" onClick={() => void stepPage(1)} disabled={windowPos >= windowList.length - 1 || busy} aria-label="Next page" title="Next page (Page Down)">
+                                {baking === 'next' ? <ButtonSpinner /> : <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />}
                             </button>
                             <span className="rd-ied-sep" aria-hidden="true" />
                         </>
                     )}
-                    <button type="button" className="rd-btn" onClick={undo} disabled={past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)">
+                    <button type="button" className="rd-btn" onClick={undo} disabled={docMode || past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)">
                         <Undo2 size={18} strokeWidth={1.75} aria-hidden="true" />
                     </button>
-                    <button type="button" className="rd-btn" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+                    <button type="button" className="rd-btn" onClick={redo} disabled={docMode || future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
                         <Redo2 size={18} strokeWidth={1.75} aria-hidden="true" />
                     </button>
                     <span className="rd-ied-sep" aria-hidden="true" />
-                    <button type="button" className="rd-btn" onClick={() => setZoom((z) => z / 1.25)} disabled={zoom <= 0.25} aria-label="Zoom out" title="Zoom out">
+                    <button type="button" className="rd-btn" onClick={() => setZoom((z) => z / 1.25)} disabled={docMode || zoom <= 0.25} aria-label="Zoom out" title="Zoom out">
                         <ZoomOut size={18} strokeWidth={1.75} aria-hidden="true" />
                     </button>
-                    <button type="button" className="rd-btn rd-wide rd-zoomval" onClick={() => setZoom(1)} title="Fit the page (pinch or Ctrl + scroll to zoom)">
+                    <button type="button" className="rd-btn rd-wide rd-zoomval" onClick={() => setZoom(1)} disabled={docMode} title="Fit the page (pinch or Ctrl + scroll to zoom)">
                         {Math.round(zoom * 100)}%
                     </button>
-                    <button type="button" className="rd-btn" onClick={() => setZoom((z) => z * 1.25)} disabled={zoom >= 4} aria-label="Zoom in" title="Zoom in">
+                    <button type="button" className="rd-btn" onClick={() => setZoom((z) => z * 1.25)} disabled={docMode || zoom >= 4} aria-label="Zoom in" title="Zoom in">
                         <ZoomIn size={18} strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    <span className="rd-ied-sep" aria-hidden="true" />
+                    <button
+                        type="button"
+                        className="rd-btn rd-wide"
+                        data-on={docMode}
+                        aria-pressed={docMode}
+                        disabled={busy}
+                        onClick={() => void (docMode ? leaveDoc('back') : openDoc())}
+                        title={docMode ? 'Back to the page: the document is put on the page' : 'Edit this page as a document (its text, headings and code)'}
+                    >
+                        {baking === 'back' ? <ButtonSpinner /> : <FileText size={16} strokeWidth={1.75} aria-hidden="true" />} {docMode ? (baking === 'back' ? 'Adding…' : 'Back to page') : 'Document'}
                     </button>
                     {onDeletePage && (pageCount ?? 0) > 1 && (
                         <>
@@ -1092,18 +1458,65 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         </>
                     )}
                 </div>
-                <button type="button" className="rd-btn rd-wide rd-accent" data-on="true" onClick={() => onApply(ref.current)}>
-                    Apply
+                <div className="pe-nav-right">
+                <button type="button" className="rd-btn rd-wide" onClick={onCancel}>
+                    Cancel
+                </button>
+                <button type="button" className="rd-btn rd-wide rd-accent" data-on="true" disabled={busy} aria-busy={baking === 'apply'} onClick={() => void applyAll()}>
+                    {baking === 'apply' ? (
+                        <>
+                            <ButtonSpinner /> Applying…
+                        </>
+                    ) : (
+                        'Apply'
+                    )}
                 </button>
                 </div>
-              </LiquidGlass>
             </div>
 
-            <div className="rd-ied-body">
+            <div className="rd-ied-body" hidden={docMode} style={leftW ? ({ ['--pe-left' as string]: `${leftW}px` } as React.CSSProperties) : undefined}>
                 {/* ---------------- left: editing tools ---------------- */}
                 <aside className="rd-ied-left" aria-label="Editing tools">
+                  <div className="pe-left-resize" role="separator" aria-orientation="vertical" aria-label="Resize the tools panel" title="Drag to resize (double-click to reset)" onPointerDown={startResize} onDoubleClick={resetResize} />
                   <LiquidGlass width="100%" height="100%" radius={28} blur={4} className="rd-ied-glass">
+                    <div className="pe-panel">
+                    {/* Tools and Library in one panel (the page gets the room the second panel took): switch with
+                        the pill, like the landing page's Read / Revise / Share */}
+                    <div className="pe-tabs" role="tablist" aria-label="Panel">
+                        <button type="button" role="tab" className="pe-tab" aria-selected={panelTab === 'tools'} onClick={() => setPanelTab('tools')}>
+                            Tools
+                        </button>
+                        <button type="button" role="tab" className="pe-tab" aria-selected={panelTab === 'library'} onClick={() => setPanelTab('library')}>
+                            Library
+                        </button>
+                    </div>
+                    {panelTab === 'tools' ? (
+                    <>
                     <div className="rd-ied-scroll">
+                    {/* The editing tools as Magic Bento cards, in the bento's own card design (controls above, title and
+                        description below), followed by the bento's own cards. */}
+                    <div className="pe-bento">
+                        <MagicBento
+                            columns={4}
+                            rowHeight={200}
+                            gap={12}
+                            radius={20}
+                            enableBorderGlow={false}
+                            enableSpotlight={false}
+                            spotlightRadius={300}
+                            clickEffect
+                            enableStars={false}
+                            particleCount={24}
+                            enableTilt={false}
+                            enableMagnetism={false}
+                            textAutoHide
+                            intro
+                            items={[
+                                {
+                                    id: 'pe-tools',
+                                    colSpan: 2,
+                                    content: (
+                                        <BentoControls title="Tools" description="Select, draw, write or paste on the page">
                     <div className="rd-chips" role="toolbar" aria-label="Tools">
                         <button type="button" className="rd-btn rd-wide" data-on={tool === 'select'} aria-pressed={tool === 'select'} onClick={() => setTool('select')}>
                             <MousePointer2 size={16} strokeWidth={1.75} aria-hidden="true" /> Select
@@ -1119,6 +1532,52 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         </button>
                     </div>
 
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-layers',
+                                    colSpan: 2,
+                                    rowSpan: 2,
+                                    content: (
+                                        <BentoControls title="Layers" description={overlays.length ? `${overlays.length} on this page` : 'Nothing on this page yet'}>
+                    <div className="rd-ied-controls">
+                        {overlays.length === 0 && <p className="rd-hint">Nothing on this page yet.</p>}
+                        <ul className="rd-layers">
+                            {[...overlays].reverse().map((o) => (
+                                <li key={o.id} data-sel={o.id === selId}>
+                                    <button type="button" className="rd-layer-name" onClick={() => { setSelId(o.id); setTool('select'); }}>
+                                        {labelOf(o)}
+                                    </button>
+                                    <button type="button" className="rd-layer-btn" onClick={() => reorderId(o.id, 'up')} aria-label="Move up" title="Move up">
+                                        <ChevronUp size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    </button>
+                                    <button type="button" className="rd-layer-btn" onClick={() => reorderId(o.id, 'down')} aria-label="Move down" title="Move down">
+                                        <ChevronDown size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    </button>
+                                    <button type="button" className="rd-layer-btn" data-on={!!o.locked} onClick={() => patch(o.id, { locked: !o.locked }, true)} aria-label={o.locked ? 'Unlock' : 'Lock'} title={o.locked ? 'Unlock' : 'Lock'}>
+                                        {o.locked ? <Lock size={15} strokeWidth={1.75} aria-hidden="true" /> : <Unlock size={15} strokeWidth={1.75} aria-hidden="true" />}
+                                    </button>
+                                    <button type="button" className="rd-layer-btn" onClick={() => removeId(o.id)} aria-label="Delete" title="Delete">
+                                        <Trash2 size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-context',
+                                    colSpan: 2,
+                                    rowSpan: 2,
+                                    content: (
+                                        <BentoControls
+                                            title={tool === 'pen' ? 'Pen' : sel ? labelOf(sel) : 'Start here'}
+                                            description={tool === 'pen' ? 'Colour, size and opacity' : sel ? 'Change the selected item' : 'Add pictures, text and shapes'}
+                                        >
                     {tool === 'pen' && (
                         <div className="rd-ied-controls">
                             <p className="rd-ied-h">Pen</p>
@@ -1143,33 +1602,201 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                     {tool === 'select' && selectionTools}
                     {tool === 'select' && !sel && <p className="rd-hint">Pick something from the library on the right, or drag it onto the page. Tap an item on the page to change it; double-click text (or press Enter) to type straight on the page. You can also paste (Ctrl+V) or drop pictures on the page.</p>}
 
-                    <div className="rd-ied-controls">
-                        <p className="rd-ied-h">
-                            <Layers size={14} strokeWidth={1.75} aria-hidden="true" /> Layers
-                        </p>
-                        {overlays.length === 0 && <p className="rd-hint">Nothing on this page yet.</p>}
-                        <ul className="rd-layers">
-                            {[...overlays].reverse().map((o) => (
-                                <li key={o.id} data-sel={o.id === selId}>
-                                    <button type="button" className="rd-layer-name" onClick={() => { setSelId(o.id); setTool('select'); }}>
-                                        {labelOf(o)}
-                                    </button>
-                                    <button type="button" className="rd-layer-btn" onClick={() => reorderId(o.id, 'up')} aria-label="Move up" title="Move up">
-                                        <ChevronUp size={15} strokeWidth={1.75} aria-hidden="true" />
-                                    </button>
-                                    <button type="button" className="rd-layer-btn" onClick={() => reorderId(o.id, 'down')} aria-label="Move down" title="Move down">
-                                        <ChevronDown size={15} strokeWidth={1.75} aria-hidden="true" />
-                                    </button>
-                                    <button type="button" className="rd-layer-btn" data-on={!!o.locked} onClick={() => patch(o.id, { locked: !o.locked }, true)} aria-label={o.locked ? 'Unlock' : 'Lock'} title={o.locked ? 'Unlock' : 'Lock'}>
-                                        {o.locked ? <Lock size={15} strokeWidth={1.75} aria-hidden="true" /> : <Unlock size={15} strokeWidth={1.75} aria-hidden="true" />}
-                                    </button>
-                                    <button type="button" className="rd-layer-btn" onClick={() => removeId(o.id)} aria-label="Delete" title="Delete">
-                                        <Trash2 size={15} strokeWidth={1.75} aria-hidden="true" />
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
+                                        </BentoControls>
+                                    ),
+                                },
+                                ...DEFAULT_BENTO_ITEMS,
+                            ]}
+                        />
                     </div>
+                    </div>
+                    </>
+                    ) : (
+                    <>
+                    <div className="rd-ied-scroll">
+                    {/* The library as Magic Bento cards, arranged like the Tools (controls above, title and description below) */}
+                    <div className="pe-bento pe-bento-lib">
+                        <MagicBento
+                            columns={4}
+                            rowHeight={200}
+                            gap={12}
+                            radius={20}
+                            enableBorderGlow={false}
+                            enableSpotlight={false}
+                            spotlightRadius={300}
+                            clickEffect
+                            enableStars={false}
+                            particleCount={24}
+                            enableTilt={false}
+                            enableMagnetism={false}
+                            textAutoHide
+                            intro
+                            items={[
+                                {
+                                    id: 'pe-lib-menu',
+                                    colSpan: 2,
+                                    content: (
+                                        <BentoControls title="Library" description="Uploads, photos, elements, text or a background">
+                                            <div className="rd-chips" role="toolbar" aria-label="Library">
+                                                {(
+                                                    [
+                                                        ['Uploads', <Upload key="u" size={16} strokeWidth={1.75} aria-hidden="true" />],
+                                                        ['Photos', <ImageIcon key="p" size={16} strokeWidth={1.75} aria-hidden="true" />],
+                                                        ['Elements', <Shapes key="e" size={16} strokeWidth={1.75} aria-hidden="true" />],
+                                                        ['Text', <TypeIcon key="t" size={16} strokeWidth={1.75} aria-hidden="true" />],
+                                                        ['Background', <Palette key="b" size={16} strokeWidth={1.75} aria-hidden="true" />],
+                                                    ] as [string, React.ReactNode][]
+                                                ).map(([label, icon]) => (
+                                                    <button key={label} type="button" className="rd-btn rd-wide" data-on={libFocus === label} aria-pressed={libFocus === label} onClick={(e) => jumpToLib(e.currentTarget, label)}>
+                                                        {icon} {label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-lib-uploads',
+                                    colSpan: 2,
+                                    rowSpan: 2,
+                                    content: (
+                                        <BentoControls title="Uploads" description="Pictures, PDFs, code or any file">
+                            <>
+                                <button type="button" className="rd-btn rd-wide rd-accent rd-lib-upload" onClick={() => fileRef.current?.click()} disabled={busy}>
+                                    <Upload size={16} strokeWidth={1.75} aria-hidden="true" /> {busy ? 'Adding…' : 'Upload anything'}
+                                </button>
+                                <input
+                                    ref={fileRef}
+                                    type="file"
+                                    multiple
+                                    hidden
+                                    onChange={(e) => {
+                                        const files = Array.from(e.target.files ?? []);
+                                        e.target.value = '';
+                                        if (files.length) void addFiles(files, undefined, false);
+                                    }}
+                                />
+                                {lib.length === 0 ? (
+                                    <p className="rd-hint">Upload anything: pictures (PNG, JPG, SVG, GIF, WebP …), PDFs (each page becomes a picture), code or text files, or any other file. They show up here. Click one or drag it onto the page. You can also paste (Ctrl+V) or drop files on the page.</p>
+                                ) : (
+                                    <div className="rd-lib-grid">
+                                        {lib.map((l) => (
+                                            <div key={l.id} className="pe-lib-item">
+                                                {l.kind === 'image'
+                                                    ? tile(l.id, l.src.name || 'picture', { k: 'lib', id: l.id }, <img src={l.url} alt="" draggable={false} />, 'rd-lib-tile rd-lib-photo')
+                                                    : tile(
+                                                          l.id,
+                                                          l.name,
+                                                          { k: 'lib', id: l.id },
+                                                          <span className="rd-lib-file">
+                                                              <b>{l.name}</b>
+                                                              <small>{l.kind === 'text' ? l.text.slice(0, 90) : 'File label'}</small>
+                                                          </span>,
+                                                          'rd-lib-tile rd-lib-photo rd-lib-filetile'
+                                                      )}
+                                                {/* see it large, in a preview window */}
+                                                <button type="button" className="pe-lib-peek" onClick={() => setPreview(l)} aria-label={`Preview ${l.kind === 'image' ? l.src.name || 'picture' : l.name}`} title="Preview">
+                                                    <Eye size={15} strokeWidth={1.75} aria-hidden="true" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-lib-photos',
+                                    colSpan: 2,
+                                    rowSpan: 2,
+                                    content: (
+                                        <BentoControls title="Photos" description="Free photos to place on the page">
+                            <>
+                                <p className="rd-hint">Free photos from picsum.photos. Click or drag one onto the page. Needs an internet connection.</p>
+                                <div className="rd-lib-grid">
+                                    {PHOTOS.map((id) => tile(`ph${id}`, 'photo', { k: 'photo', id }, <img src={`https://picsum.photos/id/${id}/240/180`} alt="" loading="lazy" draggable={false} />, 'rd-lib-tile rd-lib-photo'))}
+                                </div>
+                            </>
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-lib-elements',
+                                    colSpan: 2,
+                                    rowSpan: 2,
+                                    content: (
+                                        <BentoControls title="Elements" description="Shapes and stickers">
+                            <>
+                                <p className="rd-ied-h">Shapes</p>
+                                <div className="rd-lib-grid rd-lib-small">{SHAPES.map((s) => tile(s.kind, s.label, { k: 'shape', kind: s.kind }, <ShapeIcon d={s.d} line={s.line} />))}</div>
+                                <p className="rd-ied-h">
+                                    <Smile size={14} strokeWidth={1.75} aria-hidden="true" /> Stickers
+                                </p>
+                                <div className="rd-lib-grid rd-lib-small">{EMOJI.map((ch) => tile(ch, ch, { k: 'emoji', ch }, <span className="rd-emoji">{ch}</span>))}</div>
+                            </>
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-lib-text',
+                                    colSpan: 2,
+                                    rowSpan: 2,
+                                    content: (
+                                        <BentoControls title="Text" description="Text styles to place on the page">
+                            <div className="rd-lib-list">
+                                {TEXT_STYLES.map((st, i) => (
+                                    <button key={st.label} type="button" className="rd-lib-text" draggable onDragStart={dragStart({ k: 'text', i })} onClick={() => addFromPayload({ k: 'text', i })} title="Click or drag onto the page">
+                                        <span
+                                            style={{
+                                                fontFamily: st.patch.font === 'serif' ? 'Georgia, serif' : st.patch.font === 'mono' ? 'ui-monospace, Menlo, monospace' : undefined,
+                                                fontWeight: st.patch.bold ? 700 : 400,
+                                                fontStyle: st.patch.italic ? 'italic' : 'normal',
+                                                fontSize: Math.round(12 + (st.patch.size ?? 0.035) * 160),
+                                                background: st.patch.background ?? undefined,
+                                                color: st.patch.color,
+                                                padding: st.patch.background ? '2px 8px' : undefined,
+                                                borderRadius: 6,
+                                            }}
+                                        >
+                                            {st.sample}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                                        </BentoControls>
+                                    ),
+                                },
+                                {
+                                    id: 'pe-lib-background',
+                                    colSpan: 2,
+                                    rowSpan: 1,
+                                    content: (
+                                        <BentoControls title="Background" description="Cover the page with a colour">
+                            <>
+                                <p className="rd-hint">Cover the page with a colour. It goes behind everything and stays locked until you unlock it in Layers.</p>
+                                <div className="rd-lib-grid rd-lib-small">
+                                    {BACKGROUNDS.map((c) => (
+                                        <button key={c} type="button" className="rd-lib-tile rd-lib-color" style={{ background: c }} onClick={() => setBackground(c)} aria-label={`Background ${c}`} title={c} />
+                                    ))}
+                                </div>
+                                <label className="rd-field rd-color">
+                                    <span className="rd-label">Any colour</span>
+                                    <input type="color" defaultValue="#ffffff" onChange={(e) => setBackground(e.target.value)} />
+                                </label>
+                                <button type="button" className="rd-btn rd-wide" onClick={() => setBackground(null)} disabled={!overlays.some((o) => o.type === 'shape' && o.isBackground)}>
+                                    Remove background colour
+                                </button>
+                            </>
+                                        </BentoControls>
+                                    ),
+                                },
+                            ]}
+                        />
+                    </div>
+                    </div>
+                    </>
+                    )}
                     </div>
                   </LiquidGlass>
                 </aside>
@@ -1200,7 +1827,74 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                     }}
                 >
                     {failed && <p className="rd-error">This page could not be shown.</p>}
-                    <div ref={frameRef} className="rd-ied-frame" style={{ width: dispW, height: dispH }} onPointerDown={(e) => e.stopPropagation()}>
+                    {/* while the page is being drawn: Mediconnect's blade loader on the canvas, not an empty page */}
+                    {!failed && !baseReady && (
+                        <div className="rd-page-loader" aria-hidden="true" style={{ zIndex: 5 }}>
+                            <MediconnectSpinner label="Loading page" />
+                        </div>
+                    )}
+                    <div className="pe-pagecol">
+                    {/* The other pages of this window, as in Canva: scroll through them; click one to edit it */}
+                    {stackBefore.map((w) => (
+                        <StackPage
+                            key={w.item.id}
+                            item={w.item}
+                            pageNo={windowNo(w.index)}
+                            pageCount={windowList.length}
+                            width={dispW}
+                            onOpen={() => void openPage(w.index)}
+                            onStep={(dir) => {
+                                const t = windowList[windowNo(w.index) - 1 + dir];
+                                if (t) void openPage(t.index);
+                            }}
+                            onOp={onWindowOp ? (op) => void (op === 'blank' ? blankPage().then((b) => onWindowOp('blank', w.index, b)) : onWindowOp(op, w.index)) : undefined}
+                            disabled={busy}
+                        />
+                    ))}
+                    <div ref={currentRef} className="pe-current">
+                    {/* Page bar, as in Canva: the page's name and its controls */}
+                    <div className="pe-pagebar" style={{ width: dispW }} onPointerDown={(e) => e.stopPropagation()}>
+                        <span className="pe-pagebar-name">
+                            Page {windowPos + 1}
+                            {item.hidden ? <span className="pe-pagebar-tag"> · hidden</span> : null}
+                        </span>
+                        <span className="pe-pagebar-tools">
+                            {onGo && (
+                                <>
+                                    <button type="button" className="pe-pb-btn" onClick={() => void stepPage(-1)} disabled={busy || windowPos <= 0} aria-label="Go to the previous page" title="Previous page">
+                                        <ChevronUp size={18} strokeWidth={1.75} aria-hidden="true" />
+                                    </button>
+                                    <button type="button" className="pe-pb-btn" onClick={() => void stepPage(1)} disabled={busy || windowPos >= windowList.length - 1} aria-label="Go to the next page" title="Next page">
+                                        <ChevronDown size={18} strokeWidth={1.75} aria-hidden="true" />
+                                    </button>
+                                </>
+                            )}
+                            {onHidePage && (
+                                <button type="button" className="pe-pb-btn" data-on={!!item.hidden} onClick={() => onHidePage(ref.current, !item.hidden)} disabled={busy} aria-pressed={!!item.hidden} aria-label={item.hidden ? 'Show page' : 'Hide page'} title={item.hidden ? 'Show page (it is left out of the book and the PDF while hidden)' : 'Hide page (leave it out of the book and the PDF)'}>
+                                    {item.hidden ? <EyeOff size={18} strokeWidth={1.75} aria-hidden="true" /> : <Eye size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                </button>
+                            )}
+                            <button type="button" className="pe-pb-btn" data-on={allLocked} onClick={toggleLockAll} disabled={busy || docMode || overlays.length === 0} aria-pressed={allLocked} aria-label={allLocked ? 'Unlock page' : 'Lock page'} title={allLocked ? 'Unlock everything on this page' : 'Lock everything on this page'}>
+                                {allLocked ? <Lock size={18} strokeWidth={1.75} aria-hidden="true" /> : <Unlock size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            </button>
+                            {onInsertPage && (
+                                <button type="button" className="pe-pb-btn" onClick={() => void insertPage('copy')} disabled={busy} aria-label="Duplicate page" title="Duplicate page">
+                                    {baking === 'dup' ? <ButtonSpinner /> : <Copy size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                </button>
+                            )}
+                            {onDeletePage && (pageCount ?? 0) > 1 && (
+                                <button type="button" className="pe-pb-btn pe-pb-danger" data-on={confirmDel} onClick={() => (confirmDel ? onDeletePage() : setConfirmDel(true))} disabled={busy} aria-label={confirmDel ? 'Tap again to delete the page' : 'Delete page'} title={confirmDel ? 'Tap again to delete' : 'Delete page'}>
+                                    <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+                                </button>
+                            )}
+                            {onInsertPage && (
+                                <button type="button" className="pe-pb-btn" onClick={() => void insertPage('blank')} disabled={busy} aria-label="Add page" title="Add a blank page after this one">
+                                    {baking === 'add' ? <ButtonSpinner /> : <FilePlus2 size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                </button>
+                            )}
+                        </span>
+                    </div>
+                    <div ref={frameRef} className="rd-ied-frame" data-hidden={item.hidden || undefined} style={{ width: dispW, height: dispH }} onPointerDown={(e) => e.stopPropagation()}>
                         <canvas ref={baseRef} style={{ width: dispW, height: dispH }} onPointerDown={() => setSelId(null)} />
                         <OverlayLayer overlays={overlays} skipId={editingId} />
                         <div className="rd-ovl-layer">
@@ -1279,134 +1973,447 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                             </div>
                         )}
                     </div>
-                </div>
-
-                {/* ---------------- right: the library ---------------- */}
-                <aside className="rd-ied-right" aria-label="Library">
-                  <LiquidGlass width="100%" height="100%" radius={28} blur={4} className="rd-ied-glass">
-                    <div className="rd-ied-rightin">
-                    <div className="rd-lib-tabs" role="tablist" aria-label="Library">
-                        {(
-                            [
-                                ['uploads', 'Uploads', <Upload key="u" size={15} strokeWidth={1.75} aria-hidden="true" />],
-                                ['photos', 'Photos', <ImageIcon key="p" size={15} strokeWidth={1.75} aria-hidden="true" />],
-                                ['elements', 'Elements', <Shapes key="e" size={15} strokeWidth={1.75} aria-hidden="true" />],
-                                ['text', 'Text', <TypeIcon key="t" size={15} strokeWidth={1.75} aria-hidden="true" />],
-                                ['background', 'Background', <Palette key="b" size={15} strokeWidth={1.75} aria-hidden="true" />],
-                            ] as [Tab, string, React.ReactNode][]
-                        ).map(([id, label, icon]) => (
-                            <button key={id} type="button" role="tab" aria-selected={tab === id} data-on={tab === id} className="rd-lib-tab" onClick={() => setTab(id)}>
-                                {icon}
-                                <span>{label}</span>
+                    </div>
+                    {stackAfter.map((w) => (
+                        <StackPage
+                            key={w.item.id}
+                            item={w.item}
+                            pageNo={windowNo(w.index)}
+                            pageCount={windowList.length}
+                            width={dispW}
+                            onOpen={() => void openPage(w.index)}
+                            onStep={(dir) => {
+                                const t = windowList[windowNo(w.index) - 1 + dir];
+                                if (t) void openPage(t.index);
+                            }}
+                            onOp={onWindowOp ? (op) => void (op === 'blank' ? blankPage().then((b) => onWindowOp('blank', w.index, b)) : onWindowOp(op, w.index)) : undefined}
+                            disabled={busy}
+                        />
+                    ))}
+                    {/* Add page, as in Canva: a wide button under the pages, with a menu for a blank page or a copy of this one */}
+                    {onInsertPage && (
+                        <div className="pe-addbar" style={{ width: dispW }} onPointerDown={(e) => e.stopPropagation()}>
+                            <button type="button" className="pe-addbar-main" onClick={() => void insertPage('blank')} disabled={busy}>
+                                {baking === 'add' ? <ButtonSpinner /> : <span aria-hidden="true">+</span>} Add page
                             </button>
-                        ))}
-                    </div>
-
-                    <div className="rd-lib-body" role="tabpanel">
-                        {tab === 'uploads' && (
-                            <>
-                                <button type="button" className="rd-btn rd-wide rd-accent rd-lib-upload" onClick={() => fileRef.current?.click()} disabled={busy}>
-                                    <Upload size={16} strokeWidth={1.75} aria-hidden="true" /> {busy ? 'Adding…' : 'Upload anything'}
-                                </button>
-                                <input
-                                    ref={fileRef}
-                                    type="file"
-                                    multiple
-                                    hidden
-                                    onChange={(e) => {
-                                        const files = Array.from(e.target.files ?? []);
-                                        e.target.value = '';
-                                        if (files.length) void addFiles(files, undefined, false);
-                                    }}
-                                />
-                                {lib.length === 0 ? (
-                                    <p className="rd-hint">Upload anything: pictures (PNG, JPG, SVG, GIF, WebP …), PDFs (each page becomes a picture), code or text files, or any other file. They show up here. Click one or drag it onto the page. You can also paste (Ctrl+V) or drop files on the page.</p>
-                                ) : (
-                                    <div className="rd-lib-grid">
-                                        {lib.map((l) =>
-                                            l.kind === 'image'
-                                                ? tile(l.id, l.src.name || 'picture', { k: 'lib', id: l.id }, <img src={l.url} alt="" draggable={false} />, 'rd-lib-tile rd-lib-photo')
-                                                : tile(
-                                                      l.id,
-                                                      l.name,
-                                                      { k: 'lib', id: l.id },
-                                                      <span className="rd-lib-file">
-                                                          <b>{l.name}</b>
-                                                          <small>{l.kind === 'text' ? l.text.slice(0, 90) : 'File label'}</small>
-                                                      </span>,
-                                                      'rd-lib-tile rd-lib-photo rd-lib-filetile'
-                                                  )
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {tab === 'photos' && (
-                            <>
-                                <p className="rd-hint">Free photos from picsum.photos. Click or drag one onto the page. Needs an internet connection.</p>
-                                <div className="rd-lib-grid">
-                                    {PHOTOS.map((id) => tile(`ph${id}`, 'photo', { k: 'photo', id }, <img src={`https://picsum.photos/id/${id}/240/180`} alt="" loading="lazy" draggable={false} />, 'rd-lib-tile rd-lib-photo'))}
-                                </div>
-                            </>
-                        )}
-
-                        {tab === 'elements' && (
-                            <>
-                                <p className="rd-ied-h">Shapes</p>
-                                <div className="rd-lib-grid rd-lib-small">{SHAPES.map((s) => tile(s.kind, s.label, { k: 'shape', kind: s.kind }, <ShapeIcon d={s.d} line={s.line} />))}</div>
-                                <p className="rd-ied-h">
-                                    <Smile size={14} strokeWidth={1.75} aria-hidden="true" /> Stickers
-                                </p>
-                                <div className="rd-lib-grid rd-lib-small">{EMOJI.map((ch) => tile(ch, ch, { k: 'emoji', ch }, <span className="rd-emoji">{ch}</span>))}</div>
-                            </>
-                        )}
-
-                        {tab === 'text' && (
-                            <div className="rd-lib-list">
-                                {TEXT_STYLES.map((st, i) => (
-                                    <button key={st.label} type="button" className="rd-lib-text" draggable onDragStart={dragStart({ k: 'text', i })} onClick={() => addFromPayload({ k: 'text', i })} title="Click or drag onto the page">
-                                        <span
-                                            style={{
-                                                fontFamily: st.patch.font === 'serif' ? 'Georgia, serif' : st.patch.font === 'mono' ? 'ui-monospace, Menlo, monospace' : undefined,
-                                                fontWeight: st.patch.bold ? 700 : 400,
-                                                fontStyle: st.patch.italic ? 'italic' : 'normal',
-                                                fontSize: Math.round(12 + (st.patch.size ?? 0.035) * 160),
-                                                background: st.patch.background ?? undefined,
-                                                color: st.patch.color,
-                                                padding: st.patch.background ? '2px 8px' : undefined,
-                                                borderRadius: 6,
-                                            }}
-                                        >
-                                            {st.sample}
-                                        </span>
+                            <button type="button" className="pe-addbar-more" onClick={() => setAddMenu((v) => !v)} disabled={busy} aria-haspopup="menu" aria-expanded={addMenu} aria-label="More ways to add a page">
+                                <ChevronDown size={18} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                            {addMenu && (
+                                <div className="pe-addbar-menu" role="menu" onMouseLeave={() => setAddMenu(false)}>
+                                    <button type="button" role="menuitem" onClick={() => { setAddMenu(false); void insertPage('blank'); }}>
+                                        <FilePlus2 size={16} strokeWidth={1.75} aria-hidden="true" /> Blank page
                                     </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {tab === 'background' && (
-                            <>
-                                <p className="rd-hint">Cover the page with a colour. It goes behind everything and stays locked until you unlock it in Layers.</p>
-                                <div className="rd-lib-grid rd-lib-small">
-                                    {BACKGROUNDS.map((c) => (
-                                        <button key={c} type="button" className="rd-lib-tile rd-lib-color" style={{ background: c }} onClick={() => setBackground(c)} aria-label={`Background ${c}`} title={c} />
-                                    ))}
+                                    <button type="button" role="menuitem" onClick={() => { setAddMenu(false); void insertPage('copy'); }}>
+                                        <Copy size={16} strokeWidth={1.75} aria-hidden="true" /> Duplicate this page
+                                    </button>
                                 </div>
-                                <label className="rd-field rd-color">
-                                    <span className="rd-label">Any colour</span>
-                                    <input type="color" defaultValue="#ffffff" onChange={(e) => setBackground(e.target.value)} />
-                                </label>
-                                <button type="button" className="rd-btn rd-wide" onClick={() => setBackground(null)} disabled={!overlays.some((o) => o.type === 'shape' && o.isBackground)}>
-                                    Remove background colour
-                                </button>
-                            </>
-                        )}
+                            )}
+                        </div>
+                    )}
                     </div>
-                    </div>
-                  </LiquidGlass>
-                </aside>
+                </div>
             </div>
+
+            {/* Preview window for a Library item, in the design of the "Add your own story" window */}
+            {preview &&
+                typeof document !== 'undefined' &&
+                createPortal(
+                    <div ref={previewRef} className="pe-preview-backdrop" onPointerDown={(e) => e.target === e.currentTarget && setPreview(null)}>
+                        <div className="pe-preview" role="dialog" aria-modal="true" aria-label="Preview">
+                            <button type="button" className="pe-preview-close" onClick={() => setPreview(null)} aria-label="Close preview">
+                                <X size={22} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                            <h2 className="pe-preview-title">{preview.kind === 'image' ? preview.src.name || 'Picture' : preview.name}</h2>
+                            <div className="pe-preview-body">
+                                {preview.kind === 'image' ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={preview.url} alt="" draggable={false} />
+                                ) : preview.kind === 'text' ? (
+                                    <pre>{preview.text}</pre>
+                                ) : (
+                                    <p>{preview.label}</p>
+                                )}
+                            </div>
+                            <div className="pe-preview-actions">
+                                <button
+                                    type="button"
+                                    className="pe-preview-add"
+                                    onClick={() => {
+                                        addFromPayload({ k: 'lib', id: preview.id });
+                                        setPreview(null);
+                                    }}
+                                >
+                                    Add to page
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.fullscreenElement ?? document.body
+                )}
+
+            {/* Document mode: the rich text editor in place of the page canvas. Keys and pasting stay inside it. */}
+            {docMode && docInit && (
+                <div ref={docWrapRef} className="rd-ied-doc" style={{ ['--pe-aspect' as string]: String(docAspect) } as React.CSSProperties} onKeyDown={(e) => e.stopPropagation()} onPaste={(e) => e.stopPropagation()}>
+                    {message && (
+                        <p className="rd-error" role="alert">
+                            {message}
+                        </p>
+                    )}
+                    <StoryTextEditor
+                        key={docSlot}
+                        initial={docInit}
+                        draftSlot={docSlot}
+                        onChange={(d) => {
+                            docLatest.current = d;
+                        }}
+                        placeholder="Write this page…"
+                    />
+                    <DocSheets wrap={docWrapRef} aspect={docAspect} hf={docHf} onHf={setDocHf} />
+                </div>
+            )}
         </div>
+    );
+}
+
+/* ---------- document mode: the pages as separate sheets ---------- */
+
+const DOC_SHEET_GAP = 24;
+
+interface DocHf {
+    header: string;
+    footer: string;
+    pageNumbers: boolean;
+}
+
+/**
+ * Lays the document out as separate pages, like Google Docs / Word: a white sheet per page (in the flip book page's
+ * proportions) with a grey gap between sheets. Any block (paragraph, heading, list, code block ...) that would cross a
+ * sheet's bottom margin is moved to the top of the next sheet, by a style rule only, so the document itself is
+ * unchanged. Clicking anywhere in a sheet's writing area puts the cursor in the document.
+ *
+ * Header and footer, as in Docs / Word: none is shown until you want one. Double-click a page's top margin to write
+ * the header, or its bottom margin for the footer (with page numbers if you tick them); Enter or clicking away keeps
+ * it, Escape leaves it as it was, and an empty header / footer disappears again. Both repeat on every page.
+ * The sheets are drawn inside the editor's page element, so putting the document on the PDF pages cuts along them.
+ */
+function DocSheets({ wrap, aspect, hf, onHf }: { wrap: React.RefObject<HTMLDivElement>; aspect: number; hf: DocHf; onHf: (hf: DocHf) => void }) {
+    const [pageEl, setPageEl] = useState<HTMLElement | null>(null);
+    const [pages, setPages] = useState(1);
+    const [sheetH, setSheetH] = useState(0);
+    const styleRef = useRef<HTMLStyleElement | null>(null);
+    /** which margin is being written in, and on which sheet */
+    const [editing, setEditing] = useState<{ part: 'header' | 'footer'; sheet: number } | null>(null);
+    const [draft, setDraft] = useState<DocHf>(hf);
+
+    // the editor's page element, once the editor has rendered
+    useEffect(() => {
+        const w = wrap.current;
+        if (!w) return undefined;
+        const find = () => {
+            const el = w.querySelector<HTMLElement>('.sr-page');
+            if (el) setPageEl(el);
+            return !!el;
+        };
+        if (find()) return undefined;
+        const mo = new MutationObserver(() => {
+            if (find()) mo.disconnect();
+        });
+        mo.observe(w, { childList: true, subtree: true });
+        return () => mo.disconnect();
+    }, [wrap]);
+
+    useEffect(() => {
+        const st = document.createElement('style');
+        document.head.appendChild(st);
+        styleRef.current = st;
+        return () => st.remove();
+    }, []);
+
+    useEffect(() => {
+        const surface = pageEl?.querySelector<HTMLElement>('.sr-surface');
+        if (!pageEl || !surface) return undefined;
+        let raf = 0;
+        const layout = () => {
+            raf = 0;
+            const st = styleRef.current;
+            if (!st) return;
+            const P = pageEl.offsetWidth * aspect;
+            const G = DOC_SHEET_GAP;
+            const cs = getComputedStyle(pageEl);
+            const padT = parseFloat(cs.paddingTop) || 0;
+            const padB = parseFloat(cs.paddingBottom) || 0;
+            const room = P - padT - padB;
+            pageEl.style.setProperty('--pe-room', `${room}px`); // the empty document fills the first page's writing area
+            st.textContent = ''; // measure the blocks where they naturally fall
+            const box = pageEl.getBoundingClientRect();
+            const z = box.height / Math.max(1, pageEl.offsetHeight) || 1; // the editor's zoom
+            const kids = Array.from(surface.children) as HTMLElement[];
+            const rules: string[] = [];
+            let shift = 0;
+            let last = padT;
+            kids.forEach((k, i) => {
+                const r = k.getBoundingClientRect();
+                const t = (r.top - box.top) / z + shift;
+                const b = (r.bottom - box.top) / z + shift;
+                const idx = Math.floor(t / (P + G));
+                const local = t - idx * (P + G);
+                let push = 0;
+                if (local > P - padB) push = (idx + 1) * (P + G) + padT - t; // starts in a bottom margin or a gap
+                else if (local < padT && idx > 0) push = idx * (P + G) + padT - t; // starts in a top margin
+                else if (b > idx * (P + G) + P - padB && b - t <= room) push = (idx + 1) * (P + G) + padT - t; // crosses the bottom
+                if (push > 0.5) {
+                    const prevMB = i > 0 ? parseFloat(getComputedStyle(kids[i - 1]).marginBottom) || 0 : 0;
+                    const ownMT = parseFloat(getComputedStyle(k).marginTop) || 0;
+                    rules.push(`.rd-ied-doc .sr-surface > :nth-child(${i + 1}) { margin-top: ${Math.max(prevMB, ownMT) + push}px !important; }`);
+                    shift += push;
+                }
+                last = Math.max(last, b + (push > 0.5 ? push : 0));
+            });
+            st.textContent = rules.join('\n');
+            const n = Math.max(1, Math.floor((last + padB - 1) / (P + G)) + 1);
+            pageEl.style.setProperty('--pe-sheet-h', `${P}px`);
+            pageEl.style.setProperty('--pe-gap', `${G}px`);
+            pageEl.style.setProperty('--pe-pages', String(n));
+            setPages(n);
+            setSheetH(P);
+        };
+        const schedule = () => {
+            if (!raf) raf = requestAnimationFrame(layout);
+        };
+        layout();
+        const mo = new MutationObserver(schedule);
+        mo.observe(surface, { childList: true, subtree: true, characterData: true, attributes: true });
+        const ro = new ResizeObserver(schedule);
+        ro.observe(surface);
+        return () => {
+            cancelAnimationFrame(raf);
+            mo.disconnect();
+            ro.disconnect();
+            if (styleRef.current) styleRef.current.textContent = '';
+        };
+    }, [pageEl, aspect]);
+
+    /** a click in a sheet's writing area (below the text, or on a later page) puts the cursor at the end of the document */
+    const focusEnd = (e: React.MouseEvent) => {
+        if (e.target !== e.currentTarget) return;
+        const surface = pageEl?.querySelector<HTMLElement>('.sr-surface');
+        if (!surface) return;
+        e.preventDefault();
+        surface.focus();
+        const r = document.createRange();
+        r.selectNodeContents(surface);
+        r.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(r);
+    };
+
+    const startEdit = (part: 'header' | 'footer', sheet: number) => {
+        setDraft(hf);
+        setEditing({ part, sheet });
+    };
+    const finish = (keep: boolean) => {
+        if (keep) onHf({ header: draft.header.trim(), footer: draft.footer.trim(), pageNumbers: draft.pageNumbers });
+        setEditing(null);
+    };
+    const keys = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finish(true);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            finish(false);
+        }
+    };
+    // leaving the field (clicking anywhere else) keeps what was written
+    const blurOut = (e: React.FocusEvent) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) finish(true);
+    };
+
+    if (!pageEl || sheetH <= 0) return null;
+    const showFooter = !!hf.footer || hf.pageNumbers;
+    return createPortal(
+        <div className="pe-sheets">
+            {Array.from({ length: pages }, (_, i) => {
+                const editHead = editing?.part === 'header' && editing.sheet === i;
+                const editFoot = editing?.part === 'footer' && editing.sheet === i;
+                return (
+                    <div key={i} className="pe-sheet" style={{ top: i * (sheetH + DOC_SHEET_GAP), height: sheetH }} onMouseDown={focusEnd}>
+                        <div className="pe-hf pe-hf-head" data-editing={editHead || undefined} title={editHead ? undefined : 'Double-click to write a header'} onDoubleClick={() => startEdit('header', i)}>
+                            {editHead ? (
+                                <span className="pe-hf-edit" onBlur={blurOut}>
+                                    <input autoFocus className="pe-hf-input" value={draft.header} placeholder="Header" aria-label="Header" onChange={(e) => setDraft((d) => ({ ...d, header: e.target.value }))} onKeyDown={keys} />
+                                </span>
+                            ) : (
+                                hf.header && <span>{hf.header}</span>
+                            )}
+                        </div>
+                        <div className="pe-hf pe-hf-foot" data-editing={editFoot || undefined} title={editFoot ? undefined : 'Double-click to write a footer'} onDoubleClick={() => startEdit('footer', i)}>
+                            {editFoot ? (
+                                <span className="pe-hf-edit" onBlur={blurOut}>
+                                    <input autoFocus className="pe-hf-input" value={draft.footer} placeholder="Footer" aria-label="Footer" onChange={(e) => setDraft((d) => ({ ...d, footer: e.target.value }))} onKeyDown={keys} />
+                                    <label className="pe-hf-check">
+                                        <input type="checkbox" checked={draft.pageNumbers} onChange={(e) => setDraft((d) => ({ ...d, pageNumbers: e.target.checked }))} onKeyDown={keys} /> Page numbers
+                                    </label>
+                                </span>
+                            ) : (
+                                showFooter && (
+                                    <>
+                                        <span>{hf.footer}</span>
+                                        {hf.pageNumbers && <span className="pe-pn">Page {i + 1} of {pages}</span>}
+                                    </>
+                                )
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>,
+        pageEl
+    );
+}
+
+/** Mediconnect's blade loader, sized to sit inside a toolbar button while the document is put on the PDF page(s). */
+function ButtonSpinner() {
+    return (
+        <span aria-hidden="true" style={{ position: 'relative', display: 'inline-block', width: 18, height: 18, flex: 'none', transform: 'scale(0.65)', transformOrigin: 'center' }}>
+            <MediconnectSpinner label="Adding the document to the PDF" />
+        </span>
+    );
+}
+
+/**
+ * Another page of the page editor's window, shown in the stack above / below the page being edited (Canva-style),
+ * drawn with everything placed on it. Clicking it opens it for editing.
+ */
+function StackPage({
+    item,
+    pageNo,
+    pageCount,
+    width,
+    onOpen,
+    onStep,
+    onOp,
+    disabled,
+}: {
+    item: PageItem;
+    pageNo: number;
+    pageCount: number;
+    width: number;
+    onOpen: () => void;
+    onStep: (dir: -1 | 1) => void;
+    onOp?: (op: 'hide' | 'show' | 'lock' | 'unlock' | 'duplicate' | 'delete' | 'blank') => void;
+    disabled?: boolean;
+}) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+    const [confirmDel, setConfirmDel] = useState(false);
+    useEffect(() => {
+        if (!confirmDel) return undefined;
+        const t = setTimeout(() => setConfirmDel(false), 3500);
+        return () => clearTimeout(t);
+    }, [confirmDel]);
+    const locked = item.overlays.length > 0 && item.overlays.every((o) => o.locked);
+
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                const side = Math.round(Math.min(1600, width * Math.min(window.devicePixelRatio || 1, 2)));
+                let out: HTMLCanvasElement;
+                if (item.type === 'image') {
+                    out = renderEdit(await getBitmap(item.src), item.edit, side);
+                } else {
+                    const page = await item.src.pdf.getPage(item.index + 1);
+                    const b = page.getViewport({ scale: 1 });
+                    const vp = page.getViewport({ scale: side / b.width });
+                    out = document.createElement('canvas');
+                    out.width = Math.max(1, Math.floor(vp.width));
+                    out.height = Math.max(1, Math.floor(vp.height));
+                    const c = out.getContext('2d')!;
+                    c.fillStyle = '#fff';
+                    c.fillRect(0, 0, out.width, out.height);
+                    await page.render({ canvasContext: c, canvas: out, viewport: vp } as any).promise;
+                    page.cleanup();
+                }
+                if (item.overlays.length) await drawOverlays(out.getContext('2d')!, out.width, out.height, item.overlays);
+                const cv = canvasRef.current;
+                if (!alive || !cv) return;
+                cv.width = out.width;
+                cv.height = out.height;
+                cv.getContext('2d')?.drawImage(out, 0, 0);
+                setSize({ w: out.width, h: out.height });
+            } catch {
+                /* the page simply stays empty */
+            }
+        })();
+        return () => {
+            alive = false;
+        };
+    }, [item, width]);
+
+    const h = size ? (width * size.h) / size.w : width * 1.414;
+    return (
+        <div className="pe-stackpage" style={{ width }} onPointerDown={(e) => e.stopPropagation()}>
+            <div className="pe-pagebar" style={{ width }}>
+                <span className="pe-pagebar-name">
+                    Page {pageNo}
+                    {item.hidden ? <span className="pe-pagebar-tag"> · hidden</span> : null}
+                </span>
+                {/* the same controls as the page being edited, acting on this page */}
+                <span className="pe-pagebar-tools">
+                    <button type="button" className="pe-pb-btn" onClick={() => onStep(-1)} disabled={disabled || pageNo <= 1} aria-label="Go to the previous page" title="Previous page">
+                        <ChevronUp size={18} strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    <button type="button" className="pe-pb-btn" onClick={() => onStep(1)} disabled={disabled || pageNo >= pageCount} aria-label="Go to the next page" title="Next page">
+                        <ChevronDown size={18} strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    {onOp && (
+                        <>
+                            <button type="button" className="pe-pb-btn" data-on={!!item.hidden} onClick={() => onOp(item.hidden ? 'show' : 'hide')} disabled={disabled} aria-pressed={!!item.hidden} aria-label={item.hidden ? 'Show page' : 'Hide page'} title={item.hidden ? 'Show page' : 'Hide page (leave it out of the book and the PDF)'}>
+                                {item.hidden ? <EyeOff size={18} strokeWidth={1.75} aria-hidden="true" /> : <Eye size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            </button>
+                            <button type="button" className="pe-pb-btn" data-on={locked} onClick={() => onOp(locked ? 'unlock' : 'lock')} disabled={disabled || item.overlays.length === 0} aria-pressed={locked} aria-label={locked ? 'Unlock page' : 'Lock page'} title={locked ? 'Unlock everything on this page' : 'Lock everything on this page'}>
+                                {locked ? <Lock size={18} strokeWidth={1.75} aria-hidden="true" /> : <Unlock size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            </button>
+                            <button type="button" className="pe-pb-btn" onClick={() => onOp('duplicate')} disabled={disabled} aria-label="Duplicate page" title="Duplicate page">
+                                <Copy size={18} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                            {pageCount > 1 && (
+                                <button type="button" className="pe-pb-btn pe-pb-danger" data-on={confirmDel} onClick={() => (confirmDel ? onOp('delete') : setConfirmDel(true))} disabled={disabled} aria-label={confirmDel ? 'Tap again to delete the page' : 'Delete page'} title={confirmDel ? 'Tap again to delete' : 'Delete page'}>
+                                    <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+                                </button>
+                            )}
+                            <button type="button" className="pe-pb-btn" onClick={() => onOp('blank')} disabled={disabled} aria-label="Add page" title="Add a blank page after this one">
+                                <FilePlus2 size={18} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                        </>
+                    )}
+                </span>
+            </div>
+            <button type="button" className="pe-stackpage-btn" style={{ width, height: h }} onClick={onOpen} disabled={disabled} aria-label={`Edit page ${pageNo}`} title="Click to edit this page" data-hidden={item.hidden || undefined}>
+                <canvas ref={canvasRef} style={{ width, height: h, display: 'block' }} />
+                {!size && (
+                    <span className="rd-page-loader" aria-hidden="true">
+                        <MediconnectSpinner label="Loading page" />
+                    </span>
+                )}
+            </button>
+        </div>
+    );
+}
+
+/** One editor card in the Magic Bento: its controls (scrolling inside the card when long), then a title and a
+ *  description in the bento's own card style. */
+function BentoControls({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+    return (
+        <>
+            <div className="pe-bento-controls">{children}</div>
+            <div className="mt-auto flex flex-col gap-1">
+                <h3 className="m-0 text-[15px] leading-5 font-semibold tracking-[-0.01em] text-[color:var(--mb-ink)]">{title}</h3>
+                <p className="m-0 line-clamp-2 text-[13px] leading-[1.45] text-[color:var(--mb-muted)]">{description}</p>
+            </div>
+        </>
     );
 }

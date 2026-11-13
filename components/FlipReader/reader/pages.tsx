@@ -4,6 +4,7 @@ import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 import { OverlayLayer } from './OverlayLayer';
+import { MediconnectSpinner } from '@/components/ui/loaders/MediconnectSpinner';
 
 import { useFlipPageSize } from '@/components/FlipReader/flip-book';
 import { getBitmap, renderEdit } from '@/lib/flipreader/imageops';
@@ -159,9 +160,10 @@ export const PdfPage = memo(function PdfPage({
                 position: 'relative',
             }}
         >
+            {/* while the page is being drawn: Mediconnect's blade loader in the page itself, not a blank page */}
             {active && !drawn && (
                 <div className="rd-page-loader" aria-hidden="true">
-                    <span />
+                    <MediconnectSpinner label="Loading page" />
                 </div>
             )}
             <div style={{ position: 'relative', lineHeight: 0 }}>
@@ -300,10 +302,12 @@ export const ImagePage = memo(function ImagePage({
     const overlays = item.overlays;
     const { W, H } = useFlipPageSize();
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [drawn, setDrawn] = useState(false);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return undefined;
+        setDrawn(false);
         if (!active) {
             canvas.width = 0;
             canvas.height = 0;
@@ -327,6 +331,7 @@ export const ImagePage = memo(function ImagePage({
                 const k = Math.min(W / out.width, H / out.height);
                 canvas.style.width = `${out.width * k}px`;
                 canvas.style.height = `${out.height * k}px`;
+                setDrawn(true);
             } catch (err) {
                 if (!cancelled) console.error('Image page failed', err);
             }
@@ -337,11 +342,26 @@ export const ImagePage = memo(function ImagePage({
     }, [item.src, item.edit, active, W, H, quality]);
 
     return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: night ? '#0f1112' : '#f7f4ee' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: night ? '#0f1112' : '#f7f4ee' }}>
+            {/* while the picture is being drawn: Mediconnect's blade loader in the page itself, not a blank page */}
+            {active && !drawn && (
+                <div className="rd-page-loader" aria-hidden="true">
+                    <MediconnectSpinner label="Loading page" />
+                </div>
+            )}
             <div style={{ position: 'relative', lineHeight: 0 }}>
                 <canvas ref={canvasRef} style={{ display: 'block', filter: night ? 'brightness(0.86)' : undefined }} />
                 {overlays.length > 0 && <OverlayLayer overlays={overlays} quality={quality} />}
             </div>
+        </div>
+    );
+});
+
+/** A page hidden in the page editor: it keeps its place in the book but shows only that it is hidden. */
+export const HiddenPage = memo(function HiddenPage({ night = false }: { night?: boolean }) {
+    return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: night ? '#0f1112' : '#f7f4ee', color: night ? '#8a8d93' : '#8a8478', font: '14px/1.4 Inter, system-ui, sans-serif' }}>
+            Hidden page
         </div>
     );
 });

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { MediconnectSpinner } from '@/components/ui/loaders/MediconnectSpinner';
 import { ChevronsLeft, ChevronsRight, X } from 'lucide-react';
 
 import HTMLFlipBook, { FlipBookHandle, HoldData, IFlipEvent, LayoutMode, TapData } from '@/components/FlipReader/flip-book';
@@ -19,7 +21,7 @@ import { ImageEditor } from './ImageEditor';
 import { PageEditor } from './PageEditor';
 import { Island, ShowBar, ThemeChoice } from './Island';
 import { InsertMode, PagesTray } from './PagesTray';
-import { HighlightTarget, ImagePage, PdfPage, TextPage } from './pages';
+import { HiddenPage, HighlightTarget, ImagePage, PdfPage, TextPage } from './pages';
 import { SearchPanel } from './SearchPanel';
 import { useZoom } from './useZoom';
 import { useFlipbookTimeLog } from './useFlipbookTimeLog';
@@ -133,6 +135,10 @@ export default function Reader() {
     const [trayOpen, setTrayOpen] = useState(false);
     const [imageEditing, setImageEditing] = useState(false);
     const [annotating, setAnnotating] = useState(false);
+    /** the pages of the page editor's window: the page it was opened on and every page added from it (Canva-style stack) */
+    const [annotIds, setAnnotIds] = useState<string[]>([]);
+    /** the book as it was when the page editor opened: Cancel goes back to it, so nothing from the window reaches the PDF */
+    const annotStart = useRef<{ items: PageItem[]; history: number; sel: number } | null>(null);
     const [sel, setSel] = useState(0); // selected page (0-based, pages of the file only)
     const [insertMode, setInsertMode] = useState<InsertMode>('after');
     const [exporting, setExporting] = useState<{ done: number; total: number } | null>(null);
@@ -357,12 +363,24 @@ export default function Reader() {
         [resetZoom]
     );
 
+    const router = useRouter();
+    const startedRef = useRef(false);
     // a PDF added from elsewhere in Pacewise arrives here and opens straight away as a flip book
     useEffect(() => {
+        if (startedRef.current) return; // once (development runs effects twice; the files are already taken)
+        startedRef.current = true;
         const files = takePendingFiles();
         if (files.length) void openFiles(files);
+        else router.replace('/'); // nothing to open: the flip book has no start page of its own, Pacewise's home is it
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // No book (the files could not be opened): back to Pacewise's home page, after the error has been read.
+    useEffect(() => {
+        if (doc || busy || !error) return undefined;
+        const t = setTimeout(() => router.replace('/'), 3000);
+        return () => clearTimeout(t);
+    }, [doc, busy, error, router]);
 
     const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files ?? []);
@@ -470,17 +488,120 @@ export default function Reader() {
         setImageEditing(false);
     };
 
-    const pageAnnotateApply = (overlays: Overlay[]) => {
-        editPages((items) => items.map((it, i) => (i === sel ? { ...it, overlays } : it)), [], sel);
+    /** This page's layers, plus any pages a document written on it runs on to (added right after it). */
+    const withAnnotation = (items: PageItem[], overlays: Overlay[], extraPages: ImageSource[]) => {
+        const next = items.map((it, i) => (i === sel ? { ...it, overlays } : it));
+        if (!extraPages.length) return next;
+        const added = extraPages.map((src) => imageItem(src));
+        addToWindow(added.map((a) => a.id)); // pages a document runs on to belong to the editor's window too
+        return insertAt(next, sel + 1, added);
+    };
+    const addToWindow = (ids: string[]) => setAnnotIds((cur) => [...cur, ...ids.filter((id) => !cur.includes(id))]);
+
+    const pageAnnotateApply = (overlays: Overlay[], extraPages: ImageSource[] = []) => {
+        editPages((items) => withAnnotation(items, overlays, extraPages), extraPages, sel);
+        annotStart.current = null; // applied: the window's pages are now part of the PDF
         setAnnotating(false);
     };
 
     /** Keep what was added to this page, then open the previous (-1) or next (+1) page in the editor. */
-    const pageAnnotateGo = (overlays: Overlay[], delta: number) => {
-        const n = pagesDoc?.items.length ?? 0;
+    const pageAnnotateGo = (overlays: Overlay[], delta: number, extraPages: ImageSource[] = []) => {
+        const n = (pagesDoc?.items.length ?? 0) + extraPages.length;
         const to = sel + delta;
         if (to < 0 || to >= n) return;
-        editPages((items) => items.map((it, i) => (i === sel ? { ...it, overlays } : it)), [], to);
+        editPages((items) => withAnnotation(items, overlays, extraPages), extraPages, to);
+    };
+
+    /**
+     * From the page editor: keep this page's work, put a new page right after it (after any pages its document runs on
+     * to) and open that page in the editor, like Canva's add / duplicate page. `blank` is a white page; without it the
+     * current page is copied with everything on it.
+     */
+    const pageAnnotateInsert = (overlays: Overlay[], extraPages: ImageSource[] = [], blank?: ImageSource) => {
+        const at = sel + 1 + extraPages.length;
+        editPages(
+            (items) => {
+                const next = withAnnotation(items, overlays, extraPages);
+                const added = blank ? imageItem(blank) : duplicateItem(next[sel]);
+                addToWindow([added.id]);
+                return insertAt(next, at, [added]);
+            },
+            blank ? [...extraPages, blank] : extraPages,
+            at
+        );
+    };
+
+    /** From the page editor's page bar: keep this page's work and hide / show the page (left out of the book and the PDF). */
+    const pageAnnotateHide = (overlays: Overlay[], hidden: boolean) => {
+        editPages((items) => items.map((it, i) => (i === sel ? { ...it, overlays, hidden } : it)), [], sel);
+    };
+
+    /**
+     * From a page in the page editor's stack (not the one being edited): hide / show it, lock / unlock everything on it,
+     * duplicate it, delete it or add a blank page after it. The editor stays on its own page (only its number may move).
+     */
+    const pageWindowOp = (op: 'hide' | 'show' | 'lock' | 'unlock' | 'duplicate' | 'delete' | 'blank', index: number, blank?: ImageSource) => {
+        const cur = docRef.current;
+        if (!cur || cur.kind !== 'pages' || !cur.items[index] || index === sel) return;
+        const target = cur.items[index];
+        const after = index < sel ? sel + 1 : sel; // the edited page's place once a page is added before it
+        if (op === 'hide' || op === 'show') {
+            editPages((items) => items.map((it, i) => (i === index ? { ...it, hidden: op === 'hide' } : it)), [], sel);
+        } else if (op === 'lock' || op === 'unlock') {
+            editPages((items) => items.map((it, i) => (i === index ? { ...it, overlays: it.overlays.map((o) => ({ ...o, locked: op === 'lock' })) } : it)), [], sel);
+        } else if (op === 'duplicate') {
+            const copy = duplicateItem(target);
+            addToWindow([copy.id]);
+            editPages((items) => insertAt(items, index + 1, [copy]), [], after);
+        } else if (op === 'blank' && blank) {
+            const page = imageItem(blank);
+            addToWindow([page.id]);
+            editPages((items) => insertAt(items, index + 1, [page]), [blank], after);
+        } else if (op === 'delete' && cur.items.length > 1) {
+            editPages((items) => removeAt(items, index), [], index < sel ? sel - 1 : sel);
+        }
+    };
+
+    /**
+     * Cancel in the page editor: the window is separate from the PDF until Apply, so everything done in it (new and
+     * duplicated pages, hidden / locked pages, edits on any of its pages) is dropped and the book is as it was.
+     */
+    /** Deleting the page being edited: go to the nearest other page of the window (never into the rest of the PDF). */
+    const pageAnnotateDelete = () => {
+        const cur = docRef.current;
+        if (!cur || cur.kind !== 'pages' || cur.items.length <= 1) return;
+        const gone = cur.items[sel].id;
+        const rest = cur.items.map((it, i) => ({ id: it.id, i })).filter((w) => w.id !== gone && annotIds.includes(w.id));
+        if (rest.length === 0) {
+            // the window's only page: delete it and close the editor, as before
+            annotStart.current = null;
+            setAnnotating(false);
+            pageDelete();
+            return;
+        }
+        const next = rest.find((w) => w.i > sel) ?? rest[rest.length - 1];
+        setAnnotIds((ids) => ids.filter((id) => id !== gone));
+        editPages((items) => removeAt(items, sel), [], next.i > sel ? next.i - 1 : next.i);
+    };
+
+    /** Document mode, leaving it: the written page becomes the page being edited (same page, its layers kept). */
+    const pageAnnotateReplace = (src: ImageSource) => {
+        editPages((items) => items.map((it, i) => (i === sel ? { ...imageItem(src), id: it.id, overlays: it.overlays, hidden: it.hidden } : it)), [src], sel);
+    };
+
+    const pageAnnotateCancel = () => {
+        const start = annotStart.current;
+        const cur = docRef.current;
+        annotStart.current = null;
+        setAnnotating(false);
+        if (!start || !cur || cur.kind !== 'pages' || cur.items === start.items) return;
+        historyRef.current.length = Math.min(historyRef.current.length, start.history);
+        setUndoCount(historyRef.current.length);
+        const next = withItems(cur, start.items);
+        docRef.current = next;
+        focusRef.current = Math.min(start.sel, start.items.length - 1);
+        setHighlight(null);
+        setDoc(next);
     };
 
     const undoPages = () => {
@@ -756,7 +877,9 @@ export default function Reader() {
           ? doc.items.map((it, i) => {
                 const active = renderOn && (Math.abs(i + lead - current) <= 4 || (pending !== null && Math.abs(i + lead - pending) <= 2));
                 const q = realVisible.includes(i) ? quality : 1;
-                return it.type === 'pdf' ? (
+                return it.hidden ? (
+                    <HiddenPage key={it.id} night={night} />
+                ) : it.type === 'pdf' ? (
                     <PdfPage key={it.id} pdf={it.src.pdf} index={it.index} active={active} quality={q} highlight={hl(i)} dark={night && invertPages} overlays={it.overlays} />
                 ) : (
                     <ImagePage key={it.id} item={it} active={active} quality={q} night={night} />
@@ -856,13 +979,10 @@ export default function Reader() {
                 </p>
             )}
 
-            {!doc && !busy && (
-                <div className="rd-card">
-                    <h1>Open a book</h1>
-                    <p>Choose a PDF, EPUB or TXT file, or pick several images (and PDFs) to read them as one book. You can also drop files anywhere on this screen.</p>
-                    <button className="rd-primary" onClick={pickFile}>
-                        Choose files
-                    </button>
+            {/* no start page of its own: until the book is open, Mediconnect's loader (with no book, it goes to Pacewise's home) */}
+            {!doc && !busy && !error && (
+                <div className="rd-page-loader" aria-hidden="true">
+                    <MediconnectSpinner label="Opening the book" />
                 </div>
             )}
 
@@ -1008,7 +1128,12 @@ export default function Reader() {
                     onInsertMode={setInsertMode}
                     onAddFiles={(files) => void pageAdd(files)}
                     onEdit={() => setImageEditing(true)}
-                    onAnnotate={() => setAnnotating(true)}
+                    onAnnotate={() => {
+                        const it = pagesDoc?.items[sel];
+                        setAnnotIds(it ? [it.id] : []);
+                        annotStart.current = pagesDoc ? { items: pagesDoc.items, history: historyRef.current.length, sel } : null;
+                        setAnnotating(true);
+                    }}
                     onConvert={() => void pageConvert()}
                     onDuplicate={pageDuplicate}
                     onMove={pageMove}
@@ -1031,7 +1156,7 @@ export default function Reader() {
             )}
 
             {annotating && pagesDoc?.items[sel] && (
-                <PageEditor key={pagesDoc.items[sel].id} item={pagesDoc.items[sel]} onApply={pageAnnotateApply} onCancel={() => setAnnotating(false)} pageNo={sel + 1} pageCount={pagesDoc.items.length} onGo={pageAnnotateGo} onDeletePage={pageDelete} />
+                <PageEditor key={pagesDoc.items[sel].id} item={pagesDoc.items[sel]} onApply={pageAnnotateApply} onCancel={pageAnnotateCancel} pageNo={sel + 1} pageCount={pagesDoc.items.length} onGo={pageAnnotateGo} onDeletePage={pageAnnotateDelete} onInsertPage={pageAnnotateInsert} onHidePage={pageAnnotateHide} windowPages={pagesDoc.items.map((item, index) => ({ item, index })).filter((w) => annotIds.includes(w.item.id))} onWindowOp={pageWindowOp} bookRatio={pagesDoc.ratio} onReplacePage={pageAnnotateReplace} />
             )}
 
             {editing && doc && (

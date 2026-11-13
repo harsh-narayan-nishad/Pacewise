@@ -156,8 +156,9 @@ export interface DrawOverlay extends OverlayBase {
 /** Drawn in this order: the last one is on top. */
 export type Overlay = ImageOverlay | TextOverlay | ShapeOverlay | DrawOverlay;
 
-export type PdfItem = { id: string; type: 'pdf'; src: PdfSource; index: number; overlays: Overlay[] };
-export type ImageItem = { id: string; type: 'image'; src: ImageSource; edit: ImageEdit; overlays: Overlay[] };
+/** `hidden`: the page stays in the list but is left out of the book and of the downloaded PDF (Canva's "hide page"). */
+export type PdfItem = { id: string; type: 'pdf'; src: PdfSource; index: number; overlays: Overlay[]; hidden?: boolean };
+export type ImageItem = { id: string; type: 'image'; src: ImageSource; edit: ImageEdit; overlays: Overlay[]; hidden?: boolean };
 export type PageItem = PdfItem | ImageItem;
 
 /* ------------------------- books ------------------------- */

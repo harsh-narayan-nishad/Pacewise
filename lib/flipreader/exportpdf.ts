@@ -20,6 +20,11 @@ export async function exportMergedPdf(
 
     for (let i = 0; i < total; i++) {
         const item = doc.items[i];
+        if (item.hidden) {
+            // a hidden page is left out of the download
+            onProgress(i + 1, total);
+            continue;
+        }
         if (item.type === 'pdf') {
             let source = opened.get(item.src.id);
             if (!source) {

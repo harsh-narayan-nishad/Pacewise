@@ -68,7 +68,7 @@ export function Reader({ story, fonts, trackRef, viewportRef, reserveSpeedometer
   const richHtml = useStoryHtml(story);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-canvas text-ink transition-colors">
+    <div className="pw-liquid fixed inset-0 overflow-hidden bg-canvas text-ink transition-colors">
       {fonts.guideLine && (
         <div className="pointer-events-none fixed left-0 right-0 top-1/2 z-10 h-px -translate-y-1/2 bg-accent-medium/40" />
       )}

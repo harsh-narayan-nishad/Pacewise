@@ -8,7 +8,11 @@ import type { LayoutMode } from '@/components/FlipReader/flip-book';
 export type ThemeChoice = 'auto' | 'day' | 'night';
 import LiquidGlass from '@/components/FlipReader/ui/LiquidGlass';
 import { formatDuration } from '@/lib/flipreader/readingtime';
-import { useClock, useReadingTime } from './useReadingTime';
+import { useReadingTime } from './useReadingTime';
+import { useRouter } from 'next/navigation';
+import { useReadingDispatch } from '@/contexts/ReadingContext';
+import { startSwitchLoader } from '@/lib/switchLoader';
+import { BRAND_NAME } from '@/lib/brand';
 
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
 
@@ -234,12 +238,19 @@ export interface IslandProps {
 
 /**
  * Every control lives in this one glass container, like an iPhone notification / Dynamic Island: a small pill
- * with the clock, today's reading time and the page, which opens into the full set of controls when tapped.
+ * with Pacewise (home), today's reading time and the page, which opens into the full set of controls when tapped.
  */
 export function Island(p: IslandProps) {
     const [open, setOpen] = useState(false);
     const { wrapRef, style, grip } = useDraggable('island', { x: 0.5, y: 0.012 }, p.boundsRef);
-    const clock = useClock();
+    const router = useRouter();
+    const dispatch = useReadingDispatch();
+    /** "Pacewise" in the bar: back to the software's home page (the same as the navbar's Pacewise). */
+    const goHome = () => {
+        dispatch({ type: 'CLEAR_STORY' });
+        startSwitchLoader('home', '/');
+        router.push('/');
+    };
     const reading = useReadingTime(p.hasBook, p.playing);
 
     // the glass is as tall as its content, so it can animate between the pill and the open panel
@@ -302,8 +313,11 @@ export function Island(p: IslandProps) {
                         <div className="rd-grip" role="separator" aria-label="Drag the controls" title="Drag to move" {...grip}>
                             <GripIcon />
                         </div>
+                        <button type="button" className="rd-ibrand" onClick={goHome} aria-label={`${BRAND_NAME}: go to the home page`} title="Home">
+                            {BRAND_NAME}
+                        </button>
                         <button type="button" className="rd-itoggle" aria-expanded={open} aria-label={open ? 'Fold the controls' : 'Open the controls'} onClick={() => setOpen((o) => !o)}>
-                            <span className="rd-clock">{clock}</span>
+                            {/* the clock gave its place to "Pacewise" so the bar stays simple and the ▾ always fits */}
                             <span className="rd-read" title="Time spent reading today">
                                 <i className="rd-dot" data-on={reading.counting} aria-hidden="true" />
                                 <span className="rd-read-label">Today </span>
