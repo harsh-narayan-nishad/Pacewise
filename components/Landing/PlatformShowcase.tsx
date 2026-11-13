@@ -9,6 +9,7 @@ import { VideoShowcase } from "@/components/Landing/VideoShowcase";
 import { storage, toDateKey } from "@/lib/storage";
 import { getAllStories } from "@/lib/storyLibrary";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import type { ReadingHistoryEntry, StoryData } from "@/types";
 import { historyApi } from "@/lib/api/endpoints";
 import { isApiEnabled } from "@/lib/api/config";
@@ -22,13 +23,21 @@ import { tokenStore } from "@/lib/api/tokenStore";
  *   2. "Performance that stands out" — the signed-in user's own best speed,
  *      comprehension and consistency, as bars.
  */
-export function PlatformShowcase() {
+/** "Read faster. Remember more." — the video section. Rendered by SearchLanding right after the hero, before "The latest.". */
+export function PlatformVideo() {
   return (
     <>
       {/* Full-bleed on the page background, so the landing's guide lines don't run through the video. */}
-      <div className="relative z-10 bg-canvas pb-28 pt-12 sm:pb-40">
+      <div className="relative z-10 bg-canvas pb-28 pt-16 sm:pb-40 sm:pt-20">
         <VideoShowcase />
       </div>
+    </>
+  );
+}
+
+export function PlatformShowcase() {
+  return (
+    <>
       {/* Full-bleed on the page background too: the guide lines stop above this section. */}
       <div className="relative z-10 overflow-x-clip bg-canvas pb-28 sm:pb-40">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
@@ -89,7 +98,7 @@ function Topics() {
         {shown.map((t) => (
           <button
             key={t.name}
-            onClick={() => { dispatch({ type: "LOAD_STORY", story: t.first }); router.push("/"); }}
+            onClick={() => { dispatch({ type: "LOAD_STORY", story: t.first }); startSwitchLoader("reading", "/"); router.push("/"); }}
             className="flex h-32 flex-col items-center justify-center gap-1 rounded-2xl bg-overlay/[0.04] px-3 text-center transition-colors hover:bg-overlay/[0.08]"
           >
             <span className="flex items-center gap-1.5 text-lg font-medium text-ink"><Hash className="h-4 w-4 text-ink-muted" />{t.name}</span>

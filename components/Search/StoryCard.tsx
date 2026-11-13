@@ -14,6 +14,7 @@ import { devDataStore } from "@/lib/devData/store";
 import { useDevStoreVersion } from "@/lib/devData/useDevStore";
 import { StoryData } from "@/types";
 import { ROUTES } from "@/lib/routes";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import { useNavLoader } from "@/contexts/NavLoaderContext";
 import { safeThumbnail } from "@/lib/thumbnail";
 import { isVideoRef } from "@/lib/thumbnailVideo";
@@ -35,14 +36,14 @@ const COVERS: Cover[] = [
   { kind: "bold", bg: "#4A3B58", ink: "#F6F1FA", shape: "linear-gradient(160deg,#58476A 0%,#3B2E48 100%)", shape2: "rgba(220,200,240,0.18)" },
 ];
 
-function coverFor(id: string): Cover {
+export function coverFor(id: string): Cover {
   let h = 0;
   for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return COVERS[h % COVERS.length];
 }
 
 /** Short, sentence-style cover line: first ~3 words of the title, with a full stop. */
-function coverTitle(title: string): string {
+export function coverTitle(title: string): string {
   const words = title.replace(/[.:!?]+$/, "").split(/\s+/).filter(Boolean);
   const short = words.slice(0, 3).join(" ");
   return `${short}${words.length > 3 ? "…" : "."}`;
@@ -87,6 +88,7 @@ export function StoryCard({ story: initialStory, arrowStartsReader = false }: St
   function openStory() {
     dispatch({ type: "LOAD_STORY", story });
     storage.addSearchHistory(story.title);
+    startSwitchLoader("reading", ROUTES.story(story.id ?? story.title));
     nav.push(ROUTES.story(story.id ?? story.title));
   }
 
@@ -94,6 +96,7 @@ export function StoryCard({ story: initialStory, arrowStartsReader = false }: St
     dispatch({ type: "LOAD_STORY", story });
     dispatch({ type: "PLAY" });
     storage.addSearchHistory(story.title);
+    startSwitchLoader("reading", "/reader");
     nav.push("/reader");
   }
 

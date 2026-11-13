@@ -5,6 +5,7 @@ import { Dashboard } from "@/components/Dashboard/Dashboard";
 import { useReadingState, useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage } from "@/lib/storage";
 import { useNavLoader } from "@/contexts/NavLoaderContext";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import { useScrollToTopOnMount } from "@/hooks/useScrollToTopOnMount";
 
 export function StoryPage() {
@@ -34,10 +35,12 @@ export function StoryPage() {
       onStart={() => {
         // Reading mode was chosen before starting: open the free-scroll article, no practice session.
         if (state.readingMode) {
+          startSwitchLoader("reading", "/read");
           nav.push("/read");
           return;
         }
         dispatch({ type: "PLAY" });
+        startSwitchLoader("reading", "/reader");
         nav.push("/reader");
       }}
     />

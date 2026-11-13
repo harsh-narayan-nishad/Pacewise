@@ -48,7 +48,8 @@ export function ThemeSync() {
   }, [dispatch]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = fonts.brightness;
+    // The landing page is light-only (see SearchLanding); everywhere else the chosen theme applies.
+    document.documentElement.dataset.theme = document.documentElement.dataset.landing ? "light" : fonts.brightness;
     if (!ready.current) return;
     if (pending.current !== null) {
       // Still waiting for our own dispatch to land; ignore the stale value before it.

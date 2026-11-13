@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavLoader } from "@/contexts/NavLoaderContext";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { resetAllAppData } from "@/lib/resetApp";
 import { ChevronDown, ChevronRight, Globe, Lock, LogOut, Menu, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
@@ -17,8 +18,8 @@ import { useAuth } from "@/lib/api/AuthContext";
 import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
 
 /**
- * The left-side drawer the brief calls the "hamburger menu" — placed at
- * the leftmost side of the navbar (see TopNav.tsx), and, once built, its
+ * The right-side drawer the brief calls the "hamburger menu" — placed at
+ * the rightmost side of the navbar (see TopNav.tsx), and, once built, its
  * position/trigger are what future changes should leave alone.
  *
  * Portal-rendered to `document.body` for the same reason as
@@ -112,6 +113,7 @@ export function HamburgerMenu() {
       dispatch({ type: "LOAD_STORY", story: matches[0] });
       storage.addSearchHistory(matches[0].title);
       setOpen(false);
+      startSwitchLoader("reading", "/");
       nav.push("/");
     }
   }
@@ -121,6 +123,7 @@ export function HamburgerMenu() {
     if (!story) return;
     dispatch({ type: "LOAD_STORY", story });
     setOpen(false);
+    startSwitchLoader("reading", "/");
     nav.push("/");
   }
 
@@ -150,11 +153,11 @@ export function HamburgerMenu() {
                 <motion.div
                   role="dialog"
                   aria-label="Playlists and search history"
-                  initial={{ x: "-100%" }}
+                  initial={{ x: "100%" }}
                   animate={{ x: 0 }}
-                  exit={{ x: "-100%" }}
+                  exit={{ x: "100%" }}
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  className="fixed inset-y-0 left-0 z-drawer flex w-[92vw] max-w-md flex-col border-r border-overlay/10 bg-canvas shadow-themed"
+                  className="fixed inset-y-0 right-0 z-drawer flex w-[92vw] max-w-md flex-col border-l border-overlay/10 bg-canvas shadow-themed"
                 >
                   <div className="flex items-center gap-4 px-6 pb-2 pt-5">
                     <form

@@ -4,16 +4,18 @@ import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, BookOpen, FileUp, Plus } from "lucide-react";
+import { Clock, BookOpen, FileText, FileUp, Plus } from "lucide-react";
 import { StoryData } from "@/types";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage, SearchHistoryEntry } from "@/lib/storage";
 import { getAllStories, searchStories, addCustomStory } from "@/lib/storyLibrary";
 import { setPendingFiles } from "@/lib/flipreader/handoff";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import { buildMediaStory, isMediaFile, MediaStoryError } from "@/lib/mediaStory";
 import { AddStoryModal } from "@/components/Search/AddStoryModal";
 import { PdfQuestionsModal } from "@/components/Search/PdfQuestionsModal";
 import { VoiceSearchOverlay } from "@/components/Search/VoiceSearchOverlay";
+import LiquidGlass from "@/components/FlipReader/ui/LiquidGlass";
 
 /**
  * The uploaded AI-chat-style input (text / voice / file), kept as a
@@ -47,7 +49,7 @@ const StyledSearch = styled.div`
   }
   .container-ia-chat.wide .input-text:hover,
   .container-ia-chat.wide .input-text:focus {
-    width: calc(100% - 72px);
+    width: calc(100% - 92px); /* 92px: room for the circular icon buttons (see the end of this block) */
   }
   .container-ia-chat.wide .input-text:focus-within,
   .container-ia-chat.wide .input-text:valid {
@@ -231,6 +233,130 @@ const StyledSearch = styled.div`
   .label-text:active {
     scale: 0.9;
   }
+
+  /* ---- Current design ----
+     The original animated layout stays (two icons that morph into "+" while typing, the growing input).
+     Changes: the send arrow is gone (Enter searches) and the voice button stays on the right at all times,
+     drawn as the gradient circle the arrow used to have. "+" opens a menu: upload a document, or add text. */
+  .label-text,
+  .input-text:valid ~ .label-text {
+    display: none;
+  }
+  .label-voice,
+  .input-text:valid ~ .label-voice {
+    transform: translateX(0) translateY(-50%) scale(1);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: all;
+    color: #e9e9e9;
+    background: linear-gradient(to top right, #9147ff, #ff4141);
+    box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.5);
+    border-radius: 50px;
+    align-items: center;
+    justify-content: center;
+  }
+  .label-voice:hover,
+  .label-voice:focus-visible {
+    color: #ffffff;
+    box-shadow: inset 0 0 6px rgba(255, 255, 255, 1);
+  }
+  .label-voice:active {
+    scale: 0.9;
+  }
+
+  /* Input spacing and border modelled on the Mediconnect search box (roomy padding, a 1px ring, a soft shadow,
+     a 2px ring on focus), drawn with Pacewise tokens: the overlay hairline used on cards and the shadow-themed shadow.
+     The pill shape, the morph animation and the room for the voice button stay. */
+  .input-text {
+    padding: 0.75rem 1.25rem;
+    padding-right: 46px;
+  }
+  .input-text,
+  .input-text:hover {
+    box-shadow: 0 0 0 1px rgb(var(--overlay) / 0.12), 0 8px 30px -6px rgb(var(--shadow-color) / 0.35);
+  }
+  .input-text:focus {
+    box-shadow: 0 0 0 2px rgb(var(--overlay) / 0.22), 0 8px 30px -6px rgb(var(--shadow-color) / 0.35);
+  }
+
+  /* Landing (wide) search, always centred under the headline with the voice button inside the input.
+     At rest: 72px each side of the input (the upload/+ icons on the left, the same space on the right).
+     Focused or typing: the icons morph into "+" and the input expands evenly to 42px each side; the right-hand
+     space and the voice button follow it with the same 0.5s easing as the rest of the morph. */
+  .container-ia-chat.wide {
+    padding-right: 72px;
+    transition: padding-right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.05);
+  }
+  .container-ia-chat.wide .label-voice {
+    right: calc(72px + 0.25rem);
+  }
+  .container-ia-chat.wide:focus-within,
+  .container-ia-chat.wide:has(.input-text:valid) {
+    padding-right: 42px;
+  }
+  .container-ia-chat.wide:focus-within .label-voice,
+  .container-ia-chat.wide:has(.input-text:valid) .label-voice {
+    right: calc(42px + 0.25rem);
+  }
+  .container-ia-chat.wide .input-text:focus,
+  .container-ia-chat.wide .input-text:valid {
+    width: calc(100% - 42px);
+  }
+
+  /* Landing (wide) search: the upload and "+" icons each sit in a 36px circular liquid-glass button (the
+     reader's LiquidGlass, see IconGlass below). The space at rest is 92px each side instead of 72px (two circles,
+     8px between them, 12px before the input); the right side matches so the input stays centred. */
+  .container-ia-chat.wide .container-upload-files {
+    gap: 8px;
+  }
+  .container-ia-chat.wide .container-upload-files > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    isolation: isolate;
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .container-ia-chat.wide .container-upload-files > div:hover {
+    color: rgb(var(--ink));
+  }
+  .container-ia-chat.wide .container-upload-files .upload-file {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+  }
+  .container-ia-chat.wide .container-upload-files .upload-file:hover {
+    color: inherit;
+    scale: 1;
+  }
+  .container-ia-chat.wide .input-text {
+    margin-left: 92px;
+    max-width: calc(100% - 92px);
+  }
+  .container-ia-chat.wide .input-text:focus-within,
+  .container-ia-chat.wide .input-text:valid {
+    margin-left: 42px;
+    max-width: calc(100% - 42px);
+  }
+  .container-ia-chat.wide {
+    padding-right: 92px;
+  }
+  .container-ia-chat.wide .label-voice {
+    right: calc(92px + 0.25rem);
+  }
+  .container-ia-chat.wide:focus-within,
+  .container-ia-chat.wide:has(.input-text:valid) {
+    padding-right: 42px;
+  }
+  .container-ia-chat.wide:focus-within .label-voice,
+  .container-ia-chat.wide:has(.input-text:valid) .label-voice {
+    right: calc(42px + 0.25rem);
+  }
 `;
 
 interface SpeechRecognitionLike {
@@ -260,9 +386,29 @@ interface SearchBarProps {
 }
 
 const CONTAINER_WIDTH: Record<NonNullable<SearchBarProps["size"]>, number> = {
-  default: 600,
+  default: 712, // input (528px) + 92px each side: the two circular icon buttons on the left, the same room on the right
   sm: 220,
 };
+
+/** The reader's light-theme glass values (flipReader.css), passed in directly because they are scoped to the reader. */
+const LIGHT_GLASS = {
+  "--glass-tint": "rgba(255, 255, 255, 0.42)",
+  "--glass-shadow": "0 12px 36px rgba(20, 20, 20, 0.16), 0 2px 8px rgba(20, 20, 20, 0.08)",
+  "--glass-edge": "rgba(255, 255, 255, 0.7)",
+  "--glass-text-shadow": "none",
+  "--glow-a": "0.45",
+  "--rim-a": "1",
+  "--fg": "#16171a",
+} as React.CSSProperties;
+
+/** Liquid-glass background of a circular icon button on the landing search (the landing page is light-only). */
+function IconGlass() {
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 rounded-full" style={LIGHT_GLASS}>
+      <LiquidGlass width="100%" height="100%" radius={18} />
+    </span>
+  );
+}
 
 export function SearchBar({ size = "default" }: SearchBarProps) {
   // The navbar renders its own SearchBar at the same time the landing
@@ -289,6 +435,8 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [filesChecked, setFilesChecked] = useState(false);
+  // The "+" menu: upload a document, or write text.
+  const [plusMenu, setPlusMenu] = useState(false);
   // Tracks the upload icon's PDF/image branch specifically (see
   // handleFileUpload) — the existing .json branch has no equivalent
   // async step, so it never touches this.
@@ -334,12 +482,29 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open]);
 
+  useEffect(() => {
+    if (!plusMenu) return;
+    function onPointerDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setPlusMenu(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPlusMenu(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [plusMenu]);
+
   function selectStory(story: StoryData) {
     dispatch({ type: "LOAD_STORY", story });
     setHistory(storage.addSearchHistory(story.title));
     setQuery("");
     setOpen(false);
     setActiveIndex(-1);
+    startSwitchLoader("reading", "/");
     router.push("/");
   }
 
@@ -535,7 +700,10 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
               setActiveIndex(-1);
               setOpen(true);
             }}
-            onFocus={() => setOpen(true)}
+            onFocus={() => {
+              setOpen(true);
+              setPlusMenu(false);
+            }}
             onKeyDown={handleKeyDown}
             aria-label="Search stories"
             aria-haspopup="listbox"
@@ -562,6 +730,7 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
               onClick={() => fileInputRef.current?.click()}
               title="Upload a story .json, a PDF, or an image from your computer"
             >
+              {size === "default" && <IconGlass />}
               <FileUp className="upload-file" size={22} strokeWidth={2} />
             </div>
             {/* Plus icon: opens the "add a new story" guided form — a
@@ -573,6 +742,7 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
               }}
               title="Add a new story"
             >
+              {size === "default" && <IconGlass />}
               <Plus className="upload-file" size={22} strokeWidth={2} />
             </div>
           </div>
@@ -586,10 +756,15 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
           <label
             htmlFor={filesId}
             className="label-files"
+            role="button"
+            aria-haspopup="menu"
+            aria-expanded={plusMenu}
+            aria-label="Add a document or text"
+            title="Add a document or text"
             onClick={(e) => {
               e.preventDefault();
-              setAddStoryMode("form");
-              setAddStoryOpen(true);
+              setOpen(false);
+              setPlusMenu((v) => !v);
             }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
@@ -620,6 +795,52 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
           </label>
         </div>
       </StyledSearch>
+
+      {/* "+" menu: the two ways to add something, in the dropdown style used for search results. */}
+      <AnimatePresence>
+        {plusMenu && (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 300, damping: 26 }}
+            className="absolute left-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-xl border border-overlay/10 bg-canvas-raised/95 py-1.5 shadow-themed backdrop-blur-xl"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setPlusMenu(false);
+                fileInputRef.current?.click();
+              }}
+              className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-overlay/5"
+            >
+              <FileUp className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
+              <span className="min-w-0">
+                <span className="block text-sm text-ink">Upload a document</span>
+                <span className="block text-xs text-ink-muted">PDF, image or story .json</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setPlusMenu(false);
+                setAddStoryMode("form");
+                setAddStoryOpen(true);
+              }}
+              className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-overlay/5"
+            >
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
+              <span className="min-w-0">
+                <span className="block text-sm text-ink">Add text</span>
+                <span className="block text-xs text-ink-muted">Write or paste your own story</span>
+              </span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {(showingResults || showingHistory || showingBrowse) && (

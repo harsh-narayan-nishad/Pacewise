@@ -1,16 +1,16 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useLayoutEffect, useRef } from "react";
 import { SearchBar } from "@/components/Search/SearchBar";
 import { useInertiaScroll } from "@/components/ReadingMode/useInertiaScroll";
-import { PlatformShowcase } from "@/components/Landing/PlatformShowcase";
+import { PlatformShowcase, PlatformVideo } from "@/components/Landing/PlatformShowcase";
 import { ContentFeed } from "@/components/Search/ContentFeed";
 import DotField from "@/components/DotField";
 import { useThemeName } from "@/lib/useThemeName";
 import { LandingBackground } from "@/components/Landing/LandingBackground";
 import { themeFilter, useLandingTheme } from "@/lib/landingTheme";
 import { BRAND_HEADLINE } from "@/lib/brand";
+import { useReadingState } from "@/contexts/ReadingContext";
 
 /** Per-theme colours for the dot-grid background (a canvas can't read CSS variables). */
 const DOT_FIELD_PALETTES: Record<
@@ -21,6 +21,32 @@ const DOT_FIELD_PALETTES: Record<
   light: { gradientFrom: "#1A1625", gradientTo: "#7C3AED", glowColor: "#B497CF", dotRadius: 1.2 },
   sepia: { gradientFrom: "#1F1708", gradientTo: "#8B5E34", glowColor: "#4A3920", dotRadius: 1.2 },
 };
+
+
+/** Witty's hero heading grey ("Built for brains, wired for wins."). */
+const WITTY_MUTED = "#6E6E73";
+
+/**
+ * The headline, still (no motion): only the first letter in the normal ink colour, the rest of the lead-in in
+ * Witty's grey; the closing phrase keeps Pacewise's gradient (accent-slow to accent-medium), as one continuous
+ * gradient across its words. Falls back to the same colours without the gradient if the wording ever changes.
+ */
+function Headline({ text, accent }: { text: string; accent: string }) {
+  const at = text.indexOf(accent);
+  const lead = at < 0 ? text : text.slice(0, at);
+  return (
+    <>
+      {lead.slice(0, 1)}
+      <span style={{ color: WITTY_MUTED }}>{lead.slice(1)}</span>
+      {at >= 0 && (
+        <>
+          <span className="bg-gradient-to-r from-accent-slow to-accent-medium bg-clip-text text-transparent">{accent}</span>
+          <span style={{ color: WITTY_MUTED }}>{text.slice(at + accent.length)}</span>
+        </>
+      )}
+    </>
+  );
+}
 
 /**
  * The app's entry point before any story is loaded — a dedicated,
@@ -49,19 +75,29 @@ const DOT_FIELD_PALETTES: Record<
 export function SearchLanding() {
   // Same inertial wheel/keyboard scrolling as reading mode, on the home page too.
   useInertiaScroll(true);
+  // The landing page is light-only, in Mediconnect's colours (see globals.css, :root[data-landing]). The person's own
+  // theme choice is untouched and comes back as soon as they leave this page.
+  const { fonts } = useReadingState();
+  const chosenTheme = useRef(fonts.brightness);
+  chosenTheme.current = fonts.brightness;
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.landing = "1";
+    root.dataset.theme = "light";
+    return () => {
+      delete root.dataset.landing;
+      root.dataset.theme = chosenTheme.current;
+    };
+  }, []);
   const theme = useThemeName();
   const dotFieldPalette = DOT_FIELD_PALETTES[theme];
   const [bg] = useLandingTheme();
 
   return (
     <div className="relative w-full">
-      {/* Page-wide guide lines: two vertical rails at the content edges that run the
-          whole landing page, behind everything (decorative, never clickable). */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
-        <div className="mx-auto h-full max-w-6xl border-x border-overlay/10" />
-      </div>
-
-      <div className="relative flex min-h-[calc(100vh-56px)] w-full flex-col items-center justify-center overflow-hidden px-6 py-24">
+      {/* Hero laid out like the Mediconnect patient app's hero (flex-col items-center, mt-6 lg:mt-20): it starts near the top
+          instead of filling the screen with the content centred, and leaves only a small gap before "The latest." */}
+      <div className="relative flex w-full flex-col items-center overflow-hidden px-6 pb-20 pt-6 lg:pb-[88px] lg:pt-20">
         {/* Twinkling dot-grid background (hero only, behind everything). It no longer reacts to
             the mouse: cursorRadius 0 switches the cursor bulge off; the sparkle stays. */}
         <div className="pointer-events-none absolute inset-0 z-0" style={{ filter: themeFilter(bg) }}>
@@ -84,35 +120,43 @@ export function SearchLanding() {
           {bg.dim > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: bg.dim }} />}
         </div>
 
-        {/* Hero frame: two horizontal lines across the full width, with a small
-            square where each meets a vertical rail. */}
+        {/* Guide lines: two vertical rails at the content edges, on the hero only (not the sections below it),
+            above the dot background and behind the content (decorative, never clickable). */}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]">
-          <div className="absolute inset-x-0 top-[14%] h-px bg-overlay/10" />
-          <div className="absolute inset-x-0 bottom-[14%] h-px bg-overlay/10" />
-          <div className="relative mx-auto h-full max-w-6xl">
-            {[
-              ["left-[0.5px] -translate-x-1/2", "top-[calc(14%+0.5px)] -translate-y-1/2"],
-              ["right-[0.5px] translate-x-1/2", "top-[calc(14%+0.5px)] -translate-y-1/2"],
-              ["left-[0.5px] -translate-x-1/2", "bottom-[calc(14%+0.5px)] translate-y-1/2"],
-              ["right-[0.5px] translate-x-1/2", "bottom-[calc(14%+0.5px)] translate-y-1/2"],
-            ].map(([x, y]) => (
-              // 6px square centred exactly on the crossing of a vertical rail and a horizontal line.
-              <span key={`${x}${y}`} className={`absolute ${x} ${y} hidden h-1.5 w-1.5 bg-ink sm:block`} />
-            ))}
-          </div>
+          <div className="mx-auto h-full max-w-5xl border-x border-overlay/10" />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="relative z-10 flex w-full max-w-3xl flex-col items-center text-center"
-        >
-          <h1 className="mb-10 font-display text-4xl text-ink sm:text-6xl">{BRAND_HEADLINE}</h1>
+        {/* Hero frame, fitted to the content: a line just above the headline and one just below the search, with equal
+            space to each, across the full width; a small square where each meets a vertical rail (the rails sit at
+            the max-w-5xl edges, i.e. centre ± min(512px, 50vw)). */}
+        <div className="relative z-10 flex w-full flex-col items-center py-14 sm:py-16">
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]">
+          <div className="absolute left-1/2 top-0 h-px w-screen -translate-x-1/2 bg-overlay/10" />
+          <div className="absolute bottom-0 left-1/2 h-px w-screen -translate-x-1/2 bg-overlay/10" />
+          {[
+            { left: "calc(50% - min(512px, 50vw) + 0.5px)", y: "top-[0.5px] -translate-y-1/2" },
+            { left: "calc(50% + min(512px, 50vw) - 0.5px)", y: "top-[0.5px] -translate-y-1/2" },
+            { left: "calc(50% - min(512px, 50vw) + 0.5px)", y: "bottom-[0.5px] translate-y-1/2" },
+            { left: "calc(50% + min(512px, 50vw) - 0.5px)", y: "bottom-[0.5px] translate-y-1/2" },
+          ].map(({ left, y }) => (
+            // 6px square centred exactly on the crossing of a vertical rail and a horizontal line.
+            <span key={left + y} style={{ left }} className={`absolute ${y} hidden h-1.5 w-1.5 -translate-x-1/2 bg-ink sm:block`} />
+          ))}
+        </div>
+
+        <div className="relative z-10 flex w-full max-w-3xl flex-col items-center text-center">
+          {/* Weight 400 and 72px on large screens, as the Mediconnect hero ("Mediconnect build for Careseekers": Poppins Regular, lg:text-7xl = 72px);
+              Pacewise's own display font, tracking and tight display line-height stay. */}
+          <h1 className="mb-10 font-display !font-normal text-4xl text-ink sm:text-6xl lg:text-[72px] lg:leading-[1.05]">
+            <Headline text={BRAND_HEADLINE} accent="speed of thought." />
+          </h1>
           <SearchBar />
-        </motion.div>
+        </div>
+        </div>
       </div>
 
+      {/* "Read faster. Remember more." comes before "The latest. Fresh reads picked for you." */}
+      <PlatformVideo />
       <ContentFeed />
       <PlatformShowcase />
     </div>

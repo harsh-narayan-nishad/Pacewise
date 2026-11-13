@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Copy, Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 
 const MIN = 0.2;
@@ -67,13 +67,20 @@ export function MermaidViewer({ source }: { source: string }) {
     (async () => {
       try {
         const mermaid = await loadMermaid();
-        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default", fontFamily: "inherit", layout: "elk" });
+        // suppressErrorRendering: on a syntax error Mermaid would otherwise append its "Syntax error in text" graphic to <body>,
+        // which shows up below the footer. Errors are handled here instead (fallback to the plain source).
+        const base = { startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default", fontFamily: "inherit", suppressErrorRendering: true };
+        // Mermaid renders into a temporary element in <body> ("d" + id); make sure none is ever left behind.
+        const tryRender = async (id: string) => {
+          try { return await mermaid.render(id, source); } finally { document.getElementById(`d${id}`)?.remove(); document.getElementById(id)?.remove(); }
+        };
+        mermaid.initialize({ ...base, layout: "elk" });
         let out;
         try {
-          out = await mermaid.render(`${idRef.current}-${Date.now()}`, source);
+          out = await tryRender(`${idRef.current}-${Date.now()}`);
         } catch {
-          mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default", fontFamily: "inherit", layout: "dagre" });
-          out = await mermaid.render(`${idRef.current}-b-${Date.now()}`, source);
+          mermaid.initialize({ ...base, layout: "dagre" });
+          out = await tryRender(`${idRef.current}-b-${Date.now()}`);
         }
         if (alive) { setSvg(out.svg); setFailed(false); }
       } catch {
@@ -94,12 +101,24 @@ export function MermaidViewer({ source }: { source: string }) {
     svgEl.setAttribute("height", String(h));
     (svgEl as SVGSVGElement).style.maxWidth = "none";
     natural.current = { w, h };
-    const k = Math.min(1, (f.clientWidth - 32) / w, (f.clientHeight - 32) / h);
+    // Fill the frame (up to 3x): a small diagram is scaled up to be readable, not left tiny in a corner.
+    const k = Math.min(3, (f.clientWidth - 48) / w, (f.clientHeight - 48) / h);
     const kk = Math.max(MIN, k);
     setView({ k: kk, x: (f.clientWidth - w * kk) / 2, y: Math.max(16, (f.clientHeight - h * kk) / 2) });
   }, []);
 
   useEffect(() => { if (svg) fit(); }, [svg, full, fit]);
+
+  // Zoom by resizing the SVG itself (vector re-render), not by CSS-scaling a bitmap, so text and lines stay sharp at every zoom.
+  useLayoutEffect(() => {
+    const svgEl = stage.current?.querySelector("svg");
+    const { w, h } = natural.current;
+    if (!svgEl || !w || !h) return;
+    svgEl.setAttribute("width", String(w * view.k));
+    svgEl.setAttribute("height", String(h * view.k));
+  }, [view.k, svg]);
+
+  const svgHtml = useMemo(() => ({ __html: svg ?? "" }), [svg]); // stable object: React must not re-insert the SVG on every pan
 
   const zoomAt = (factor: number, cx?: number, cy?: number) =>
     setView((v) => {
@@ -176,7 +195,7 @@ export function MermaidViewer({ source }: { source: string }) {
         style={{ touchAction: "none" }}
       >
         {svg ? (
-          <div ref={stage} className="absolute left-0 top-0 origin-top-left will-change-transform" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})` }} dangerouslySetInnerHTML={{ __html: svg }} />
+          <div ref={stage} className="absolute left-0 top-0" style={{ transform: `translate(${view.x}px, ${view.y}px)` }} dangerouslySetInnerHTML={svgHtml} />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-ink-muted">Drawing diagram…</div>
         )}

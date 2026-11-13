@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { StoryCard } from "@/components/Search/StoryCard";
+import { LatestStoryCard } from "@/components/Landing/LatestStoryCard";
 import { getAllStories } from "@/lib/storyLibrary";
 import { rankStoriesByInterest } from "@/lib/devData/contentMeta";
 import { devDataStore } from "@/lib/devData/store";
@@ -12,10 +12,10 @@ import type { StoryData } from "@/types";
 const MAX_CARDS = 7;
 
 function Card({ story }: { story: StoryData }) {
-  // The original story card, placed in a carousel slide; its arrow starts auto-scroll reading.
+  // The tall promo-style card (see LatestStoryCard); its white pill starts auto-scroll reading.
   return (
     <li className="w-[82vw] max-w-[440px] shrink-0 snap-start sm:w-[420px]">
-      <StoryCard story={story} arrowStartsReader />
+      <LatestStoryCard story={story} />
     </li>
   );
 }
@@ -63,7 +63,7 @@ export function StoryCarousel() {
     "absolute top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-overlay/10 bg-canvas-raised/90 text-ink shadow-themed backdrop-blur transition-opacity hover:bg-canvas-raised";
 
   return (
-    <section aria-labelledby="latest-h" className="relative z-10 py-16 sm:py-24">
+    <section aria-labelledby="latest-h" className="relative z-10 mb-16 bg-white pb-16 pt-8 sm:mb-24 sm:pb-24 sm:pt-10">
       <div className="mx-auto max-w-6xl px-6 sm:px-8">
         <h2 id="latest-h" className="mb-10 font-display text-3xl !font-semibold leading-tight tracking-[-0.03em] sm:text-4xl">
           <span className="bg-gradient-to-r from-accent-slow to-accent-medium bg-clip-text text-transparent">The latest.</span>{" "}
@@ -80,8 +80,8 @@ export function StoryCarousel() {
           {stories.map((s) => <Card key={s.id ?? s.title} story={s} />)}
         </ul>
         {/* Glass covers outside the two vertical guide lines, between the cards and the arrows. */}
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[max(0px,calc((100%-72rem)/2))] bg-canvas/30 backdrop-blur-md" />
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-[max(0px,calc((100%-72rem)/2))] bg-canvas/30 backdrop-blur-md" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[max(0px,calc((100%-72rem)/2))] bg-white/30 backdrop-blur-md" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-[max(0px,calc((100%-72rem)/2))] bg-white/30 backdrop-blur-md" />
         <button type="button" onClick={() => page(-1)} aria-label="Previous stories" disabled={!canPrev} className={`${arrow} left-4 sm:left-6 ${canPrev ? "" : "pointer-events-none opacity-0"}`}>
           <ChevronLeft className="h-5 w-5" />
         </button>

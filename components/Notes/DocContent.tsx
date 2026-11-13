@@ -1,7 +1,7 @@
 "use client";
 
 import { useInertiaScroll } from "@/components/ReadingMode/useInertiaScroll";
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ListTree } from "lucide-react";
 import { MermaidViewer } from "@/components/Notes/MermaidViewer";
@@ -87,6 +87,9 @@ export function DocContent({ html: htmlEn, headings: headingsEn = [], minutes: m
   const headings = hiShown ? hiShown.headings : headingsEn;
   const minutes = hiShown ? hiShown.minutes : minutesEn;
   const ref = useRef<HTMLElement>(null);
+  // One object per document: React compares this prop by identity, and a new object on every render made it rewrite the
+  // whole article on any re-render, throwing away the placeholders the diagrams are mounted into.
+  const innerHtml = useMemo(() => ({ __html: html }), [html]);
   const [diagrams, setDiagrams] = useState<{ el: HTMLElement; source: string }[]>([]);
   const [tocOpen, setTocOpen] = useState(false);
   useInertiaScroll(true); // the same eased wheel / key scrolling as the reading page
@@ -141,7 +144,7 @@ export function DocContent({ html: htmlEn, headings: headingsEn = [], minutes: m
         </nav>
       )}
       {lang === "hi" && !hindi && <p className="mb-6 rounded-2xl border border-overlay/10 bg-canvas-raised px-5 py-3 text-sm text-ink-muted" lang="hi">{ui("hi", "notTranslated")}</p>}
-      <article ref={ref} lang={hindi ? "hi" : undefined} onClick={onArticleClick} className={`doc-prose min-w-0 [overflow-wrap:anywhere] ${PROSE}`} dangerouslySetInnerHTML={{ __html: html }} />
+      <article ref={ref} lang={hindi ? "hi" : undefined} onClick={onArticleClick} className={`doc-prose min-w-0 [overflow-wrap:anywhere] ${PROSE}`} dangerouslySetInnerHTML={innerHtml} />
       {diagrams.map((d, i) => createPortal(<MermaidViewer source={d.source} />, d.el, `d${i}`))}
     </>
   );

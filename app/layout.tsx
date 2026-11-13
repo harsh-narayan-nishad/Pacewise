@@ -37,8 +37,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
+        {/* The landing page is light-only (SearchLanding sets this after React starts). Set it here, before the first
+            paint, so a signed-in visit to "/" doesn't flash the dark theme for a moment first. Signed-out visitors
+            (who see the sign-in card) and every other page are left exactly as before. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(location.pathname==="/"&&/"currentUserId":"[^"]/.test(localStorage.getItem("speed-reader:dev-store:v1")||"")){var r=document.documentElement;r.dataset.landing="1";r.dataset.theme="light"}}catch(e){}`,
+          }}
+        />
         {/* Inter + JetBrains Mono: the free fallbacks of Render's PP Neue Montreal / Roobert stack. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

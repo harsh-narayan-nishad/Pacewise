@@ -7,9 +7,11 @@ import { Bell, CheckCheck, Heart, MessageCircle, Share2, Trash2, UserPlus } from
 import { useReadingDispatch } from "@/contexts/ReadingContext";
 import { getStoryById } from "@/lib/storyLibrary";
 import { storage } from "@/lib/storage";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import { devDataStore } from "@/lib/devData/store";
 import { useCurrentUser, useDevStoreVersion } from "@/lib/devData/useDevStore";
 import { DevNotification } from "@/lib/devData/types";
+import LiquidGlass from "@/components/FlipReader/ui/LiquidGlass";
 
 const TYPE_ICON: Record<DevNotification["type"], React.ElementType> = {
   share: Share2,
@@ -84,6 +86,7 @@ export function NotificationBell() {
     if (story) {
       dispatch({ type: "LOAD_STORY", story });
       storage.addSearchHistory(story.title);
+      startSwitchLoader("reading", "/");
     }
     router.push("/");
   }
@@ -114,8 +117,12 @@ export function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 300, damping: 26 }}
-            className="absolute right-0 top-11 z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-overlay/10 bg-canvas-raised/95 shadow-themed backdrop-blur-xl sm:w-80"
+            className="absolute right-0 top-11 z-50 isolate w-72 max-w-[calc(100vw-2rem)] rounded-xl sm:w-80"
           >
+            {/* Liquid glass panel (the reader's LiquidGlass, in the app theme's glass colours: see .pw-glass). */}
+            <span aria-hidden className="pw-glass pointer-events-none absolute inset-0 -z-10 rounded-[inherit]">
+              <LiquidGlass width="100%" height="100%" radius={12} />
+            </span>
             <div className="flex items-center justify-between border-b border-overlay/10 px-3.5 py-2.5">
               <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">Notifications</span>
               {unread > 0 && (
@@ -128,7 +135,7 @@ export function NotificationBell() {
               )}
             </div>
 
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto rounded-b-xl">
               {notifications.length === 0 ? (
                 <p className="px-3.5 py-6 text-center text-sm text-ink-muted">No notifications yet.</p>
               ) : (

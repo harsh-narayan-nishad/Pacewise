@@ -22,7 +22,10 @@ export default function StoryRoute({ params }: { params: { id: string } }) {
   // load it again, so the first logo click kept you here and only the second reached the landing page.
   const requestedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (story && !loaded && requestedFor.current !== id) {
+    // Already loaded by whoever opened this page (e.g. a story card loads it before navigating): remember it, so
+    // clearing it with the logo doesn't make this page load it again.
+    if (loaded) { requestedFor.current = id; return; }
+    if (story && requestedFor.current !== id) {
       requestedFor.current = id;
       dispatch({ type: "LOAD_STORY", story });
     }

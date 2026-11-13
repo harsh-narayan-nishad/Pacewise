@@ -52,6 +52,13 @@
   --shadow-color: 20 20 20;
 }
 
+/* Landing page only (SearchLanding sets data-landing): always light, in Mediconnect's colours —
+   page #f4f4f4 (its body background), white cards and inputs. Every other page keeps the chosen theme. */
+:root[data-landing="1"] {
+  --canvas: 244 244 244;
+  --canvas-raised: 255 255 255;
+}
+
 :root[data-theme="sepia"] {
   --canvas: 244 236 216;
   --canvas-raised: 236 226 200;
@@ -103,4 +110,30 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee, .animate-marquee-reverse { animation: none; }
+}
+
+/* Liquid glass outside the reader (LiquidGlass reads these variables; the reader sets its own under .reader).
+   The same night / day / sepia values as the reader's glass, following the app theme (data-theme on <html>). */
+.pw-glass {
+  --glass-tint: rgba(20, 21, 24, 0.4);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.42), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --glass-text-shadow: none;
+  --glow-a: 0.07;
+  --rim-a: 0.8;
+  --fg: #edeef0;
+}
+:root[data-theme="light"] .pw-glass,
+:root[data-theme="sepia"] .pw-glass {
+  --glass-tint: rgba(255, 255, 255, 0.42);
+  --glass-shadow: 0 12px 36px rgba(20, 20, 20, 0.16), 0 2px 8px rgba(20, 20, 20, 0.08);
+  --glass-edge: rgba(255, 255, 255, 0.7);
+  --glow-a: 0.45;
+  --rim-a: 1;
+  --fg: #16171a;
+}
+:root[data-theme="sepia"] .pw-glass {
+  --glass-tint: rgba(244, 236, 216, 0.42);
+  --glass-shadow: 0 12px 36px rgba(90, 74, 40, 0.18), 0 2px 8px rgba(90, 74, 40, 0.1);
+  --fg: #2b2417;
 }

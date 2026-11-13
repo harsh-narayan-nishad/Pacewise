@@ -22,6 +22,7 @@ import { InsertMode, PagesTray } from './PagesTray';
 import { HighlightTarget, ImagePage, PdfPage, TextPage } from './pages';
 import { SearchPanel } from './SearchPanel';
 import { useZoom } from './useZoom';
+import { useFlipbookTimeLog } from './useFlipbookTimeLog';
 
 const PREFS_KEY = 'reader.prefs';
 
@@ -68,6 +69,8 @@ export default function Reader() {
     const [current, setCurrent] = useState(0);
     const [visible, setVisible] = useState<number[]>([0]);
     const [playing, setPlaying] = useState(false);
+    // Time spent reading this book goes into Profile → Time spent, as reading.
+    useFlipbookTimeLog(doc?.key ?? null, doc?.title ?? null, playing);
     const [wpm, setWpm] = useState(200);
     const [hidden, setHidden] = useState(false);
     const [mode, setMode] = useState<LayoutMode>('double'); // both pages of the spread are shown, like a dual-screen phone

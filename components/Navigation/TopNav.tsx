@@ -1,8 +1,9 @@
 "use client";
 
 import { BRAND_NAME } from "@/lib/brand";
-import React from "react";
-import { usePathname } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useReadingDispatch, useReadingState } from "@/contexts/ReadingContext";
 import { ReadingStatus } from "@/components/Navigation/ReadingStatus";
@@ -17,6 +18,8 @@ import GlassSurface from "@/components/ui/GlassSurface";
 import { useIdleDim } from "@/components/ReadingMode/useIdleDim";
 import { clockFace } from "@/lib/readingMode/progress";
 import { useNavLoader } from "@/contexts/NavLoaderContext";
+import { MediconnectSpinner } from "@/components/ui/loaders/MediconnectSpinner";
+import { startSwitchLoader, stopSwitchLoader, useSwitchLoader } from "@/lib/switchLoader";
 import { useOvertimeAlert } from "@/hooks/useOvertimeAlert";
 import { durationForWpm, formatDuration, storyWordCount } from "@/lib/wpmCalculator";
 
@@ -27,11 +30,42 @@ import { durationForWpm, formatDuration, storyWordCount } from "@/lib/wpmCalcula
  * only render during an active reading session; elsewhere the middle slot
  * collapses so the bar never shows stale numbers.
  */
+/** Shortest time the reading-page -> landing-page loader stays up. */
+const HOME_LOADER_MIN_MS = 600;
+
 export function TopNav() {
   const state = useReadingState();
   const dispatch = useReadingDispatch();
   const nav = useNavLoader();
   const pathname = usePathname();
+  const router = useRouter();
+  // Page-switch loader with Mediconnect's loader, the one its landing search shows while switching to doctor search
+  // (see lib/switchLoader.ts): reading page -> landing page (logo click) and landing page / lists -> a reading page.
+  // It stays until the destination is showing, and at least HOME_LOADER_MIN_MS so the switch reads as one smooth
+  // step instead of a flash; it gives up after 15 s.
+  const switching = useSwitchLoader();
+  const [switchMinDone, setSwitchMinDone] = useState(true);
+  // While it shows, the page can't scroll, as in Mediconnect.
+  useEffect(() => {
+    if (!switching) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [switching]);
+  useEffect(() => {
+    if (!switching) return undefined;
+    setSwitchMinDone(false);
+    const min = window.setTimeout(() => setSwitchMinDone(true), Math.max(0, HOME_LOADER_MIN_MS - (Date.now() - switching.at)));
+    const giveUp = window.setTimeout(stopSwitchLoader, 15_000);
+    return () => { window.clearTimeout(min); window.clearTimeout(giveUp); };
+  }, [switching]);
+  useEffect(() => {
+    if (!switching || !switchMinDone || Date.now() - switching.at < HOME_LOADER_MIN_MS) return;
+    const arrived = switching.kind === "home"
+      ? pathname === "/" && !state.story
+      : pathname === switching.path && Boolean(state.story);
+    if (arrived) stopSwitchLoader();
+  }, [switching, switchMinDone, pathname, state.story]);
 
   const isReading = state.phase === "reading" || state.phase === "completed";
   // Phase 10 of the social-features brief: the navbar's own search box
@@ -46,6 +80,23 @@ export function TopNav() {
   // Reading mode (free-scroll article at /read): same navbar timer, no practice widgets.
   const inReadingMode = pathname === "/read" && Boolean(state.story);
   const showTimer = isReading || inReadingMode;
+  // Landing page (search home, no story open): the navbar slides away while scrolling down, like the docs pages,
+  // and comes back the moment the page moves up at all (anywhere on the page), or when near the top.
+  const onLanding = pathname === "/" && !state.story;
+  const [navHidden, setNavHidden] = useState(false);
+  useEffect(() => {
+    if (!onLanding) { setNavHidden(false); return; }
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 64) setNavHidden(false);
+      else if (y > last + 4) setNavHidden(true);
+      else if (y < last) setNavHidden(false);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [onLanding]);
   // Story page clock: counts down from words ÷ wpm in real time while the article is being read.
   // It runs on its own timer and never depends on scrolling.
   const onStoryPage = Boolean(state.story) && !showTimer && (pathname === "/" || pathname.startsWith("/story/"));
@@ -71,8 +122,12 @@ export function TopNav() {
   // same as it always has.
   function goHome() {
     if (isReading) return;
+    // Switching from a reading page to the landing page: cover the screen with Mediconnect's loader
+    // (see the effect above), not the app's general page loader, so only one loader shows.
+    if (state.story) startSwitchLoader("home", "/");
     dispatch({ type: "CLEAR_STORY" });
-    nav.push("/");
+    if (state.story) router.push("/");
+    else nav.push("/");
   }
 
   // Public pages (shared notes) have their own header and no account menu.
@@ -100,7 +155,15 @@ export function TopNav() {
     // anything real. The header's own `border-b` below is the only line
     // that should show, on the bottom edge where the bar actually meets
     // the page content.
-    <header className="sticky top-0 z-[100] overflow-visible border-b border-overlay/10 shadow-themed">
+    <>
+    {switching && typeof document !== "undefined" && createPortal(
+      // As in Mediconnect: a white full screen with its spinner in the centre, cursor hidden.
+      <div role="alert" aria-busy="true" className="fixed inset-0 z-[400] flex cursor-none items-center justify-center bg-white">
+        <MediconnectSpinner label={switching.kind === "home" ? "Loading home" : "Opening story"} />
+      </div>,
+      document.body,
+    )}
+    <header className={`sticky top-0 z-[100] overflow-visible border-b border-overlay/10 shadow-themed transition-transform duration-300 ${navHidden ? "-translate-y-full" : ""}`}>
       <div className="absolute inset-0 -z-10">
         <GlassSurface
           width="100%"
@@ -118,7 +181,6 @@ export function TopNav() {
       )}
       <div className="relative mx-auto grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-3 overflow-visible px-4 sm:px-6">
         <div className="flex min-w-0 items-center justify-start gap-2.5 sm:gap-4">
-          <HamburgerMenu />
           <button
             type="button"
             onClick={goHome}
@@ -170,10 +232,13 @@ export function TopNav() {
         <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-4">
           {showNavbarSearch && <div className={onStoryPage ? "sm:hidden" : undefined}><MobileSearchSheet /></div>}
           <div className={showTimer ? "hidden sm:block" : undefined}><NotificationBell /></div>
-          <ThemeSwitch />
+          {/* The landing page is light-only, so it has no dark-mode switch. */}
+          {!(pathname === "/" && !state.story) && <ThemeSwitch />}
           <ProfileMenu />
+          <HamburgerMenu />
         </div>
       </div>
     </header>
+    </>
   );
 }

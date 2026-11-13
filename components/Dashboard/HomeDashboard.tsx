@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BRAND_BLUE } from "@/lib/brand";
 import { storage } from "@/lib/storage";
+import { startSwitchLoader } from "@/lib/switchLoader";
 import { getAllStories } from "@/lib/storyLibrary";
 import { useReadingDispatch } from "@/contexts/ReadingContext";
 import { useCurrentUser } from "@/lib/devData/useDevStore";
@@ -31,6 +32,7 @@ export function HomeDashboard() {
 
   const open = (story: StoryData) => {
     dispatch({ type: "LOAD_STORY", story });
+    startSwitchLoader("reading", "/");
     router.push("/");
   };
   const openByTitle = (title: string) => {
