@@ -110,7 +110,7 @@ type Tool = 'select' | 'pen';
 type Lib =
     | { id: string; kind: 'image'; src: ImageSource; url: string }
     | { id: string; kind: 'text'; name: string; text: string; code: boolean }
-    | { id: string; kind: 'file'; name: string; label: string };
+    | { id: string; kind: 'file'; name: string; label: string; file?: File };
 
 /* ---------- reading any kind of file ---------- */
 
@@ -534,7 +534,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         if (o) added.push(o);
                     } else {
                         const kb = file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1048576).toFixed(1)} MB`;
-                        const e: Lib = { id: newId(), kind: 'file', name: file.name, label: `📎 ${file.name} · ${kb}` };
+                        const e: Lib = { id: newId(), kind: 'file', name: file.name, label: `📎 ${file.name} · ${kb}`, file };
                         entries.push(e);
                         const o = textFromLib(e);
                         if (o) added.push(o);
@@ -2015,39 +2015,20 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                 </div>
             </div>
 
-            {/* Preview window for a Library item, in the design of the "Add your own story" window */}
+            {/* Preview window for a Library item, like Apple's Quick Look: always the same size; whatever it shows
+                (picture, PDF page, text, code, audio, video or any other file) fits inside it */}
             {preview &&
                 typeof document !== 'undefined' &&
                 createPortal(
                     <div ref={previewRef} className="pe-preview-backdrop" onPointerDown={(e) => e.target === e.currentTarget && setPreview(null)}>
-                        <div className="pe-preview" role="dialog" aria-modal="true" aria-label="Preview">
-                            <button type="button" className="pe-preview-close" onClick={() => setPreview(null)} aria-label="Close preview">
-                                <X size={22} strokeWidth={1.75} aria-hidden="true" />
-                            </button>
-                            <h2 className="pe-preview-title">{preview.kind === 'image' ? preview.src.name || 'Picture' : preview.name}</h2>
-                            <div className="pe-preview-body">
-                                {preview.kind === 'image' ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={preview.url} alt="" draggable={false} />
-                                ) : preview.kind === 'text' ? (
-                                    <pre>{preview.text}</pre>
-                                ) : (
-                                    <p>{preview.label}</p>
-                                )}
-                            </div>
-                            <div className="pe-preview-actions">
-                                <button
-                                    type="button"
-                                    className="pe-preview-add"
-                                    onClick={() => {
-                                        addFromPayload({ k: 'lib', id: preview.id });
-                                        setPreview(null);
-                                    }}
-                                >
-                                    Add to page
-                                </button>
-                            </div>
-                        </div>
+                        <QuickLook
+                            item={preview}
+                            onClose={() => setPreview(null)}
+                            onAdd={() => {
+                                addFromPayload({ k: 'lib', id: preview.id });
+                                setPreview(null);
+                            }}
+                        />
                     </div>,
                     document.fullscreenElement ?? document.body
                 )}
@@ -2415,5 +2396,75 @@ function BentoControls({ title, description, children }: { title: string; descri
                 <p className="m-0 line-clamp-2 text-[13px] leading-[1.45] text-[color:var(--mb-muted)]">{description}</p>
             </div>
         </>
+    );
+}
+
+/**
+ * The Library preview, after Apple's Quick Look: a fixed-size dark window with a title bar (close on the left, the
+ * name, the main action on the right); the content adapts to the window.
+ */
+function QuickLook({ item, onClose, onAdd }: { item: Lib; onClose: () => void; onAdd: () => void }) {
+    const name = item.kind === 'image' ? item.src.name || 'Picture' : item.name;
+    const file = item.kind === 'file' ? item.file : undefined;
+    const type = file?.type ?? '';
+    const [url, setUrl] = useState<string | null>(null);
+    const [fileText, setFileText] = useState<string | null>(null);
+    useEffect(() => {
+        if (!file) return undefined;
+        const u = URL.createObjectURL(file);
+        setUrl(u);
+        // a file that turns out to hold readable text is shown as text
+        if (!/^(audio|video|image)\//.test(type) && type !== 'application/pdf' && file.size <= 2_000_000) {
+            void file.slice(0, 200_000).text().then((t) => {
+                if (!t.includes('\u0000')) setFileText(t);
+            });
+        }
+        return () => URL.revokeObjectURL(u);
+    }, [file, type]);
+
+    const ext = (name.split('.').pop() ?? '').toUpperCase();
+    let body: React.ReactNode;
+    if (item.kind === 'image') body = <img className="ql-media" src={item.url} alt="" draggable={false} />;
+    else if (item.kind === 'text') body = <pre className={`ql-text${item.code ? ' ql-code' : ''}`}>{item.text}</pre>;
+    else if (url && type.startsWith('video/')) body = <video className="ql-media" src={url} controls autoPlay playsInline />;
+    else if (url && type.startsWith('audio/'))
+        body = (
+            <div className="ql-audio">
+                <div className="ql-icon" aria-hidden="true">♪</div>
+                <p className="ql-name">{name}</p>
+                <audio src={url} controls autoPlay />
+            </div>
+        );
+    else if (url && type.startsWith('image/')) body = <img className="ql-media" src={url} alt="" draggable={false} />;
+    else if (url && type === 'application/pdf') body = <iframe className="ql-frame" src={url} title={name} />;
+    else if (fileText !== null) body = <pre className="ql-text ql-code">{fileText}</pre>;
+    else
+        body = (
+            <div className="ql-file">
+                <div className="ql-icon" aria-hidden="true">{ext.slice(0, 4) || 'FILE'}</div>
+                <p className="ql-name">{name}</p>
+                <p className="ql-meta">{item.kind === 'file' ? item.label.replace(/^📎\s*/, '') : ''}</p>
+            </div>
+        );
+
+    return (
+        <div className="ql" role="dialog" aria-modal="true" aria-label={`Preview: ${name}`}>
+            {/* the landing page's "Add your own story" window: close top right, a large light title, the content in a
+                framed area, the action at the bottom right */}
+            <button type="button" className="ql-close" onClick={onClose} aria-label="Close preview" title="Close (Esc)">
+                <X size={26} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+            <h2 className="ql-title" title={name}>
+                {name}
+            </h2>
+            <div className="ql-frame-box">
+                <div className="ql-body">{body}</div>
+            </div>
+            <div className="ql-foot">
+                <button type="button" className="ql-action" onClick={onAdd}>
+                    Add to page
+                </button>
+            </div>
+        </div>
     );
 }
