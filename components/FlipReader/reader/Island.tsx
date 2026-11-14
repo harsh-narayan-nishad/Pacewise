@@ -10,6 +10,8 @@ import LiquidGlass from '@/components/FlipReader/ui/LiquidGlass';
 import { formatDuration } from '@/lib/flipreader/readingtime';
 import { useReadingTime } from './useReadingTime';
 import { useRouter } from 'next/navigation';
+import { useCurrentUser } from '@/lib/devData/useDevStore';
+import { ROUTES } from '@/lib/routes';
 import { useReadingDispatch } from '@/contexts/ReadingContext';
 import { startSwitchLoader } from '@/lib/switchLoader';
 import { BRAND_NAME } from '@/lib/brand';
@@ -244,6 +246,9 @@ export function Island(p: IslandProps) {
     const [open, setOpen] = useState(false);
     const { wrapRef, style, grip } = useDraggable('island', { x: 0.5, y: 0.012 }, p.boundsRef);
     const router = useRouter();
+    // the week bars open your profile's Analytics (consistency, trends), the one the profile button leads to
+    const me = useCurrentUser();
+    const analyticsHref = me ? `${ROUTES.profile(me.id)}?tab=analytics` : '/analytics';
     const dispatch = useReadingDispatch();
     /** "Pacewise" in the bar: back to the software's home page (the same as the navbar's Pacewise). */
     const goHome = () => {
@@ -420,29 +425,12 @@ export function Island(p: IslandProps) {
                             </div>
 
                             <div className="rd-irow" role="group" aria-label="Tools">
-                                <span className="rd-lw">
-                                    <button className="rd-btn rd-accent" data-on={p.searchOpen} aria-pressed={p.searchOpen} onClick={p.onSearch} disabled={off} aria-label="Search in book" title="Search in book (Ctrl/Cmd+F or /)">
-                                        <Icon d={PATH.search} />
-                                    </button>
-                                    <span className="rd-cap">{'Search'}</span>
-                                </span>
-                                <span className="rd-lw">
-                                    <button className="rd-btn" data-on={p.pagesOpen} aria-pressed={p.pagesOpen} onClick={p.onPages} disabled={!p.canEditPages} aria-label="Pages: add, remove, edit, download PDF" title={p.canEditPages ? 'Pages: add, remove, edit, download PDF (P)' : 'Pages can be managed for image and PDF books'}>
-                                        <Icon d={PATH.pages} />
-                                    </button>
-                                    <span className="rd-cap">{'Pages'}</span>
-                                </span>
+                                {/* Search and Pages are round glass buttons at the right edge of the reader (top / bottom) */}
                                 <span className="rd-lw">
                                     <button className="rd-btn" onClick={p.onEditCover} disabled={off} aria-label="Edit covers" title="Edit front and back cover (E)">
                                         <Icon d={PATH.edit} />
                                     </button>
                                     <span className="rd-cap">{'Covers'}</span>
-                                </span>
-                                <span className="rd-lw">
-                                    <button className="rd-btn" data-on={p.zoomed} aria-pressed={p.zoomed} onClick={p.onZoom} aria-label={p.zoomed ? 'Exit full screen' : 'Full screen'} title={p.zoomed ? 'Exit full screen (F)' : 'Full screen (F)'}>
-                                        <Icon d={p.zoomed ? PATH.shrink : PATH.expand} />
-                                    </button>
-                                    <span className="rd-cap">{p.zoomed ? 'Exit full' : 'Full screen'}</span>
                                 </span>
                                 <span className="rd-lw">
                                     <button className="rd-btn" onClick={p.onZoomOut} disabled={p.zoomScale <= 1.01} aria-label="Zoom out" title="Zoom out">
@@ -456,12 +444,7 @@ export function Island(p: IslandProps) {
                                     </button>
                                     <span className="rd-cap">{'Zoom in'}</span>
                                 </span>
-                                <span className="rd-lw">
-                                    <button className="rd-btn" onClick={p.onOpen} aria-label="Open files" title="Open files (images, PDF, EPUB, TXT)">
-                                        <Icon d={PATH.open} />
-                                    </button>
-                                    <span className="rd-cap">{'Open'}</span>
-                                </span>
+                                {/* Full screen and Open are one glass capsule at the top right, just left of Search */}
                             </div>
 
                             <div className="rd-irow" role="group" aria-label="Display">
@@ -532,11 +515,11 @@ export function Island(p: IslandProps) {
                                 role="link"
                                 tabIndex={0}
                                 title="Open Analytics"
-                                onClick={() => router.push('/analytics')}
+                                onClick={() => router.push(analyticsHref)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault();
-                                        router.push('/analytics');
+                                        router.push(analyticsHref);
                                     }
                                 }}
                                 aria-label={`Reading time over the last 7 days. Today ${formatDuration(reading.today)}. Open Analytics.`}

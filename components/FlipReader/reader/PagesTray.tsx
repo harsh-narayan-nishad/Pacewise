@@ -168,6 +168,8 @@ export function PagesTray(p: Props) {
 
     /** Space: the selected page (or all picked pages) shown large, a code / text page editable there */
     const [previewIds, setPreviewIds] = useState<string[] | null>(null);
+    /** how the last page was pressed: on a tablet / phone (no Space key) a tap on a page opens its preview */
+    const lastPointer = useRef<string>('mouse');
     const spaceRef = useRef<(e: KeyboardEvent) => void>(() => undefined);
     spaceRef.current = (e) => {
         if (e.key !== ' ' || e.repeat || previewIds || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -256,6 +258,9 @@ export function PagesTray(p: Props) {
                                     setDragFrom(null);
                                     setDropAt(null);
                                 }}
+                                onPointerDown={(e) => {
+                                    lastPointer.current = e.pointerType;
+                                }}
                                 onClick={(e) => {
                                     if (e.metaKey || e.ctrlKey) {
                                         // Cmd / Ctrl + click: add or take out this page (the one you clicked stays current)
@@ -268,6 +273,7 @@ export function PagesTray(p: Props) {
                                     } else {
                                         setPicked([]);
                                         anchor.current = i;
+                                        if (lastPointer.current === 'touch' || lastPointer.current === 'pen') setPreviewIds([it.id]);
                                     }
                                     p.onSelect(i);
                                 }}

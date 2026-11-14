@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,11 @@ export function UserProfile({ userId }: UserProfileProps) {
   const photo = useAvatarUpload(currentUser?.id);
   /** null = the default "content posted by you" grid. */
   const [tab, setTab] = useState<ProfileTab | null>(null);
+  // ?tab=analytics (e.g. from the flip book's week bars) opens that tab
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get("tab");
+    if (want && TABS.some((t) => t.id === want)) setTab(want as ProfileTab);
+  }, []);
   /** Which follow list (followers / following) is open, if any. */
   const [relList, setRelList] = useState<"followers" | "following" | null>(null);
 

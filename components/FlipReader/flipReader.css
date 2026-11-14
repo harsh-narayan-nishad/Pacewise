@@ -338,7 +338,7 @@
 }
 .rd-search-input[type='text']::placeholder { color: var(--fg-dim); }
 .rd-search-input[type='text']:hover { width: 240px; }
-.rd-search-input[type='text']:focus { width: 280px; box-shadow: inset 0 0 0 1.5px var(--focus); }
+.rd-search-input[type='text']:focus { width: 280px; box-shadow: none; outline: none; } /* no green ring */
 @media (max-width: 640px) {
     .rd-search-row { flex-wrap: nowrap; }
     .rd-search-input[type='text'], .rd-search-input[type='text']:hover, .rd-search-input[type='text']:focus { width: auto; flex: 1 1 0; min-width: 0; }
@@ -879,3 +879,52 @@ img.rd-thumb { width: 36px; height: 48px; object-fit: cover; border-radius: 4px;
 .rd-tray-head h2 span.rd-tray-hint { margin-left: 12px; color: var(--fg-dim); }
 .rd-tray[data-dropout] .rd-thumb[data-dragging] { opacity: 0.35; }
 .rd-tray[data-dropout] .rd-tray-hint { color: #ff6b6b; }
+
+/* Search (top right) and Pages (bottom right): round buttons in the same liquid glass as the controls */
+.rd-corner {
+    position: absolute; right: calc(16px + env(safe-area-inset-right, 0px)); z-index: 2; width: 52px; height: 52px; display: grid; place-items: center;
+    padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--fg); cursor: pointer; pointer-events: auto; isolation: isolate;
+    text-shadow: var(--glass-text-shadow); transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.rd-corner-top { top: calc(16px + env(safe-area-inset-top, 0px)); }
+.rd-corner-bottom { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.rd-corner:active { transform: scale(0.94); }
+.rd-corner:disabled { opacity: 0.4; cursor: default; }
+.rd-corner-lg { position: absolute; inset: 0; z-index: -1; border-radius: inherit; overflow: hidden; }
+/* Full screen + Open files: one glass capsule at the top right, just left of Search */
+.rd-corner-pill {
+    position: absolute; top: calc(16px + env(safe-area-inset-top, 0px)); right: calc(16px + 52px + 10px + env(safe-area-inset-right, 0px)); z-index: 2;
+    display: flex; align-items: center; height: 52px; padding: 0 2px; border-radius: 999px; pointer-events: auto; isolation: isolate; color: var(--fg); text-shadow: var(--glass-text-shadow);
+}
+.rd-corner-in { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; transition: background 0.15s, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.rd-corner-in:active { transform: scale(0.94); }
+/* no background, no focus ring on these glass buttons (clicked, on or hovered): just the glass and the icon */
+.rd-corner:focus, .rd-corner:focus-visible, .rd-corner-in:focus, .rd-corner-in:focus-visible { outline: none; box-shadow: none; }
+.rd-corner-sep { width: 1px; height: 22px; background: var(--glass-edge, rgba(255, 255, 255, 0.18)); }
+/* hidden with the controls (either "Hide controls"): they come back with them */
+.rd-corner, .rd-corner-pill { transition: opacity 0.25s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.25s; }
+.rd-corner[data-hidden], .rd-corner-pill[data-hidden] { opacity: 0; visibility: hidden; pointer-events: none; }
+/* Add to page (+) and Pages: the same glass capsule at the bottom right */
+.rd-corner-pill.rd-corner-pill-bottom { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); }
+.rd-corner-pill-bottom .rd-corner-bottom { position: static; }
+.rd-corner-in:disabled { opacity: 0.4; cursor: default; }
+
+/* The preview window follows the reader's Day / Night / System: dark when the book is dark (Night, or System at night) */
+body:has(.reader[data-rtheme='night']) .ql { background: #1c1c1e; border-color: rgba(255, 255, 255, 0.1); color: #f5f5f7; box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.6); }
+body:has(.reader[data-rtheme='night']) .ql-close { color: #f5f5f7; }
+body:has(.reader[data-rtheme='night']) .ql-close:hover { background: rgba(255, 255, 255, 0.08); color: #f5f5f7; }
+body:has(.reader[data-rtheme='night']) .ql-action { background: #f5f5f7; color: #16171a; }
+body:has(.reader[data-rtheme='night']) .ql-action:hover { background: #f5f5f7; }
+body:has(.reader[data-rtheme='night']) .ql-text, body:has(.reader[data-rtheme='night']) .ql-body { color: #f5f5f7; }
+body:has(.reader[data-rtheme='night']) .ql-meta, body:has(.reader[data-rtheme='night']) .ql-nav-count { color: #a1a1a6; }
+body:has(.reader[data-rtheme='night']) .ql-nav-btn { background: rgba(255, 255, 255, 0.08); color: #f5f5f7; }
+body:has(.reader[data-rtheme='night']) .ql-nav-btn:hover { background: rgba(255, 255, 255, 0.14); }
+body:has(.reader[data-rtheme='night']) .ql-ln { color: #6e7681; }
+body:has(.reader[data-rtheme='night']) .ql-lc { color: #e6edf3; }
+body:has(.reader[data-rtheme='night']) .ql-ce-input { caret-color: #f5f5f7; }
+body:has(.reader[data-rtheme='night']) .ql-ce-input::selection { background: rgba(56, 139, 253, 0.35); }
+/* code colours for a dark window (GitHub dark), in place of the light ones */
+body:has(.reader[data-rtheme='night']) .ql {
+    --ql-c-keyword: #ff7b72; --ql-c-string: #a5d6ff; --ql-c-comment: #8b949e; --ql-c-number: #79c0ff; --ql-c-type: #ffa657;
+    --ql-c-func: #d2a8ff; --ql-c-punct: #c9d1d9; --ql-c-tag: #7ee787; --ql-c-attr: #79c0ff; --ql-c-plain: #e6edf3;
+}

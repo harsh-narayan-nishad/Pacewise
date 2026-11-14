@@ -23,7 +23,9 @@ const MAX_CACHED = 4;
 
 export function getIndex(doc: BookDoc): SearchIndex {
     // a pages book changes when pages are added / removed / moved: `rev` makes that a new index
-    const key = `${doc.key}#${doc.kind === 'pages' ? doc.rev : doc.pageCount}`;
+    // `id`: each opening of a file is its own book, so opening the same file again never gets an older, stale index
+    // (PDF text stays cached per file below, so this costs nothing for PDFs)
+    const key = `${doc.key}#${doc.id}#${doc.kind === 'pages' ? doc.rev : doc.pageCount}`;
     const hit = memory.get(key);
     if (hit) {
         memory.delete(key); // mark as recently used
@@ -130,7 +132,10 @@ export async function buildIndex(
                 if (i >= index.total) return;
                 if (index.pages[i] !== null) continue;
                 const item = items[i];
-                if (item.type !== 'pdf') {
+                if (item.type === 'image' && item.src.code) {
+                    // a page made from a code / text file: its own lines are its text
+                    setPage(index, i, item.src.code.text.replace(/\s+/g, ' ').trim());
+                } else if (item.type !== 'pdf') {
                     setPage(index, i, ''); // a picture has no text
                 } else {
                     try {

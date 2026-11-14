@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 
 import LiquidGlass from '@/components/FlipReader/ui/LiquidGlass';
 import { Hit, MIN_QUERY, search, SearchIndex, SearchResult } from '@/lib/flipreader/search';
@@ -91,8 +90,22 @@ export function SearchPanel({ index, progress, query, onQuery, onOpenHit, onClos
         }
     };
 
+    // a click anywhere outside the panel closes it (the Search button at the top right opens / closes it itself)
+    const rootRef = useRef<HTMLDivElement>(null);
+    const closeRef = useRef(onClose);
+    closeRef.current = onClose;
+    useEffect(() => {
+        const onDown = (e: PointerEvent) => {
+            const t = e.target as Element | null;
+            if (!t || rootRef.current?.contains(t) || t.closest('.rd-corner-top')) return;
+            closeRef.current();
+        };
+        document.addEventListener('pointerdown', onDown, true);
+        return () => document.removeEventListener('pointerdown', onDown, true);
+    }, []);
+
     return (
-        <div className="rd-search" role="search" aria-label="Search in book">
+        <div ref={rootRef} className="rd-search" role="search" aria-label="Search in book">
           <LiquidGlass width="100%" height="auto" radius={26} blur={6}>
            <div className="rd-search-body">
             <div className="rd-search-row">
@@ -127,9 +140,7 @@ export function SearchPanel({ index, progress, query, onQuery, onOpenHit, onClos
                         Clear
                     </button>
                 )}
-                <button type="button" className="rd-btn" onClick={onClose} aria-label="Close search" title="Close (Esc)">
-                    <X size={18} strokeWidth={1.75} aria-hidden="true" />
-                </button>
+                {/* no close button here: Esc, or the Search button at the top right, closes it */}
             </div>
 
             <p className="rd-search-status" aria-live="polite">

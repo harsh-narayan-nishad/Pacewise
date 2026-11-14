@@ -3094,7 +3094,7 @@ export function CodeEdit({ text, name, onChange, firstLine = 1 }: { text: string
                             {pieces.length === 0
                                 ? '\u00a0'
                                 : pieces.map((p, k) => (
-                                      <span key={k} style={{ color: p.color, fontStyle: p.italic ? 'italic' : undefined }}>
+                                      <span key={k} style={{ color: `var(--ql-c-${p.type}, ${p.color})`, fontStyle: p.italic ? 'italic' : undefined }}>
                                           {p.text}
                                       </span>
                                   ))}
@@ -3140,7 +3140,7 @@ function CodeView({ text, name }: { text: string; name: string }) {
                         {pieces.length === 0
                             ? '\u00a0'
                             : pieces.map((p, k) => (
-                                  <span key={k} style={{ color: p.color, fontStyle: p.italic ? 'italic' : undefined }}>
+                                  <span key={k} style={{ color: `var(--ql-c-${p.type}, ${p.color})`, fontStyle: p.italic ? 'italic' : undefined }}>
                                       {p.text}
                                   </span>
                               ))}

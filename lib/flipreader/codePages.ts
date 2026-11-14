@@ -39,7 +39,7 @@ const COLOURS: Record<TokenType, string> = {
  * A code / text file split into lines of coloured pieces (the same colours and language rules as the code pages),
  * for showing it on screen, e.g. in the Library preview.
  */
-export function codeLines(text: string, name: string): { text: string; color: string; italic: boolean }[][] {
+export function codeLines(text: string, name: string): { text: string; color: string; italic: boolean; type: TokenType }[][] {
     const raw = text.replace(/\r\n?/g, '\n').replace(/\t/g, '    ');
     let tokens: { type: TokenType; text: string }[];
     try {
@@ -47,11 +47,11 @@ export function codeLines(text: string, name: string): { text: string; color: st
     } catch {
         tokens = [{ type: 'plain', text: raw }];
     }
-    const lines: { text: string; color: string; italic: boolean }[][] = [[]];
+    const lines: { text: string; color: string; italic: boolean; type: TokenType }[][] = [[]];
     for (const t of tokens) {
         t.text.split('\n').forEach((part, i) => {
             if (i > 0) lines.push([]);
-            if (part) lines[lines.length - 1].push({ text: part, color: COLOURS[t.type] ?? COLOURS.plain, italic: t.type === 'comment' });
+            if (part) lines[lines.length - 1].push({ text: part, color: COLOURS[t.type] ?? COLOURS.plain, italic: t.type === 'comment', type: t.type });
         });
     }
     return lines;

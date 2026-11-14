@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MediconnectSpinner } from '@/components/ui/loaders/MediconnectSpinner';
-import { ChevronsLeft, ChevronsRight, X } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, EyeOff, FolderOpen, LayoutGrid, Maximize2, Minimize2, Plus, Search, X } from 'lucide-react';
 
 import HTMLFlipBook, { FlipBookHandle, HoldData, IFlipEvent, LayoutMode, TapData } from '@/components/FlipReader/flip-book';
 import { CoverDesign, defaultDesign, loadDesign, saveDesign } from '@/lib/flipreader/cover';
@@ -532,6 +532,13 @@ export default function Reader() {
             srcs,
             index < sel ? sel + added.length : sel
         );
+    };
+    /** Add to page (the pages strip's button, or the + at the bottom right): the page editor on the selected page */
+    const openAnnotate = () => {
+        const it = pagesDoc?.items[sel];
+        setAnnotIds(it ? [it.id] : []);
+        annotStart.current = pagesDoc ? { items: pagesDoc.items, history: historyRef.current.length, sel } : null;
+        setAnnotating(true);
     };
     /** several pages at once (picked together in the pages strip, or dragged out of it): one step to undo */
     const pageDeleteMany = (indices: number[]) => {
@@ -1196,6 +1203,64 @@ export default function Reader() {
                         onHide={() => setHidden(true)}
                     />
                     <ShowBar hidden={hidden} progress={progress} onShow={() => setHidden(false)} />
+                    {/* Full screen and Open files together in one glass capsule, just left of Search */}
+                    <div className="rd-corner-pill" role="group" aria-label="Full screen, files and hide controls" data-hidden={hidden || undefined}>
+                        <span className="rd-corner-lg" aria-hidden="true">
+                            <LiquidGlass width="100%" height="100%" radius={26} blur={4} />
+                        </span>
+                        <button type="button" className="rd-corner-in" data-on={zoomed} aria-pressed={zoomed} onClick={() => void toggleZoom()} aria-label={zoomed ? 'Exit full screen' : 'Full screen'} title={zoomed ? 'Exit full screen (F)' : 'Full screen (F)'}>
+                            {zoomed ? <Minimize2 size={20} strokeWidth={1.75} aria-hidden="true" /> : <Maximize2 size={20} strokeWidth={1.75} aria-hidden="true" />}
+                        </button>
+                        <span className="rd-corner-sep" aria-hidden="true" />
+                        <button type="button" className="rd-corner-in" onClick={pickFile} aria-label="Open files" title="Open files (images, PDF, EPUB, TXT)">
+                            <FolderOpen size={20} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                        <span className="rd-corner-sep" aria-hidden="true" />
+                        {/* the same as the controls' own "Hide controls": hides them all, these corner buttons too */}
+                        <button type="button" className="rd-corner-in" onClick={() => setHidden(true)} aria-label="Hide controls" title="Hide controls">
+                            <EyeOff size={20} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                    </div>
+                    {/* Search at the top right, Pages at the bottom right: round buttons in the controls' liquid glass */}
+                    <button
+                        type="button"
+                        className="rd-corner rd-corner-top"
+                        data-hidden={hidden || undefined}
+                        data-on={searchOpen}
+                        aria-pressed={searchOpen}
+                        onClick={() => (searchOpen ? setSearchOpen(false) : openSearch())}
+                        disabled={!doc}
+                        aria-label="Search in book"
+                        title="Search in book (Ctrl/Cmd+F or /)"
+                    >
+                        <span className="rd-corner-lg" aria-hidden="true">
+                            <LiquidGlass width="100%" height="100%" radius={26} blur={4} />
+                        </span>
+                        <Search size={20} strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    {/* Add to page (+) and Pages together in one glass capsule at the bottom right */}
+                    {/* stays on screen when the controls are hidden */}
+                    <div className="rd-corner-pill rd-corner-pill-bottom" role="group" aria-label="Add to page and pages">
+                        <span className="rd-corner-lg" aria-hidden="true">
+                            <LiquidGlass width="100%" height="100%" radius={26} blur={4} />
+                        </span>
+                        <button type="button" className="rd-corner-in" onClick={openAnnotate} disabled={!pagesDoc || pagesDoc.items.length === 0} aria-label="Add to page" title="Place pictures and text on this page">
+                            <Plus size={20} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                        <span className="rd-corner-sep" aria-hidden="true" />
+                        <button
+                            type="button"
+                            className="rd-corner-in rd-corner-bottom"
+                            data-on={trayOpen}
+                            aria-pressed={trayOpen}
+                            onClick={() => setTrayOpen((o) => !o)}
+                            disabled={!pagesDoc}
+                            aria-label="Pages: add, remove, edit, download PDF"
+                            title={pagesDoc ? 'Pages: add, remove, edit, download PDF (P)' : 'Pages can be managed for image and PDF books'}
+                        >
+                            <LayoutGrid size={20} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -1222,12 +1287,7 @@ export default function Reader() {
                     onInsertMode={setInsertMode}
                     onAddFiles={(files) => void pageAdd(files)}
                     onEdit={() => setImageEditing(true)}
-                    onAnnotate={() => {
-                        const it = pagesDoc?.items[sel];
-                        setAnnotIds(it ? [it.id] : []);
-                        annotStart.current = pagesDoc ? { items: pagesDoc.items, history: historyRef.current.length, sel } : null;
-                        setAnnotating(true);
-                    }}
+                    onAnnotate={openAnnotate}
                     onConvert={() => void pageConvert()}
                     onDuplicate={pageDuplicate}
                     onMove={pageMove}
