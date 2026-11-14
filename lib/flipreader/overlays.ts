@@ -339,15 +339,18 @@ export async function drawOverlays(ctx: CanvasRenderingContext2D, W: number, H: 
                 ctx.stroke();
             }
             if (o.kind === 'arrow') {
-                const head = Math.max(lw * 4, 8);
+                // Excalidraw's arrowhead: two open strokes at about 25° to the shaft, sized to the arrow and the line
+                const w0 = lw || 2;
+                const head = Math.min(bw * 0.35, Math.max(w0 * 7, 18));
+                const a = (25 * Math.PI) / 180;
                 ctx.strokeStyle = o.stroke ?? '#222';
-                ctx.lineWidth = lw || 2;
+                ctx.lineWidth = w0;
                 ctx.lineJoin = 'round';
                 ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.moveTo(bw / 2 - head, -head * 0.7);
+                ctx.moveTo(bw / 2 - head * Math.cos(a), -head * Math.sin(a));
                 ctx.lineTo(bw / 2, 0);
-                ctx.lineTo(bw / 2 - head, head * 0.7);
+                ctx.lineTo(bw / 2 - head * Math.cos(a), head * Math.sin(a));
                 ctx.stroke();
             }
         } else if (o.type === 'draw') {

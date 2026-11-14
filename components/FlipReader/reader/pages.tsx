@@ -293,11 +293,14 @@ export const ImagePage = memo(function ImagePage({
     active,
     quality = 1,
     night = false,
+    invert = false,
 }: {
     item: ImageItem;
     active: boolean;
     quality?: number;
     night?: boolean;
+    /** "Invert PDF" at night: picture pages (added or written pages) are inverted like the PDF's own pages */
+    invert?: boolean;
 }) {
     const overlays = item.overlays;
     const { W, H } = useFlipPageSize();
@@ -350,7 +353,7 @@ export const ImagePage = memo(function ImagePage({
                 </div>
             )}
             <div style={{ position: 'relative', lineHeight: 0 }}>
-                <canvas ref={canvasRef} style={{ display: 'block', filter: night ? 'brightness(0.86)' : undefined }} />
+                <canvas ref={canvasRef} style={{ display: 'block', filter: invert ? 'invert(0.92) hue-rotate(180deg)' : night ? 'brightness(0.86)' : undefined }} />
                 {overlays.length > 0 && <OverlayLayer overlays={overlays} quality={quality} />}
             </div>
         </div>

@@ -882,7 +882,7 @@ export default function Reader() {
                 ) : it.type === 'pdf' ? (
                     <PdfPage key={it.id} pdf={it.src.pdf} index={it.index} active={active} quality={q} highlight={hl(i)} dark={night && invertPages} overlays={it.overlays} />
                 ) : (
-                    <ImagePage key={it.id} item={it} active={active} quality={q} night={night} />
+                    <ImagePage key={it.id} item={it} active={active} quality={q} night={night} invert={night && invertPages} />
                 );
             })
           : doc.pages.map((p, i) => <TextPage key={i} data={p} index={i} highlight={hl(i)} night={night} />);

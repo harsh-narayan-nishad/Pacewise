@@ -82,6 +82,8 @@ interface OverlayBase {
     locked?: boolean;
     /** a soft drop shadow behind the item */
     shadow?: boolean;
+    /** items grouped together share this id: they are selected and moved as one */
+    group?: string;
 }
 
 export interface ImageOverlay extends OverlayBase {

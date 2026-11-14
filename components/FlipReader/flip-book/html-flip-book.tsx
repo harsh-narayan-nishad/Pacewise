@@ -186,7 +186,8 @@ const MAX_BLUR = 30; // px, for the page that is moving
 const BLUR_PER_DEG_MS = 40; // px of blur for every degree per millisecond of page speed
 const UNDER_BLUR = 14; // px, for the page the turning one passes over
 const SLOW_FRAME_MS = 50; // an average frame slower than this (about 20 fps) over 12+ frames means the device cannot keep up
-let adaptiveBlurOff = false; // set when this device cannot keep up: blur then stays off until the page is reloaded
+let adaptiveBlurOff = false; // set when this device cannot keep up (several slow flips in a row); turning Flip blur on again resets it
+let slowFlips = 0; // how many flips in a row were too slow for the blur
 
 const INTERACTIVE = 'a,button,input,select,textarea,label,summary,[data-no-flip]';
 
@@ -403,7 +404,9 @@ function createEngine(S: State) {
             S.ema = S.ema ? S.ema * 0.85 + dt * 0.15 : dt;
             S.frames++;
             const keep = typeof window !== 'undefined' && (window as unknown as { __flipKeepBlur?: boolean }).__flipKeepBlur;
-            if (S.frames >= 12 && S.ema > SLOW_FRAME_MS && !keep) adaptiveBlurOff = true;
+            // judged per flip (see the end of tick): one slow moment, e.g. while a new page is first drawn, no longer
+            // switches the blur off for good
+            void keep;
         }
         S.lastFrame = now;
         const finished: Anim[] = [];
@@ -418,7 +421,18 @@ function createEngine(S: State) {
         apply();
         finished.forEach((a) => a.done?.());
         if (S.anims.size > 0 && !S.raf) S.raf = requestAnimationFrame(tick);
-        else if (S.anims.size === 0) S.lastFrame = 0; // the pause between two flips is not a slow frame; the average carries on
+        else if (S.anims.size === 0) {
+            S.lastFrame = 0; // the pause between two flips is not a slow frame
+            // this flip's average frame time: three slow flips in a row mean the device cannot keep up with the blur
+            const keepBlur = typeof window !== 'undefined' && (window as unknown as { __flipKeepBlur?: boolean }).__flipKeepBlur;
+            if (S.frames >= 12) {
+                slowFlips = S.ema > SLOW_FRAME_MS ? slowFlips + 1 : 0;
+                // the blur follows only the Flip blur button: it is never switched off on its own
+                void keepBlur;
+            }
+            S.ema = 0;
+            S.frames = 0;
+        }
     };
 
     const animateTo = (leaf: number, to: number, dur: number, done?: () => void, easing: (t: number) => number = EASE_FLIP) => {
@@ -967,6 +981,10 @@ const HTMLFlipBookForward = React.forwardRef<FlipBookHandle, IProps>((incoming, 
 
     /* ----- keep the engine in sync with the latest props ----- */
     useIsoLayoutEffect(() => {
+        if (settings.motionBlur > 0 && S.settings && !(S.settings.motionBlur > 0)) {
+            adaptiveBlurOff = false;
+            slowFlips = 0;
+        }
         S.settings = settings;
         S.layout = layout;
         S.props = incoming;

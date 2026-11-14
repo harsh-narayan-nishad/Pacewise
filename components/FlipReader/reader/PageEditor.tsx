@@ -15,10 +15,9 @@ import {
     Bold,
     BringToFront,
     ChevronDown,
-    ChevronLeft,
-    ChevronRight,
     ChevronUp,
     Copy,
+    Eraser,
     Eye,
     EyeOff,
     FilePlus2,
@@ -88,6 +87,8 @@ function Slider({ label, value, min, max, step = 1, suffix = '', onStart, onChan
 }
 
 interface Drag {
+    /** moving several selected items together: where each one started */
+    many?: Overlay[];
     mode: 'move' | Handle;
     id: string;
     sx: number;
@@ -187,6 +188,9 @@ const SHAPES: { kind: ShapeKind; label: string; d: string; line?: boolean }[] = 
     { kind: 'arrow', label: 'Arrow', d: 'M3 16h25M21 9l7 7-7 7', line: true },
 ];
 
+/** Excalidraw's keys for its shape tools */
+const SHAPE_KEYS: Partial<Record<ShapeKind, string>> = { rect: 'R', diamond: 'D', ellipse: 'O', arrow: 'A', line: 'L' };
+
 const EMOJI = '😀 😍 😎 🤔 😂 🥳 😴 🤯 👍 👏 🙏 💪 ✅ ❌ ⭐ 🌟 ❤️ 💡 🔥 ✨ 🎯 📌 📎 📝 📚 🎓 🧠 ⏰ 📅 💬 ❓ ❗ ⚠️ 🚀 🏆 🎉 🌈 ☀️ 🌙 🌱 🍀 🎨 ✏️ 🔍 🔔 💯 ➡️ ⬅️ ⬆️ ⬇️ ✔️ ➕ ➖ 🟢 🟡 🔴 🔵'.split(' ');
 
 const TEXT_STYLES: { label: string; sample: string; text: string; patch: Partial<TextOverlay> }[] = [
@@ -236,6 +240,13 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const future = useRef<Overlay[][]>([]);
     const gesture = useRef(false);
     const [selId, setSelId] = useState<string | null>(null);
+    /** several items selected at once (drag a box on the page, or Shift-click), Canva-style; empty for one or none */
+    const [multiIds, setMultiIds] = useState<string[]>([]);
+    /** the box being dragged on the page to select items, in page pixels */
+    const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+    useEffect(() => {
+        if (!selId || !multiIds.includes(selId)) setMultiIds([]);
+    }, [selId]); // eslint-disable-line react-hooks/exhaustive-deps
     const [message, setMessage] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [tool, setTool] = useState<Tool>('select');
@@ -692,10 +703,40 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         return { cx: f.left + o.x * dispW + b.width / 2, cy: f.top + o.y * dispH + b.height / 2 };
     };
 
+    /** the item and the rest of its group */
+    const withGroup = (o: Overlay) => (o.group ? ref.current.filter((x) => x.group === o.group).map((x) => x.id) : [o.id]);
+    const selectedIds = () => (multiIds.length > 1 ? multiIds : selId ? [selId] : []);
+
     const down = (o: Overlay, mode: Drag['mode']) => (e: React.PointerEvent<HTMLElement>) => {
         e.preventDefault();
         e.stopPropagation();
+        // the page's background colour is not picked up by a press: a drag there selects with a box, like the page
+        if (mode === 'move' && o.type === 'shape' && o.isBackground && o.locked) {
+            marqueeDown(e);
+            return;
+        }
+        if (mode === 'move' && e.shiftKey) {
+            // Shift-click: add the item (with its group) to the selection, or take it out
+            const cur = selectedIds();
+            const ids = withGroup(o);
+            const on = ids.every((id) => cur.includes(id));
+            const next = on ? cur.filter((id) => !ids.includes(id)) : [...cur, ...ids.filter((id) => !cur.includes(id))];
+            setMultiIds(next.length > 1 ? next : []);
+            setSelId(next[next.length - 1] ?? null);
+            return;
+        }
+        const cur = selectedIds();
+        const set = mode === 'move' && cur.length > 1 && cur.includes(o.id) ? cur : withGroup(o);
+        setMultiIds(set.length > 1 ? set : []);
         setSelId(o.id);
+        if (mode === 'move' && set.length > 1) {
+            const many = ref.current.filter((x) => set.includes(x.id) && !x.locked);
+            if (many.length === 0) return;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            startGesture();
+            drag.current = { mode, id: o.id, sx: e.clientX, sy: e.clientY, o0: o, cx: 0, cy: 0, d0: 1, a0: 0, many };
+            return;
+        }
         if (o.locked) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         startGesture();
@@ -726,6 +767,14 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const move = (e: React.PointerEvent<HTMLElement>) => {
         const d = drag.current;
         if (!d) return;
+        if (d.many) {
+            // several items move together by the same amount
+            const dx = (e.clientX - d.sx) / dispW;
+            const dy = (e.clientY - d.sy) / dispH;
+            const start = new Map(d.many.map((m) => [m.id, m]));
+            set(ref.current.map((o) => { const m = start.get(o.id); return m ? ({ ...m, x: m.x + dx, y: m.y + dy } as Overlay) : o; }), false);
+            return;
+        }
         const o0 = d.o0;
         const b0 = overlayBox(o0, dispW, dispH);
         let next: Overlay = o0;
@@ -797,6 +846,82 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         endGesture();
     };
 
+    /* ---- selecting several items with a box, like Canva ---- */
+    const marqueeStart = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+    function marqueeDown(e: React.PointerEvent<HTMLElement>) {
+        e.preventDefault();
+        e.stopPropagation();
+        const f = frameRef.current!.getBoundingClientRect();
+        const x = e.clientX - f.left;
+        const y = e.clientY - f.top;
+        marqueeStart.current = { x, y, moved: false };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        if (!e.shiftKey) {
+            setSelId(null);
+            setMultiIds([]);
+        }
+    }
+    function marqueeMove(e: React.PointerEvent<HTMLElement>) {
+        const m = marqueeStart.current;
+        if (!m) return;
+        const f = frameRef.current!.getBoundingClientRect();
+        const x = e.clientX - f.left;
+        const y = e.clientY - f.top;
+        if (!m.moved && Math.hypot(x - m.x, y - m.y) < 4) return;
+        m.moved = true;
+        setMarquee({ x0: m.x, y0: m.y, x1: x, y1: y });
+    }
+    function marqueeUp(e: React.PointerEvent<HTMLElement>) {
+        const m = marqueeStart.current;
+        marqueeStart.current = null;
+        if (!m || !m.moved || !marquee) {
+            setMarquee(null);
+            return;
+        }
+        const l = Math.min(marquee.x0, marquee.x1), r = Math.max(marquee.x0, marquee.x1);
+        const t = Math.min(marquee.y0, marquee.y1), b = Math.max(marquee.y0, marquee.y1);
+        const hit: string[] = [];
+        for (const o of ref.current) {
+            if (o.type === 'shape' && o.isBackground) continue;
+            const bx = overlayBox(o, dispW, dispH);
+            const ox = o.x * dispW, oy = o.y * dispH;
+            if (ox < r && ox + bx.width > l && oy < b && oy + bx.height > t) for (const id of withGroup(o)) if (!hit.includes(id)) hit.push(id);
+        }
+        const base = e.shiftKey ? selectedIds() : [];
+        const next = [...base, ...hit.filter((id) => !base.includes(id))];
+        setMarquee(null);
+        setMultiIds(next.length > 1 ? next : []);
+        setSelId(next[next.length - 1] ?? null);
+    }
+
+    /** Group the selected items (they then select and move as one), or split a group again */
+    const multiSel = multiIds.length > 1 ? overlays.filter((o) => multiIds.includes(o.id)) : [];
+    const multiGrouped = multiSel.length > 1 && !!multiSel[0].group && multiSel.every((o) => o.group === multiSel[0].group);
+    const groupSelected = () => {
+        if (multiSel.length < 2) return;
+        const g = newId();
+        set(ref.current.map((o) => (multiIds.includes(o.id) ? ({ ...o, group: g } as Overlay) : o)));
+    };
+    const ungroupSelected = () => {
+        set(ref.current.map((o) => (multiIds.includes(o.id) ? ({ ...o, group: undefined } as Overlay) : o)));
+    };
+    const removeSelected = () => {
+        const ids = multiSel.filter((o) => !o.locked).map((o) => o.id);
+        set(ref.current.filter((o) => !ids.includes(o.id)));
+        setMultiIds([]);
+        setSelId(null);
+    };
+    const multiBox = (() => {
+        if (multiSel.length < 2) return null;
+        let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+        for (const o of multiSel) {
+            const bx = overlayBox(o, dispW, dispH);
+            l = Math.min(l, o.x * dispW); t = Math.min(t, o.y * dispH);
+            r = Math.max(r, o.x * dispW + bx.width); b = Math.max(b, o.y * dispH + bx.height);
+        }
+        return { l, t, w: r - l, h: b - t };
+    })();
+
     /* ---- the pen ---- */
     const pagePoint = (e: React.PointerEvent<HTMLElement>): [number, number] => {
         const f = frameRef.current!.getBoundingClientRect();
@@ -832,7 +957,21 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
             if (docModeRef.current && e.key !== 'Escape') return; // page shortcuts are off while the document is shown
             const t = e.target as HTMLElement | null;
             const typing = !!t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !(t as HTMLInputElement).type?.match(/range|color|checkbox/));
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && eraser && !typing) {
+                e.preventDefault();
+                toggleEraser(false);
+            } else if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && !editingId && e.key.toLowerCase() === 'e') {
+                e.preventDefault();
+                toggleEraser(!eraser);
+            } else if (e.key === 'Escape' && shapeTool && !typing) {
+                e.preventDefault();
+                setShapeTool(null);
+                setShapeDrag(null);
+            } else if (e.key === 'Escape' && multiIds.length > 1 && !typing) {
+                e.preventDefault();
+                setMultiIds([]);
+                setSelId(null);
+            } else if (e.key === 'Escape') {
                 e.preventDefault();
                 if (typing) (t as HTMLElement).blur();
                 else if (tool === 'pen') setTool('select');
@@ -844,6 +983,12 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !typing) {
                 e.preventDefault();
                 redo();
+            } else if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && !editingId && Object.values(SHAPE_KEYS).includes(e.key.toUpperCase())) {
+                // R, D, O, A, L: the shape tools, like Excalidraw (then drag on the page)
+                e.preventDefault();
+                const k = (Object.keys(SHAPE_KEYS) as ShapeKind[]).find((x) => SHAPE_KEYS[x] === e.key.toUpperCase())!;
+                setShowElements(true);
+                pickShape(k);
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && !typing) {
                 e.preventDefault();
                 duplicate();
@@ -854,6 +999,15 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                 e.preventDefault();
                 const delta = e.key === 'PageUp' ? -1 : 1;
                 void stepPage(delta as -1 | 1);
+            } else if (!typing && multiIds.length > 1 && (e.key === 'Delete' || e.key === 'Backspace')) {
+                e.preventDefault();
+                removeSelected();
+            } else if (!typing && multiIds.length > 1 && e.key.startsWith('Arrow')) {
+                e.preventDefault();
+                const k = e.shiftKey ? 0.02 : 0.004;
+                const dx = e.key === 'ArrowRight' ? k : e.key === 'ArrowLeft' ? -k : 0;
+                const dy = e.key === 'ArrowDown' ? k : e.key === 'ArrowUp' ? -k : 0;
+                set(ref.current.map((o) => (multiIds.includes(o.id) && !o.locked ? ({ ...o, x: o.x + dx, y: o.y + dy } as Overlay) : o)));
             } else if (!typing && sel && !sel.locked && (e.key === 'Delete' || e.key === 'Backspace')) {
                 e.preventDefault();
                 remove();
@@ -1238,6 +1392,127 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const [addMenu, setAddMenu] = useState(false);
     /** the one side panel shows the tools or the library */
     const [panelTab, setPanelTab] = useState<'tools' | 'library'>('tools');
+    /** the Tools card's Elements button: shows the shapes to add, in the Layers card */
+    const [showElements, setShowElements] = useState(false);
+    /** Excalidraw-style shape tool: pick a shape, then drag on the page to draw it (a click draws a default size) */
+    const [shapeTool, setShapeTool] = useState<ShapeKind | null>(null);
+    const [shapeDrag, setShapeDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+    /** Excalidraw-style eraser: drag over items on the page to remove them (E) */
+    const [eraser, setEraser] = useState(false);
+    const [erasing, setErasing] = useState<string[]>([]);
+    const erasingOn = useRef(false);
+    const eraseAt = (e: React.PointerEvent<HTMLElement>) => {
+        const f = frameRef.current!.getBoundingClientRect();
+        const px = e.clientX - f.left, py = e.clientY - f.top;
+        const hit = ref.current.filter((o) => {
+            if (o.locked || (o.type === 'shape' && o.isBackground)) return false;
+            const b = overlayBox(o, dispW, dispH);
+            // test in the item's own (unrotated) frame
+            const cx = o.x * dispW + b.width / 2, cy = o.y * dispH + b.height / 2;
+            const th = (-o.rotation * Math.PI) / 180;
+            const dx = px - cx, dy = py - cy;
+            const lx = dx * Math.cos(th) - dy * Math.sin(th), ly = dx * Math.sin(th) + dy * Math.cos(th);
+            const pad = 6;
+            return Math.abs(lx) <= b.width / 2 + pad && Math.abs(ly) <= b.height / 2 + pad;
+        });
+        if (hit.length) setErasing((cur) => [...cur, ...hit.map((o) => o.id).filter((id) => !cur.includes(id))]);
+    };
+    const eraseDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        erasingOn.current = true;
+        setErasing([]);
+        eraseAt(e);
+    };
+    const eraseMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (erasingOn.current) eraseAt(e);
+    };
+    const eraseUp = () => {
+        erasingOn.current = false;
+        setErasing((ids) => {
+            if (ids.length) {
+                set(ref.current.filter((o) => !ids.includes(o.id)));
+                if (selId && ids.includes(selId)) setSelId(null);
+            }
+            return [];
+        });
+    };
+    const toggleEraser = (on: boolean) => {
+        setEraser(on);
+        if (on) {
+            setTool('select');
+            setShapeTool(null);
+            setSelId(null);
+            setMultiIds([]);
+        }
+    };
+
+    const pickShape = (k: ShapeKind | null) => {
+        if (k) setEraser(false);
+        setShapeTool(k);
+        if (k) {
+            setTool('select');
+            setSelId(null);
+            setMultiIds([]);
+        }
+    };
+    const shapePoint = (e: React.PointerEvent<HTMLElement>) => {
+        const f = frameRef.current!.getBoundingClientRect();
+        return { x: clamp(e.clientX - f.left, 0, dispW), y: clamp(e.clientY - f.top, 0, dispH) };
+    };
+    const shapeDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const pt = shapePoint(e);
+        setShapeDrag({ x0: pt.x, y0: pt.y, x1: pt.x, y1: pt.y });
+    };
+    const shapeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!shapeDrag) return;
+        const pt = shapePoint(e);
+        let { x, y } = pt;
+        // Shift: a square / circle, or a line at 15° steps, like Excalidraw
+        if (e.shiftKey && shapeTool && shapeTool !== 'line' && shapeTool !== 'arrow') {
+            const d = Math.max(Math.abs(x - shapeDrag.x0), Math.abs(y - shapeDrag.y0));
+            x = shapeDrag.x0 + Math.sign(x - shapeDrag.x0 || 1) * d;
+            y = shapeDrag.y0 + Math.sign(y - shapeDrag.y0 || 1) * d;
+        } else if (e.shiftKey) {
+            const a = Math.round(Math.atan2(y - shapeDrag.y0, x - shapeDrag.x0) / (Math.PI / 12)) * (Math.PI / 12);
+            const len = Math.hypot(x - shapeDrag.x0, y - shapeDrag.y0);
+            x = shapeDrag.x0 + Math.cos(a) * len;
+            y = shapeDrag.y0 + Math.sin(a) * len;
+        }
+        setShapeDrag({ ...shapeDrag, x1: x, y1: y });
+    };
+    const shapeUp = () => {
+        const d = shapeDrag;
+        const kind = shapeTool;
+        setShapeDrag(null);
+        if (!d || !kind) return;
+        const line = kind === 'line' || kind === 'arrow';
+        let { x0, y0, x1, y1 } = d;
+        if (Math.hypot(x1 - x0, y1 - y0) < 6) {
+            // a click: a default size at that spot
+            const s0 = Math.min(dispW, dispH) * 0.2;
+            if (line) { x1 = x0 + s0; y1 = y0; } else { x1 = x0 + s0; y1 = y0 + s0; }
+        }
+        const base = newShapeOverlay(kind, pageAspect, 0);
+        // Excalidraw look: an outline, no fill, rounded corners on rectangles
+        const look = { fill: null, stroke: '#1e1e1e', strokeWidth: line ? 0.0055 : 0.003, radius: kind === 'rect' ? 0.16 : 0, opacity: 1 };
+        let o: Overlay;
+        if (line) {
+            const len = Math.hypot(x1 - x0, y1 - y0);
+            const hpx = Math.max(16, dispH * 0.03);
+            const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+            o = { ...base, ...look, x: (mx - len / 2) / dispW, y: (my - hpx / 2) / dispH, w: len / dispW, h: hpx / dispH, rotation: ((Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI + 360) % 360 } as Overlay;
+        } else {
+            o = { ...base, ...look, x: Math.min(x0, x1) / dispW, y: Math.min(y0, y1) / dispH, w: Math.max(4, Math.abs(x1 - x0)) / dispW, h: Math.max(4, Math.abs(y1 - y0)) / dispH } as Overlay;
+        }
+        set([...ref.current, o]);
+        setShapeTool(null); // back to selecting, like Excalidraw
+        setSelId(o.id);
+    };
     /** a Library item shown large in the preview window */
     const [preview, setPreview] = useState<Lib | null>(null);
     // Escape closes the preview (and only the preview, not the editor)
@@ -1398,20 +1673,6 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                     </button>
                 </div>
                 <div className="rd-ied-mid">
-                    {onGo && pageNo !== undefined && pageCount !== undefined && (
-                        <>
-                            <button type="button" className="rd-btn" onClick={() => void stepPage(-1)} disabled={windowPos <= 0 || busy} aria-label="Previous page" title="Previous page (Page Up)">
-                                {baking === 'prev' ? <ButtonSpinner /> : <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />}
-                            </button>
-                            <span className="rd-ied-pageno" aria-live="polite">
-                                {windowPos + 1} / {windowList.length}
-                            </span>
-                            <button type="button" className="rd-btn" onClick={() => void stepPage(1)} disabled={windowPos >= windowList.length - 1 || busy} aria-label="Next page" title="Next page (Page Down)">
-                                {baking === 'next' ? <ButtonSpinner /> : <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />}
-                            </button>
-                            <span className="rd-ied-sep" aria-hidden="true" />
-                        </>
-                    )}
                     <button type="button" className="rd-btn" onClick={undo} disabled={docMode || past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)">
                         <Undo2 size={18} strokeWidth={1.75} aria-hidden="true" />
                     </button>
@@ -1440,23 +1701,6 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                     >
                         {baking === 'back' ? <ButtonSpinner /> : <FileText size={16} strokeWidth={1.75} aria-hidden="true" />} {docMode ? (baking === 'back' ? 'Adding…' : 'Back to page') : 'Document'}
                     </button>
-                    {onDeletePage && (pageCount ?? 0) > 1 && (
-                        <>
-                            <span className="rd-ied-sep" aria-hidden="true" />
-                            <button
-                                type="button"
-                                className="rd-btn rd-wide rd-danger"
-                                data-on={confirmDel}
-                                onClick={() => {
-                                    if (confirmDel) onDeletePage();
-                                    else setConfirmDel(true);
-                                }}
-                                title="Delete this whole page from the book"
-                            >
-                                <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" /> {confirmDel ? 'Tap again to delete' : 'Delete page'}
-                            </button>
-                        </>
-                    )}
                 </div>
                 <div className="pe-nav-right">
                 <button type="button" className="rd-btn rd-wide" onClick={onCancel}>
@@ -1516,12 +1760,12 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                     id: 'pe-tools',
                                     colSpan: 2,
                                     content: (
-                                        <BentoControls title="Tools" description="Select, draw, write or paste on the page">
+                                        <BentoControls title="Tools" description="Select, draw, write, paste or add elements">
                     <div className="rd-chips" role="toolbar" aria-label="Tools">
-                        <button type="button" className="rd-btn rd-wide" data-on={tool === 'select'} aria-pressed={tool === 'select'} onClick={() => setTool('select')}>
+                        <button type="button" className="rd-btn rd-wide" data-on={tool === 'select' && !eraser} aria-pressed={tool === 'select' && !eraser} onClick={() => { setTool('select'); setEraser(false); }}>
                             <MousePointer2 size={16} strokeWidth={1.75} aria-hidden="true" /> Select
                         </button>
-                        <button type="button" className="rd-btn rd-wide" data-on={tool === 'pen'} aria-pressed={tool === 'pen'} onClick={() => { setTool('pen'); setSelId(null); }}>
+                        <button type="button" className="rd-btn rd-wide" data-on={tool === 'pen'} aria-pressed={tool === 'pen'} onClick={() => { setTool('pen'); setSelId(null); setEraser(false); }}>
                             <Pencil size={16} strokeWidth={1.75} aria-hidden="true" /> Draw
                         </button>
                         <button type="button" className="rd-btn rd-wide" onClick={() => addText('Text', {}, undefined, true)}>
@@ -1529,6 +1773,12 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         </button>
                         <button type="button" className="rd-btn rd-wide" onClick={() => void pasteFromButton()} title="Paste text or a picture from the clipboard (Ctrl+V)">
                             Paste
+                        </button>
+                        <button type="button" className="rd-btn rd-wide" data-on={eraser} aria-pressed={eraser} onClick={() => toggleEraser(!eraser)} title="Eraser: drag over items on the page to remove them (E)">
+                            <Eraser size={16} strokeWidth={1.75} aria-hidden="true" /> Eraser
+                        </button>
+                        <button type="button" className="rd-btn rd-wide" data-on={showElements} aria-pressed={showElements} onClick={() => setShowElements((v) => !v)} title="Show shapes to add in the Layers card">
+                            <Shapes size={16} strokeWidth={1.75} aria-hidden="true" /> Elements
                         </button>
                     </div>
 
@@ -1541,11 +1791,24 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                     rowSpan: 2,
                                     content: (
                                         <BentoControls title="Layers" description={overlays.length ? `${overlays.length} on this page` : 'Nothing on this page yet'}>
+                    {showElements && (
+                        <>
+                    {/* Elements (turned on in Tools): pick a shape, then drag on the page to draw it, like Excalidraw */}
+                    <div className="rd-chips pe-tool-shapes" role="toolbar" aria-label="Add a shape">
+                        {SHAPES.map((sh) => (
+                            <button key={sh.kind} type="button" className="rd-btn pe-shape-tool" data-on={shapeTool === sh.kind} aria-pressed={shapeTool === sh.kind} onClick={() => pickShape(shapeTool === sh.kind ? null : sh.kind)} aria-label={`${sh.label}: drag on the page to draw`} title={`${sh.label} — drag on the page to draw${SHAPE_KEYS[sh.kind] ? ` (${SHAPE_KEYS[sh.kind]})` : ''}`}>
+                                <ShapeIcon d={sh.d} line={sh.line} />
+                                {SHAPE_KEYS[sh.kind] && <small>{SHAPE_KEYS[sh.kind]}</small>}
+                            </button>
+                        ))}
+                    </div>
+                        </>
+                    )}
                     <div className="rd-ied-controls">
                         {overlays.length === 0 && <p className="rd-hint">Nothing on this page yet.</p>}
                         <ul className="rd-layers">
                             {[...overlays].reverse().map((o) => (
-                                <li key={o.id} data-sel={o.id === selId}>
+                                <li key={o.id} data-sel={o.id === selId || multiIds.includes(o.id)}>
                                     <button type="button" className="rd-layer-name" onClick={() => { setSelId(o.id); setTool('select'); }}>
                                         {labelOf(o)}
                                     </button>
@@ -1855,7 +2118,9 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                     {/* Page bar, as in Canva: the page's name and its controls */}
                     <div className="pe-pagebar" style={{ width: dispW }} onPointerDown={(e) => e.stopPropagation()}>
                         <span className="pe-pagebar-name">
-                            Page {windowPos + 1}
+                            <span className="rd-ied-pageno pe-pagebar-no" aria-live="polite">
+                                {windowPos + 1} / {windowList.length}
+                            </span>
                             {item.hidden ? <span className="pe-pagebar-tag"> · hidden</span> : null}
                         </span>
                         <span className="pe-pagebar-tools">
@@ -1895,12 +2160,12 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         </span>
                     </div>
                     <div ref={frameRef} className="rd-ied-frame" data-hidden={item.hidden || undefined} style={{ width: dispW, height: dispH }} onPointerDown={(e) => e.stopPropagation()}>
-                        <canvas ref={baseRef} style={{ width: dispW, height: dispH }} onPointerDown={() => setSelId(null)} />
+                        <canvas ref={baseRef} style={{ width: dispW, height: dispH }} onPointerDown={marqueeDown} onPointerMove={marqueeMove} onPointerUp={marqueeUp} onPointerCancel={marqueeUp} />
                         <OverlayLayer overlays={overlays} skipId={editingId} />
                         <div className="rd-ovl-layer">
                             {overlays.map((o) => {
                                 const b = overlayBox(o, dispW, dispH);
-                                const selected = o.id === selId;
+                                const selected = o.id === selId || multiIds.includes(o.id);
                                 return (
                                     <div
                                         key={o.id}
@@ -1908,11 +2173,12 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                         data-sel={selected}
                                         data-type={o.type}
                                         data-locked={!!o.locked}
+                                        data-erasing={erasing.includes(o.id) || undefined}
                                         style={{ left: o.x * dispW, top: o.y * dispH, width: b.width, height: b.height, transform: `rotate(${o.rotation}deg)`, pointerEvents: tool === 'pen' ? 'none' : undefined }}
                                         onPointerDown={down(o, 'move')}
-                                        onPointerMove={move}
-                                        onPointerUp={up}
-                                        onPointerCancel={up}
+                                        onPointerMove={(e) => (marqueeStart.current ? marqueeMove(e) : move(e))}
+                                        onPointerUp={(e) => (marqueeStart.current ? marqueeUp(e) : up())}
+                                        onPointerCancel={(e) => (marqueeStart.current ? marqueeUp(e) : up())}
                                         onDoubleClick={() => {
                                             if (o.type === 'text' && !o.locked) setEditingId(o.id);
                                         }}
@@ -1929,7 +2195,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                                 spellCheck={false}
                                                 ref={(el) => {
                                                     if (el && document.activeElement !== el) {
-                                                        el.focus();
+                                                        el.focus({ preventScroll: true });
                                                         el.select();
                                                     }
                                                 }}
@@ -1953,6 +2219,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                             />
                                         )}
                                         {selected &&
+                                            multiIds.length < 2 &&
                                             handles.map((h) => (
                                                 <div key={h} className={h === 'rot' ? 'rd-ovl-rot' : 'rd-ovl-h'} data-h={h} onPointerDown={down(o, h)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
                                             ))}
@@ -1960,9 +2227,65 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                 );
                             })}
                         </div>
+                        {marquee && (
+                            <div
+                                className="pe-marquee"
+                                style={{ left: Math.min(marquee.x0, marquee.x1), top: Math.min(marquee.y0, marquee.y1), width: Math.abs(marquee.x1 - marquee.x0), height: Math.abs(marquee.y1 - marquee.y0) }}
+                            />
+                        )}
+                        {multiBox && (
+                            <>
+                                <div className="pe-multibox" style={{ left: multiBox.l, top: multiBox.t, width: multiBox.w, height: multiBox.h }} />
+                                {/* Canva-style bar over the selection */}
+                                <div className="pe-multibar" style={{ left: multiBox.l + multiBox.w / 2, top: Math.max(4, multiBox.t - 50) }} onPointerDown={(e) => e.stopPropagation()}>
+                                    <span className="pe-multibar-count">{multiSel.length} selected</span>
+                                    {multiGrouped ? (
+                                        <button type="button" onClick={ungroupSelected} title="Ungroup">
+                                            Ungroup
+                                        </button>
+                                    ) : (
+                                        <button type="button" onClick={groupSelected} title="Group: select and move them as one">
+                                            Group
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={removeSelected} aria-label="Delete selected" title="Delete">
+                                        <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </>
+                        )}
                         {guides.map((g) => (
                             <div key={`${g.axis}${g.pos}`} className="rd-guide" data-axis={g.axis} style={g.axis === 'v' ? { left: `${g.pos * 100}%` } : { top: `${g.pos * 100}%` }} />
                         ))}
+                        {eraser && (
+                            <div className="rd-draw-catch pe-erase-catch" onPointerDown={eraseDown} onPointerMove={eraseMove} onPointerUp={eraseUp} onPointerCancel={eraseUp} />
+                        )}
+                        {shapeTool && tool !== 'pen' && (
+                            <div className="rd-draw-catch" onPointerDown={shapeDown} onPointerMove={shapeMove} onPointerUp={shapeUp} onPointerCancel={shapeUp}>
+                                {shapeDrag && (
+                                    <svg width={dispW} height={dispH} viewBox={`0 0 ${dispW} ${dispH}`} aria-hidden="true">
+                                        {shapeTool === 'line' || shapeTool === 'arrow' ? (
+                                            <g fill="none" stroke="#1e1e1e" strokeWidth={Math.max(1.5, dispW * 0.0055)} strokeLinecap="round" strokeLinejoin="round">
+                                                <line x1={shapeDrag.x0} y1={shapeDrag.y0} x2={shapeDrag.x1} y2={shapeDrag.y1} />
+                                                {shapeTool === 'arrow' && (() => {
+                                                    const len = Math.hypot(shapeDrag.x1 - shapeDrag.x0, shapeDrag.y1 - shapeDrag.y0);
+                                                    if (len < 2) return null;
+                                                    const th = Math.atan2(shapeDrag.y1 - shapeDrag.y0, shapeDrag.x1 - shapeDrag.x0);
+                                                    const hd = Math.min(len * 0.35, Math.max(dispW * 0.0055 * 7, 18));
+                                                    const a = (25 * Math.PI) / 180;
+                                                    const pt = (s2: number) => `${shapeDrag.x1 - hd * Math.cos(th + s2 * a)},${shapeDrag.y1 - hd * Math.sin(th + s2 * a)}`;
+                                                    return <polyline points={`${pt(1)} ${shapeDrag.x1},${shapeDrag.y1} ${pt(-1)}`} />;
+                                                })()}
+                                            </g>
+                                        ) : shapeTool === 'ellipse' ? (
+                                            <ellipse cx={(shapeDrag.x0 + shapeDrag.x1) / 2} cy={(shapeDrag.y0 + shapeDrag.y1) / 2} rx={Math.abs(shapeDrag.x1 - shapeDrag.x0) / 2} ry={Math.abs(shapeDrag.y1 - shapeDrag.y0) / 2} fill="none" stroke="#1e1e1e" strokeWidth={Math.max(1.5, dispW * 0.003)} />
+                                        ) : (
+                                            <rect x={Math.min(shapeDrag.x0, shapeDrag.x1)} y={Math.min(shapeDrag.y0, shapeDrag.y1)} width={Math.abs(shapeDrag.x1 - shapeDrag.x0)} height={Math.abs(shapeDrag.y1 - shapeDrag.y0)} rx={shapeTool === 'rect' ? Math.min(Math.abs(shapeDrag.x1 - shapeDrag.x0), Math.abs(shapeDrag.y1 - shapeDrag.y0)) * 0.16 : 0} fill="none" stroke="#1e1e1e" strokeWidth={Math.max(1.5, dispW * 0.003)} strokeDasharray={shapeTool === 'rect' ? undefined : '6 4'} />
+                                        )}
+                                    </svg>
+                                )}
+                            </div>
+                        )}
                         {tool === 'pen' && (
                             <div className="rd-draw-catch" onPointerDown={penDown} onPointerMove={penMove} onPointerUp={penUp} onPointerCancel={penUp}>
                                 {stroke && (
@@ -2181,7 +2504,7 @@ function DocSheets({ wrap, aspect, hf, onHf }: { wrap: React.RefObject<HTMLDivEl
         const surface = pageEl?.querySelector<HTMLElement>('.sr-surface');
         if (!surface) return;
         e.preventDefault();
-        surface.focus();
+        surface.focus({ preventScroll: true });
         const r = document.createRange();
         r.selectNodeContents(surface);
         r.collapse(false);
@@ -2339,7 +2662,9 @@ function StackPage({
         <div className="pe-stackpage" style={{ width }} onPointerDown={(e) => e.stopPropagation()}>
             <div className="pe-pagebar" style={{ width }}>
                 <span className="pe-pagebar-name">
-                    Page {pageNo}
+                    <span className="rd-ied-pageno pe-pagebar-no">
+                        {pageNo} / {pageCount}
+                    </span>
                     {item.hidden ? <span className="pe-pagebar-tag"> · hidden</span> : null}
                 </span>
                 {/* the same controls as the page being edited, acting on this page */}
