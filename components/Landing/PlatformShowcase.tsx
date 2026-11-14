@@ -28,7 +28,7 @@ export function PlatformVideo() {
   return (
     <>
       {/* Full-bleed on the page background, so the landing's guide lines don't run through the video. */}
-      <div className="relative z-10 bg-canvas pb-28 pt-16 sm:pb-40 sm:pt-20">
+      <div className="relative z-10 bg-canvas pb-28 pt-10 sm:pb-40 sm:pt-12">
         <VideoShowcase />
       </div>
     </>

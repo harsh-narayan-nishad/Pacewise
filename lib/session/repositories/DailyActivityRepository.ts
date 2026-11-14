@@ -47,6 +47,19 @@ export class DailyActivityRepository extends UserScopedRepository<Record<string,
     return next;
   }
 
+  /**
+   * Adds reading time that is not a finished session (the flip book) to a day's reading minutes, so the calendar,
+   * the streaks and the flip book's own week bars all count the same time.
+   */
+  addReadingMs(ms: number, key: string = toDateKey()): DailyActivity | null {
+    if (!(ms > 0)) return null;
+    const all = this.read();
+    const base = (all[key] ? DailyActivityEntry.from(all[key]) : DailyActivityEntry.empty(key)).toJSON();
+    const next = { ...base, minutes: (base.minutes || 0) + ms / 60_000 };
+    this.write({ ...all, [key]: next });
+    return next;
+  }
+
   /** Folds one completed session into today's row and persists. */
   recordSession(input: RecordSessionInput, now: Date = new Date()): DailyActivity {
     const key = toDateKey(now);

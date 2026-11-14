@@ -526,7 +526,21 @@ export function Island(p: IslandProps) {
                                 </div>
                             )}
 
-                            <div className="rd-iweek" role="img" aria-label={`Reading time over the last 7 days. Today ${formatDuration(reading.today)}.`}>
+                            {/* the week's reading (the same numbers as Analytics); a tap opens the Analytics dashboard */}
+                            <div
+                                className="rd-iweek pe-week-link"
+                                role="link"
+                                tabIndex={0}
+                                title="Open Analytics"
+                                onClick={() => router.push('/analytics')}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        router.push('/analytics');
+                                    }
+                                }}
+                                aria-label={`Reading time over the last 7 days. Today ${formatDuration(reading.today)}. Open Analytics.`}
+                            >
                                 {reading.week.map((d) => (
                                     <div key={d.key} className="rd-bar-col" data-today={d.today} title={`${d.key}: ${formatDuration(d.seconds)}`}>
                                         <span className="rd-bar-fill2" style={{ height: `${Math.max(d.seconds > 0 ? 8 : 3, (d.seconds / maxToday) * 100)}%` }} />

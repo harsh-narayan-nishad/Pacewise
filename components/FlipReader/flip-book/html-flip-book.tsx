@@ -465,8 +465,10 @@ function createEngine(S: State) {
             for (let i = S.f; i < S.f + count - 1; i++) ang[i] = 180;
             leaf = S.f + count - 1;
         } else {
-            for (let i = S.f - count; i < S.f - 1; i++) ang[i] = 0;
-            leaf = S.f - 1;
+            // the sheet that turns is the one that lands on top (the lowest on the right-hand stack), so on a long jump
+            // back to the front cover no page we skipped flashes over it
+            for (let i = S.f - count + 1; i < S.f; i++) ang[i] = 0;
+            leaf = S.f - count;
         }
 
         // drop a corner peek that is on a different leaf

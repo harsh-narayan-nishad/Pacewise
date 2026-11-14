@@ -43,19 +43,26 @@ export function VideoShowcase() {
   const cover = useAnimationControls();
   const zoom = useAnimationControls();
   const revealed = useRef(false);
+  const revealTimer = useRef<number | undefined>(undefined);
 
   function reveal() {
     if (reduceMotion || revealed.current) return; // once only
-    revealed.current = true;
-    void cover.start({ width: "0%", transition: { duration: 1.4, ease: REVEAL_EASE } });
-    void zoom.start({ scale: 1, transition: { duration: 1.4, ease: REVEAL_EASE, delay: 0.2 } });
+    try {
+      void cover.start({ width: "0%", transition: { duration: 1.4, ease: REVEAL_EASE } });
+      void zoom.start({ scale: 1, transition: { duration: 1.4, ease: REVEAL_EASE, delay: 0.2 } });
+      revealed.current = true;
+    } catch {
+      // The controls are not attached yet (e.g. the page is briefly hidden while it loads): try again shortly
+      // instead of throwing "controls.start() should only be called after a component has mounted".
+      revealTimer.current = window.setTimeout(reveal, 100);
+    }
   }
 
   // Automatic, once: 0.5s after the page loads.
   useEffect(() => {
     if (reduceMotion) return undefined;
-    const id = window.setTimeout(reveal, REVEAL_DELAY_MS);
-    return () => window.clearTimeout(id);
+    revealTimer.current = window.setTimeout(reveal, REVEAL_DELAY_MS);
+    return () => window.clearTimeout(revealTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduceMotion]);
 
@@ -95,7 +102,7 @@ export function VideoShowcase() {
       </div>
 
       {/* Wide 16:9 stage, like the Apple product page: nearly the full width of the screen. */}
-      <div className="relative mx-auto mt-6 w-full max-w-[1750px] px-[4%] sm:px-[5%]">
+      <div className="relative mx-auto mt-10 w-full sm:mt-12 max-w-[1750px] px-[4%] sm:px-[5%]">
         {/* Same size as the video. The glass card sits beside the clipped video box (not inside its rounded overflow clip,
             which would stop the liquid backdrop effect), positioned so it stays within the video's edges. */}
         <div className="relative">

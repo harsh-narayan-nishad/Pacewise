@@ -113,9 +113,11 @@ export function NotificationBell() {
         {open && (
           <motion.div
             role="menu"
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            // No opacity fade on opening: while a parent is see-through the browser turns the glass's backdrop blur off,
+            // so the panel looked transparent until the fade ended. It slides and scales in, with its glass from the start.
+            initial={{ y: -6, scale: 0.97 }}
+            animate={{ y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.12 } }}
             transition={{ type: "spring", stiffness: 300, damping: 26 }}
             className="absolute right-0 top-11 z-50 isolate w-72 max-w-[calc(100vw-2rem)] rounded-xl sm:w-80"
           >

@@ -35,6 +35,8 @@ export interface ImageSource {
     blob: Blob;
     width: number;
     height: number;
+    /** a page made from a code / text file: its own lines, so it can be edited in the preview and drawn again */
+    code?: { name: string; text: string; firstLine: number };
 }
 
 export type Source = PdfSource | ImageSource;

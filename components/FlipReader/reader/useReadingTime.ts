@@ -3,6 +3,36 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { dayKey, DayTotals, lastDays, loadTimes, saveTimes } from '@/lib/flipreader/readingtime';
+import { storage } from '@/lib/storage';
+import { devDataStore } from '@/lib/devData/store';
+
+/**
+ * The week bars and "Today" show the same reading time as Analytics: the signed-in user's daily activity (reading
+ * minutes per day), which the flip book's reading is now added to.
+ */
+function dailyTotals(): DayTotals {
+    const out: DayTotals = {};
+    try {
+        for (const [k, row] of Object.entries(storage.getDailyActivity())) out[k] = Math.max(0, (row.minutes || 0) * 60);
+    } catch {
+        /* no signed-in session: nothing to show */
+    }
+    return out;
+}
+
+/** Once per user: the flip book time saved before it went into daily activity is moved in, so no day is lost. */
+function moveOldFlipbookTime() {
+    try {
+        const user = devDataStore.getCurrentUser()?.id;
+        if (!user) return;
+        const flag = `reader.time.v1.inDaily.${user}`;
+        if (localStorage.getItem(flag)) return;
+        for (const [day, seconds] of Object.entries(loadTimes())) storage.addReadingTime(seconds * 1000, day);
+        localStorage.setItem(flag, '1');
+    } catch {
+        /* best effort */
+    }
+}
 
 /** A reader who has not touched the screen for this long is considered away (unless auto flip is running). */
 const IDLE_MS = 90_000;
@@ -36,7 +66,8 @@ export function useReadingTime(bookOpen: boolean, autoPlaying: boolean) {
 
     useEffect(() => {
         let data = loadTimes();
-        setTotals(data);
+        moveOldFlipbookTime();
+        setTotals(dailyTotals());
 
         let lastTick = Date.now();
         let lastActive = Date.now();
@@ -56,10 +87,15 @@ export function useReadingTime(bookOpen: boolean, autoPlaying: boolean) {
             data = loadTimes();
             const k = dayKey();
             data[k] = (data[k] ?? 0) + pending / 1000;
+            try {
+                storage.addReadingTime(pending, k); // the same reading minutes Analytics shows
+            } catch {
+                /* no session */
+            }
             pending = 0;
             lastFlush = Date.now();
             saveTimes(data);
-            setTotals({ ...data });
+            setTotals(dailyTotals());
         };
 
         const tick = () => {

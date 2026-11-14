@@ -191,7 +191,7 @@
 .rd-btn:disabled { opacity: 0.38; cursor: default; }
 .rd-btn[data-on='true'], .rd-btn[aria-pressed='true'] { background: var(--accent); color: var(--accent-fg); box-shadow: none; }
 .rd-btn:focus-visible, .rd-num:focus-visible, .rd-range:focus-visible, .rd-bar:focus-visible, .rd-primary:focus-visible, .rd-itoggle:focus-visible, .rd-text:focus-visible, .rd-thumb:focus-visible {
-    outline: 2px solid var(--focus); outline-offset: 2px;
+    outline: none; /* no green focus ring on the reader's buttons */
 }
 .rd-wide { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; font-size: 13px; }
 .rd-btn svg { flex: none; }
@@ -722,8 +722,13 @@ img.rd-thumb { width: 36px; height: 48px; object-fit: cover; border-radius: 4px;
 .rd-ied-canva .rd-ied-top.pe-nav {
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
     height: 56px; padding: 0 24px; border-bottom: 1px solid var(--line);
-    background: color-mix(in srgb, var(--page) 55%, transparent); -webkit-backdrop-filter: blur(11px); backdrop-filter: blur(11px);
     box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.35);
+    position: relative; z-index: 40; /* above the pages and panels, so its menus (notifications, profile) open on top */
+}
+/* the bar's glass sits on a layer behind it, so the bar itself does not cut off the blur of its own menus' glass */
+.rd-ied-canva .rd-ied-top.pe-nav::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: color-mix(in srgb, var(--page) 55%, transparent); -webkit-backdrop-filter: blur(11px); backdrop-filter: blur(11px);
 }
 .pe-nav-left { display: flex; align-items: center; min-width: 0; }
 .pe-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
@@ -833,3 +838,44 @@ img.rd-thumb { width: 36px; height: 48px; object-fit: cover; border-radius: 4px;
    make the browser scroll these hidden-overflow frames, shifting the whole screen. clip keeps the same look but cannot
    be scrolled; the panels and the page area inside keep their own scrolling. */
 .fr-embed .reader, .rd-ied, .rd-ied-left { overflow: clip; }
+/* pages tray: drag a page to any place; a line shows where it will go */
+.rd-thumb[draggable='true'] { cursor: grab; }
+.rd-thumb[data-dragging] { opacity: 0.4; }
+.rd-thumb[data-drop='before'] { box-shadow: -6px 0 0 -2px var(--fg); }
+.rd-thumb[data-drop='after'] { box-shadow: 6px 0 0 -2px var(--fg); }
+/* the skip label (e.g. "−35 pages · end") in liquid glass, like the controls bar */
+.rd-hud.rd-hud-glass { isolation: isolate; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; text-shadow: var(--glass-text-shadow); }
+.rd-hud-lg { position: absolute; inset: 0; z-index: -1; border-radius: inherit; overflow: hidden; }
+/* the app navbar's notifications, profile and menu in the editor's top bar */
+.pe-nav-app { display: inline-flex; align-items: center; gap: 12px; margin-left: 4px; line-height: normal; }
+.rd-ibrand:focus-visible { outline: none; }
+.pe-week-link { cursor: pointer; border-radius: 12px; } .pe-week-link:hover { background: var(--tile-bg); }
+/* preview of a code / text file: line numbers, colours, long lines wrap (like the code pages) */
+.ql-codeview { display: block; padding: 14px 18px; white-space: normal; }
+.ql-line { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 16px; }
+.ql-ln { min-width: 2.5em; text-align: right; color: #8c959f; user-select: none; }
+.ql-lc { white-space: pre-wrap; overflow-wrap: anywhere; color: #24292f; }
+
+/* code / text edited in the preview: a see-through text box over the coloured lines */
+.ql-codeedit { display: grid; }
+.ql-codeedit > .ql-ce-layer, .ql-codeedit > .ql-ce-input { grid-area: 1 / 1; min-width: 0; }
+.ql-codeedit .ql-ln { min-width: 0; width: var(--ql-ln); }
+.ql-ce-input { display: block; width: 100%; height: 100%; margin: 0; padding: 0 0 0 calc(var(--ql-ln) + 16px); border: 0; outline: none; resize: none; overflow: hidden; background: transparent; color: transparent; caret-color: #24292f; font: inherit; letter-spacing: inherit; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.ql-ce-input::selection { background: rgba(9, 105, 218, 0.22); color: transparent; }
+
+/* Uploads: a selected item (click; Cmd / Ctrl / Shift + click for more) */
+.pe-bento-lib .rd-lib-tile.is-picked { outline: 2.5px solid #16171a; outline-offset: -2.5px; }
+/* preview of several selected items: previous / next and "2 / 5", at the left of the footer */
+.ql-foot:has(.ql-nav) { justify-content: space-between; align-items: center; }
+.ql-nav { display: flex; align-items: center; gap: 6px; }
+.ql-nav-btn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 999px; background: rgba(15, 15, 15, 0.06); color: #16171a; cursor: pointer; }
+.ql-nav-btn:hover { background: rgba(15, 15, 15, 0.12); }
+.ql-nav-count { min-width: 4.5em; text-align: center; font-size: 15px; color: #60626a; font-variant-numeric: tabular-nums; }
+.pe-pending-page { cursor: default; }
+
+/* pages strip: several pages picked together, the selection box, and dragging pages out to delete them */
+.rd-thumb[data-picked] { border-color: var(--fg); }
+.rd-tray-box { position: absolute; z-index: 3; border: 1px solid rgba(255, 255, 255, 0.7); background: rgba(255, 255, 255, 0.1); border-radius: 4px; pointer-events: none; }
+.rd-tray-head h2 span.rd-tray-hint { margin-left: 12px; color: var(--fg-dim); }
+.rd-tray[data-dropout] .rd-thumb[data-dragging] { opacity: 0.35; }
+.rd-tray[data-dropout] .rd-tray-hint { color: #ff6b6b; }

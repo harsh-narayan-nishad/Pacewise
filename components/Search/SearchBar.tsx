@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, BookOpen, FileText, FileUp, Plus } from "lucide-react";
@@ -10,6 +11,7 @@ import { useReadingDispatch } from "@/contexts/ReadingContext";
 import { storage, SearchHistoryEntry } from "@/lib/storage";
 import { getAllStories, searchStories, addCustomStory } from "@/lib/storyLibrary";
 import { setPendingFiles } from "@/lib/flipreader/handoff";
+import { ACCEPT as FLIPBOOK_ACCEPT } from "@/lib/flipreader/loaders";
 import { startSwitchLoader } from "@/lib/switchLoader";
 import { buildMediaStory, isMediaFile, MediaStoryError } from "@/lib/mediaStory";
 import { AddStoryModal } from "@/components/Search/AddStoryModal";
@@ -587,6 +589,27 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
   const [dragging, setDragging] = useState(false);
   const processFileRef = useRef(processFile);
   processFileRef.current = processFile;
+  /**
+   * Dropped files open in the flip book (PDF, images, EPUB, text, code …), where pages can be added, edited or
+   * removed. Only a Pacewise story (.json) still opens as a story.
+   */
+  const dropFiles = (files: File[]) => {
+    if (files.length === 0) return;
+    const toFlipbook = () => {
+      setPendingFiles(files);
+      router.push("/flipbook");
+    };
+    if (files.length === 1 && /\.json$/i.test(files[0].name)) {
+      files[0]
+        .text()
+        .then((t) => selectStory(addCustomStory(JSON.parse(t))))
+        .catch(toFlipbook);
+      return;
+    }
+    toFlipbook();
+  };
+  const dropFilesRef = useRef(dropFiles);
+  dropFilesRef.current = dropFiles;
   useEffect(() => {
     if (size !== "default") return;
     const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
@@ -599,7 +622,7 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
       e.preventDefault();
       depth = 0;
       setDragging(false);
-      processFileRef.current(e.dataTransfer?.files?.[0]);
+      dropFilesRef.current(Array.from(e.dataTransfer?.files ?? []));
     };
     window.addEventListener("dragenter", enter);
     window.addEventListener("dragover", over);
@@ -613,10 +636,12 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
     };
   }, [size]);
 
+  // The upload button works like the flip book's Open: any document (PDF, images, EPUB, text, code …) opens in the
+  // flip book; a Pacewise story (.json) still opens as a story.
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    processFile(file);
+    dropFiles(files);
   }
 
   // One path for both the upload button and drag & drop: story .json, PDF or image.
@@ -749,7 +774,8 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/json,application/pdf,image/*,.json,.pdf"
+            accept={`${FLIPBOOK_ACCEPT},application/json,.json`}
+            multiple
             className="hidden"
             onChange={handleFileUpload}
           />
@@ -959,13 +985,15 @@ export function SearchBar({ size = "default" }: SearchBarProps) {
         )}
       </AnimatePresence>
 
-      {dragging && (
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-[150] flex items-center justify-center bg-canvas/60 backdrop-blur-md">
+      {/* rendered at the top of the page so it covers everything (the navbar, the tabs, the video …) */}
+      {dragging && typeof document !== "undefined" && createPortal(
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-[2000] flex items-center justify-center bg-canvas/60 backdrop-blur-md">
           <div className="rounded-[32px] border-2 border-dashed border-ink/40 px-12 py-10 text-center">
             <div className="font-display text-3xl tracking-[-0.03em] text-ink">Drop to upload</div>
-            <div className="mt-1 text-sm text-ink-muted">A story .json, a PDF or an image</div>
+            <div className="mt-1 text-sm text-ink-muted">Any file opens in the flip book</div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <AddStoryModal

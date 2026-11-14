@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
     AlignCenter,
@@ -46,6 +46,8 @@ import {
     X,
     ZoomIn,
     ZoomOut,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 import LiquidGlass from '@/components/FlipReader/ui/LiquidGlass';
@@ -59,17 +61,26 @@ import { useRouter } from 'next/navigation';
 import { useReadingDispatch } from '@/contexts/ReadingContext';
 import { startSwitchLoader } from '@/lib/switchLoader';
 import { BRAND_NAME } from '@/lib/brand';
+import { NotificationBell } from '@/components/Navigation/NotificationBell';
+import { ProfileMenu } from '@/components/Navigation/ProfileMenu';
+import { HamburgerMenu } from '@/components/Navigation/HamburgerMenu';
 import MagicBento, { DEFAULT_ITEMS as DEFAULT_BENTO_ITEMS } from '@/components/ui/MagicBento';
 import { StoryTextEditor, clearEditorDraft } from '@/components/Editor/StoryTextEditor';
 import { RichDocument, defaultMeta } from '@/lib/editor/model/RichDocument';
 import { pageToDocHtml } from '@/lib/flipreader/pageToDoc';
 import { elementToPageImages } from '@/lib/flipreader/domToImage';
+import { codeFileToPages, codeLines } from '@/lib/flipreader/codePages';
 import { MediconnectSpinner } from '@/components/ui/loaders/MediconnectSpinner';
 
 type Handle = 'nw' | 'ne' | 'se' | 'sw' | 'w' | 'e' | 'n' | 's' | 'rot';
 
 const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
 const BASE_SIDE = 1600; // resolution of the page shown in the editor
+/**
+ * Pages already drawn in the editor's stack (by page object; an edited page is a new object): when the editor opens
+ * another page (e.g. after deleting the one being edited) they show again at once, without loading.
+ */
+const drawnPages = new WeakMap<PageItem, { side: number; canvas: HTMLCanvasElement }>();
 /** height taken by the page bar above the page and the Add page bar under it (with their gaps) */
 const PAGE_CHROME_H = 112;
 
@@ -105,12 +116,19 @@ interface Drag {
 
 /* ---------- the library on the right ---------- */
 
+/** the editor's Uploads, kept across its pages until the editor closes */
+let keptUploads: Lib[] = [];
+/** the side panel's tab (Tools / Library), kept while the editor moves to another page (e.g. after adding pages) */
+let keptPanelTab: 'tools' | 'library' = 'tools';
+/** the editor has been showing (its panel's cards already came in): no intro again when it moves to another page */
+let keptPanelShown = false;
+
 type Tab = 'uploads' | 'photos' | 'elements' | 'text' | 'background';
 type Tool = 'select' | 'pen';
 
 type Lib =
     | { id: string; kind: 'image'; src: ImageSource; url: string }
-    | { id: string; kind: 'text'; name: string; text: string; code: boolean }
+    | { id: string; kind: 'text'; name: string; text: string; code: boolean; full?: string }
     | { id: string; kind: 'file'; name: string; label: string; file?: File };
 
 /* ---------- reading any kind of file ---------- */
@@ -233,7 +251,7 @@ const labelOf = (o: Overlay) => (o.type === 'text' ? o.text.replace(/\s+/g, ' ')
  * in the middle, a library of pictures, elements, text styles and backgrounds on the right. Drag from the library onto
  * the page, or tap an item to add it; drag to move, corner handles to resize, the round handle to turn.
  */
-export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, onDeletePage, onInsertPage, onHidePage, windowPages, onWindowOp, bookRatio, onReplacePage }: { item: PageItem; onApply: (overlays: Overlay[], extraPages?: ImageSource[]) => void; onCancel: () => void; pageNo?: number; pageCount?: number; onGo?: (overlays: Overlay[], delta: number, extraPages?: ImageSource[]) => void; onDeletePage?: () => void; onInsertPage?: (overlays: Overlay[], extraPages: ImageSource[], blank?: ImageSource) => void; onHidePage?: (overlays: Overlay[], hidden: boolean) => void; windowPages?: { item: PageItem; index: number }[]; onWindowOp?: (op: 'hide' | 'show' | 'lock' | 'unlock' | 'duplicate' | 'delete' | 'blank', index: number, blank?: ImageSource) => void; bookRatio?: number; onReplacePage?: (src: ImageSource) => void }) {
+export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, onDeletePage, onInsertPage, onInsertPages, onHidePage, windowPages, onWindowOp, bookRatio, onReplacePage }: { item: PageItem; onApply: (overlays: Overlay[], extraPages?: ImageSource[]) => void; onCancel: () => void; pageNo?: number; pageCount?: number; onGo?: (overlays: Overlay[], delta: number, extraPages?: ImageSource[]) => void; onDeletePage?: () => void; onInsertPage?: (overlays: Overlay[], extraPages: ImageSource[], blank?: ImageSource) => void; onInsertPages?: (overlays: Overlay[], extraPages: ImageSource[], srcs: ImageSource[]) => void; onHidePage?: (overlays: Overlay[], hidden: boolean) => void; windowPages?: { item: PageItem; index: number }[]; onWindowOp?: (op: 'hide' | 'show' | 'lock' | 'unlock' | 'duplicate' | 'delete' | 'blank', index: number, blank?: ImageSource) => void; bookRatio?: number; onReplacePage?: (src: ImageSource) => void }) {
     const [overlays, setOverlays] = useState<Overlay[]>(item.overlays);
     const ref = useRef<Overlay[]>(item.overlays);
     const past = useRef<Overlay[][]>([]);
@@ -253,7 +271,6 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const [tab, setTab] = useState<Tab>('uploads');
     const [zoom, setZoomState] = useState(1);
     const zoomRef = useRef(1);
-    const [confirmDel, setConfirmDel] = useState(false);
     /** the text item being typed into straight on the page */
     const [editingId, setEditingId] = useState<string | null>(null);
     /*
@@ -282,14 +299,15 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         docLayerId.current = null;
         docExtra.current = [];
     }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        if (!confirmDel) return undefined;
-        const t = setTimeout(() => setConfirmDel(false), 3500);
-        return () => clearTimeout(t);
-    }, [confirmDel]);
     const [guides, setGuides] = useState<{ axis: 'v' | 'h'; pos: number }[]>([]);
-    const [lib, setLib] = useState<Lib[]>([]);
-    const libRef = useRef<Lib[]>([]);
+    /** the delete button of the page being edited: Mediconnect's loader runs in it until the editor is on another page */
+    const [deleting, setDeleting] = useState(false);
+    // the Uploads stay while you move between pages in the editor (each page opens a fresh editor)
+    const [lib, setLib] = useState<Lib[]>(() => keptUploads);
+    const libRef = useRef<Lib[]>(keptUploads);
+    useEffect(() => {
+        keptUploads = lib;
+    }, [lib]);
     const [pen, setPen] = useState({ color: '#222222', width: 0.006, opacity: 1 });
     const [stroke, setStroke] = useState<[number, number][] | null>(null);
 
@@ -304,17 +322,39 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const [stage, setStage] = useState({ w: 0, h: 0 });
     const [failed, setFailed] = useState(false);
 
+    // the uploads' pictures are released when the editor itself closes (Apply / Cancel), not when it moves to another page
     useEffect(
         () => () => {
-            libRef.current.forEach((l) => l.kind === 'image' && URL.revokeObjectURL(l.url));
+            const kept = libRef.current;
+            setTimeout(() => {
+                if (!document.querySelector('.rd-ied-canva')) {
+                    kept.forEach((l) => l.kind === 'image' && URL.revokeObjectURL(l.url));
+                    if (keptUploads === kept) keptUploads = [];
+                    keptPanelTab = 'tools';
+                    keptPanelShown = false;
+                }
+            }, 0);
         },
         []
     );
 
     /* ---- the page underneath ---- */
+    // already drawn in the stack (and nothing on it yet): shown at once, before the full-size drawing replaces it
+    const shownEarly = useRef<string | null>(null);
+    useLayoutEffect(() => {
+        const pre = item.overlays.length === 0 ? drawnPages.get(item) : undefined;
+        const cv = baseRef.current;
+        if (!pre || !cv || !pre.canvas.width) return;
+        cv.width = pre.canvas.width;
+        cv.height = pre.canvas.height;
+        cv.getContext('2d')?.drawImage(pre.canvas, 0, 0);
+        setBase({ w: pre.canvas.width, h: pre.canvas.height });
+        setBaseReady(true);
+        shownEarly.current = item.id;
+    }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         let alive = true;
-        setBaseReady(false);
+        if (shownEarly.current !== item.id) setBaseReady(false);
         (async () => {
             try {
                 let out: HTMLCanvasElement;
@@ -496,6 +536,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
             const entries: Lib[] = [];
             const added: Overlay[] = [];
             const problems: string[] = [];
+            const codePageSrcs: ImageSource[] = [];
             const pictureEntry = (src: ImageSource, onPage: boolean) => {
                 entries.push({ id: src.id, kind: 'image', src, url: URL.createObjectURL(src.blob) });
                 if (onPage) added.push(newImageOverlay(src, pageAspect, ref.current.length + added.length));
@@ -539,10 +580,14 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         const code = !/\.(txt|md|markdown|log|rtf)$/i.test(file.name);
                         const textBody = raw.replace(/\t/g, '    ');
                         if (textBody.length > TEXT_LIMIT) problems.push(`"${file.name}" is long; the first ${TEXT_LIMIT} characters were added.`);
-                        const e: Lib = { id: newId(), kind: 'text', name: file.name, text: textBody.slice(0, TEXT_LIMIT), code };
+                        const e: Lib = { id: newId(), kind: 'text', name: file.name, text: textBody.slice(0, TEXT_LIMIT), code, full: textBody };
                         entries.push(e);
-                        const o = textFromLib(e);
-                        if (o) added.push(o);
+                        // a code / text file becomes pages (as many as it needs), like in the flip book, not a floating box
+                        if (putOnPage && insertPagesRef.current) codePageSrcs.push(...(await codeFileToPages(file))); // dropped / pasted on the page: pages
+                        else {
+                            const o = textFromLib(e);
+                            if (o) added.push(o);
+                        }
                     } else {
                         const kb = file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1048576).toFixed(1)} MB`;
                         const e: Lib = { id: newId(), kind: 'file', name: file.name, label: `📎 ${file.name} · ${kb}`, file };
@@ -558,8 +603,9 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
             setLib(libRef.current);
             setTab('uploads');
             setBusy(false);
-            setMessage(problems.length ? problems.join(' ') : null);
+            setMessage(problems.filter((m) => !(codePageSrcs.length && / is long; the first /.test(m))).join(' ') || null);
             if (putOnPage && added.length) addOverlays(added, at);
+            if (codePageSrcs.length) insertPagesRef.current?.(codePageSrcs);
         },
         [pageAspect, addOverlays]
     );
@@ -600,7 +646,13 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         } else if (p.k === 'lib') {
             const l = libRef.current.find((x) => x.id === p.id);
             if (l?.kind === 'image') addOverlays([newImageOverlay(l.src, pageAspect, ref.current.length)], at);
-            else if (l) {
+            else if (l?.kind === 'text' && insertPagesRef.current) {
+                const f = new File([l.full ?? l.text], l.name, { type: 'text/plain' });
+                setPendingPages((n) => n + 1);
+                void codeFileToPages(f)
+                    .then((srcs) => insertPagesRef.current?.(srcs))
+                    .finally(() => setPendingPages((n) => Math.max(0, n - 1)));
+            } else if (l) {
                 const o = textFromLib(l);
                 if (o) addOverlays([o], at);
             }
@@ -955,11 +1007,20 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if (docModeRef.current && e.key !== 'Escape') return; // page shortcuts are off while the document is shown
+            // the app menu drawer (opened from the top bar) handles its own keys, Escape included
+            if (document.querySelector('[role="dialog"][aria-label="Playlists and search history"]')) return;
             const t = e.target as HTMLElement | null;
             const typing = !!t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !(t as HTMLInputElement).type?.match(/range|color|checkbox/));
             if (e.key === 'Escape' && eraser && !typing) {
                 e.preventDefault();
                 toggleEraser(false);
+            } else if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && !editingId && e.key.toLowerCase() === 't') {
+                // T: a new text on the page, ready to type (like the Text button)
+                e.preventDefault();
+                setEraser(false);
+                setShapeTool(null);
+                setTool('select');
+                addText('Text', {}, undefined, true);
             } else if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && !editingId && e.key.toLowerCase() === 'e') {
                 e.preventDefault();
                 toggleEraser(!eraser);
@@ -1379,7 +1440,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         const cur = currentRef.current;
         if (!baseReady || !stageEl || !cur) return;
         stageEl.scrollTop += cur.getBoundingClientRect().top - stageEl.getBoundingClientRect().top - 12;
-    }, [baseReady]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [baseReady, item.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     /** Page bar: lock / unlock everything on this page. */
     const allLocked = overlays.length > 0 && overlays.every((o) => o.locked);
@@ -1390,8 +1451,37 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     };
 
     const [addMenu, setAddMenu] = useState(false);
+    /** code pages go into the window after this page (this page's work is kept first) */
+    const insertPagesRef = useRef<((srcs: ImageSource[]) => void) | null>(null);
+    /** pages being made from an Uploads item: a page with the blade loader stands in for each until it is added */
+    const [pendingPages, setPendingPages] = useState(0);
+    insertPagesRef.current = onInsertPages
+        ? (srcs) => {
+              void (async () => {
+                  let layers = ref.current;
+                  if (docModeRef.current) {
+                      const next = await leaveDoc('add');
+                      if (!next) return;
+                      layers = next;
+                  }
+                  onInsertPages(layers, docExtra.current, srcs);
+              })();
+          }
+        : null;
     /** the one side panel shows the tools or the library */
-    const [panelTab, setPanelTab] = useState<'tools' | 'library'>('tools');
+    const [panelTab, setPanelTab] = useState<'tools' | 'library'>(() => keptPanelTab);
+    useEffect(() => {
+        keptPanelTab = panelTab;
+    }, [panelTab]);
+    // the panel's cards come in with the intro when the editor opens (and on switching Tools / Library), not again when
+    // the editor moves to another page (e.g. after a delete), so the panel stays still
+    const [quietTab, setQuietTab] = useState<'tools' | 'library' | null>(() => (keptPanelShown ? keptPanelTab : null));
+    useEffect(() => {
+        keptPanelShown = true;
+    }, []);
+    useEffect(() => {
+        if (quietTab && panelTab !== quietTab) setQuietTab(null);
+    }, [panelTab]); // eslint-disable-line react-hooks/exhaustive-deps
     /** the Tools card's Elements button: shows the shapes to add, in the Layers card */
     const [showElements, setShowElements] = useState(false);
     /** Excalidraw-style shape tool: pick a shape, then drag on the page to draw it (a click draws a default size) */
@@ -1401,6 +1491,42 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     const [eraser, setEraser] = useState(false);
     const [erasing, setErasing] = useState<string[]>([]);
     const erasingOn = useRef(false);
+
+    /*
+     * Another page in the same editor (arrows, a page in the stack, after a delete): the editor stays (its panels,
+     * Uploads, scroll and tab do not reload); only what belongs to the page starts afresh, as when it opened.
+     */
+    const pageShown = useRef(item.id);
+    useLayoutEffect(() => {
+        if (pageShown.current === item.id) return;
+        pageShown.current = item.id;
+        ref.current = item.overlays;
+        setOverlays(item.overlays);
+        past.current = [];
+        future.current = [];
+        gesture.current = false;
+        setSelId(null);
+        setMultiIds([]);
+        setMarquee(null);
+        setEditingId(null);
+        setMessage(null);
+        setBusy(false);
+        setBaking(null);
+        setDeleting(false);
+        setTool('select');
+        zoomRef.current = 1;
+        setZoomState(1);
+        setDocHf({ header: '', footer: '', pageNumbers: false });
+        setGuides([]);
+        setStroke(null);
+        setFailed(false);
+        setAddMenu(false);
+        setShapeTool(null);
+        setShapeDrag(null);
+        setEraser(false);
+        setErasing([]);
+        erasingOn.current = false;
+    }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
     const eraseAt = (e: React.PointerEvent<HTMLElement>) => {
         const f = frameRef.current!.getBoundingClientRect();
         const px = e.clientX - f.left, py = e.clientY - f.top;
@@ -1515,10 +1641,71 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
     };
     /** a Library item shown large in the preview window */
     const [preview, setPreview] = useState<Lib | null>(null);
+    /** the Uploads items selected with a click (Cmd / Ctrl / Shift + click for more); Space previews them all */
+    const [libSel, setLibSel] = useState<string[]>([]);
+    const libAnchor = useRef<string | null>(null);
+    /** the items the preview steps through (← / →), in Uploads order */
+    const [previewList, setPreviewList] = useState<string[]>([]);
+    const openPreview = (items: Lib[], first?: Lib) => {
+        if (!items.length) return;
+        setPreviewList(items.map((x) => x.id));
+        setPreview(first ?? items[0]);
+    };
+    const stepPreview = (d: -1 | 1) => {
+        if (!preview || previewList.length < 2) return;
+        const i = previewList.indexOf(preview.id);
+        const n = previewList.length;
+        for (let k = 1; k <= n; k++) {
+            const l = libRef.current.find((x) => x.id === previewList[(((i + d * k) % n) + n) % n]);
+            if (l) return setPreview(l);
+        }
+    };
+    const pickLib = (e: React.MouseEvent, id: string) => {
+        if (e.shiftKey && libAnchor.current) {
+            const ids = libRef.current.map((x) => x.id);
+            const a = ids.indexOf(libAnchor.current);
+            const b = ids.indexOf(id);
+            if (a >= 0 && b >= 0) {
+                const range = ids.slice(Math.min(a, b), Math.max(a, b) + 1);
+                setLibSel((cur) => (e.metaKey || e.ctrlKey ? Array.from(new Set([...cur, ...range])) : range));
+                return;
+            }
+        }
+        libAnchor.current = id;
+        if (e.metaKey || e.ctrlKey) setLibSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+        else setLibSel([id]);
+    };
+    /** the Uploads item last clicked, focused or pointed at: Space shows it in the preview (like Quick Look) */
+    const libPick = useRef<string | null>(null);
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== ' ' || e.repeat || preview || e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target as HTMLElement | null;
+            if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+            const picked = libRef.current.filter((x) => libSel.includes(x.id));
+            const l = libPick.current ? libRef.current.find((x) => x.id === libPick.current) : undefined;
+            if (!picked.length && !l) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (picked.length) openPreview(picked, l && libSel.includes(l.id) ? l : undefined);
+            else if (l) openPreview([l]);
+        };
+        window.addEventListener('keydown', onKey, true);
+        return () => window.removeEventListener('keydown', onKey, true);
+    }, [preview, libSel]); // eslint-disable-line react-hooks/exhaustive-deps
     // Escape closes the preview (and only the preview, not the editor)
     useEffect(() => {
         if (!preview) return undefined;
         const onKey = (e: KeyboardEvent) => {
+            if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && previewList.length > 1) {
+                // ← / →: the previous / next selected item (not while typing in the code)
+                const t = e.target as HTMLElement | null;
+                if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                stepPreview(e.key === 'ArrowLeft' ? -1 : 1);
+                return;
+            }
             if (e.key !== 'Escape') return;
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -1526,7 +1713,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
         };
         window.addEventListener('keydown', onKey, true);
         return () => window.removeEventListener('keydown', onKey, true);
-    }, [preview]);
+    }, [preview, previewList]); // eslint-disable-line react-hooks/exhaustive-deps
 
     /* inertia in the preview: the wheel moves a target and the scroll eases toward it, so a flick glides and settles
        (the window itself, or long text inside it, whichever can move) */
@@ -1715,6 +1902,13 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         'Apply'
                     )}
                 </button>
+                {/* the app navbar's notifications, profile and menu, as on every other page */}
+                <span className="rd-ied-sep" aria-hidden="true" />
+                <span className="pe-nav-app">
+                    <NotificationBell />
+                    <ProfileMenu />
+                    <HamburgerMenu />
+                </span>
                 </div>
             </div>
 
@@ -1754,7 +1948,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                             enableTilt={false}
                             enableMagnetism={false}
                             textAutoHide
-                            intro
+                            intro={panelTab !== quietTab}
                             items={[
                                 {
                                     id: 'pe-tools',
@@ -1893,7 +2087,7 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                             enableTilt={false}
                             enableMagnetism={false}
                             textAutoHide
-                            intro
+                            intro={panelTab !== quietTab}
                             items={[
                                 {
                                     id: 'pe-lib-menu',
@@ -1940,25 +2134,47 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                     }}
                                 />
                                 {lib.length === 0 ? (
-                                    <p className="rd-hint">Upload anything: pictures (PNG, JPG, SVG, GIF, WebP …), PDFs (each page becomes a picture), code or text files, or any other file. They show up here. Click one or drag it onto the page. You can also paste (Ctrl+V) or drop files on the page.</p>
+                                    <p className="rd-hint">Upload anything: pictures (PNG, JPG, SVG, GIF, WebP …), PDFs (each page becomes a picture), code or text files, or any other file. They show up here. Click to select (Cmd / Shift + click for more), press Space to preview, double-click or drag onto the page. You can also paste (Ctrl+V) or drop files on the page.</p>
                                 ) : (
-                                    <div className="rd-lib-grid">
+                                    <div className="rd-lib-grid" onClick={(e) => e.target === e.currentTarget && setLibSel([])}>
                                         {lib.map((l) => (
-                                            <div key={l.id} className="pe-lib-item">
-                                                {l.kind === 'image'
-                                                    ? tile(l.id, l.src.name || 'picture', { k: 'lib', id: l.id }, <img src={l.url} alt="" draggable={false} />, 'rd-lib-tile rd-lib-photo')
-                                                    : tile(
-                                                          l.id,
-                                                          l.name,
-                                                          { k: 'lib', id: l.id },
-                                                          <span className="rd-lib-file">
-                                                              <b>{l.name}</b>
-                                                              <small>{l.kind === 'text' ? l.text.slice(0, 90) : 'File label'}</small>
-                                                          </span>,
-                                                          'rd-lib-tile rd-lib-photo rd-lib-filetile'
-                                                      )}
+                                            <div
+                                                key={l.id}
+                                                className="pe-lib-item"
+                                                onPointerEnter={() => (libPick.current = l.id)}
+                                                onPointerDown={() => (libPick.current = l.id)}
+                                                onFocus={() => (libPick.current = l.id)}
+                                                onPointerLeave={(e) => {
+                                                    if (!e.currentTarget.contains(document.activeElement)) libPick.current = null;
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !e.currentTarget.matches(':hover')) libPick.current = null;
+                                                }}
+                                                onKeyUp={(e) => e.key === ' ' && e.preventDefault()}
+                                            >
+                                                {/* click selects (Cmd / Ctrl / Shift + click for more), double-click or drag adds it */}
+                                                <button
+                                                    type="button"
+                                                    className={`rd-lib-tile rd-lib-photo${l.kind === 'image' ? '' : ' rd-lib-filetile'}${libSel.includes(l.id) ? ' is-picked' : ''}`}
+                                                    aria-pressed={libSel.includes(l.id)}
+                                                    draggable
+                                                    onDragStart={dragStart({ k: 'lib', id: l.id })}
+                                                    onClick={(e) => pickLib(e, l.id)}
+                                                    onDoubleClick={() => addFromPayload({ k: 'lib', id: l.id })}
+                                                    aria-label={`Select ${l.kind === 'image' ? l.src.name || 'picture' : l.name}`}
+                                                    title={`${l.kind === 'image' ? l.src.name || 'picture' : l.name} — click to select, double-click or drag onto the page, Space to preview`}
+                                                >
+                                                    {l.kind === 'image' ? (
+                                                        <img src={l.url} alt="" draggable={false} />
+                                                    ) : (
+                                                        <span className="rd-lib-file">
+                                                            <b>{l.name}</b>
+                                                            <small>{l.kind === 'text' ? l.text.slice(0, 90) : 'File label'}</small>
+                                                        </span>
+                                                    )}
+                                                </button>
                                                 {/* see it large, in a preview window */}
-                                                <button type="button" className="pe-lib-peek" onClick={() => setPreview(l)} aria-label={`Preview ${l.kind === 'image' ? l.src.name || 'picture' : l.name}`} title="Preview">
+                                                <button type="button" className="pe-lib-peek" onClick={() => openPreview([l])} aria-label={`Preview ${l.kind === 'image' ? l.src.name || 'picture' : l.name}`} title="Preview">
                                                     <Eye size={15} strokeWidth={1.75} aria-hidden="true" />
                                                 </button>
                                             </div>
@@ -2148,8 +2364,11 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                                 </button>
                             )}
                             {onDeletePage && (pageCount ?? 0) > 1 && (
-                                <button type="button" className="pe-pb-btn pe-pb-danger" data-on={confirmDel} onClick={() => (confirmDel ? onDeletePage() : setConfirmDel(true))} disabled={busy} aria-label={confirmDel ? 'Tap again to delete the page' : 'Delete page'} title={confirmDel ? 'Tap again to delete' : 'Delete page'}>
-                                    <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+                                <button type="button" className="pe-pb-btn pe-pb-danger" onClick={() => {
+                                        setDeleting(true);
+                                        onDeletePage();
+                                    }} disabled={busy || deleting} aria-busy={deleting} aria-label="Delete page" title="Delete page">
+                                    {deleting ? <ButtonSpinner /> : <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />}
                                 </button>
                             )}
                             {onInsertPage && (
@@ -2297,6 +2516,16 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                         )}
                     </div>
                     </div>
+                    {/* the page about to be added: only it loads (the other pages stay as they are) */}
+                    {Array.from({ length: pendingPages }, (_, i) => (
+                        <div key={`pending${i}`} className="pe-stackpage" style={{ width: dispW }} aria-busy="true">
+                            <div className="pe-stackpage-btn pe-pending-page" style={{ width: dispW, height: dispW * 1.414 }}>
+                                <span className="rd-page-loader" aria-hidden="true">
+                                    <MediconnectSpinner label="Adding page" />
+                                </span>
+                            </div>
+                        </div>
+                    ))}
                     {stackAfter.map((w) => (
                         <StackPage
                             key={w.item.id}
@@ -2345,8 +2574,15 @@ export function PageEditor({ item, onApply, onCancel, pageNo, pageCount, onGo, o
                 createPortal(
                     <div ref={previewRef} className="pe-preview-backdrop" onPointerDown={(e) => e.target === e.currentTarget && setPreview(null)}>
                         <QuickLook
+                            key={preview.id}
                             item={preview}
+                            nav={previewList.length > 1 ? { at: Math.max(0, previewList.indexOf(preview.id)) + 1, of: previewList.length, step: stepPreview } : undefined}
                             onClose={() => setPreview(null)}
+                            onEdit={(text) => {
+                                const id = preview.id;
+                                libRef.current = libRef.current.map((x) => (x.id === id && x.kind === 'text' ? { ...x, full: text, text: text.slice(0, TEXT_LIMIT) } : x));
+                                setLib(libRef.current);
+                            }}
                             onAdd={() => {
                                 addFromPayload({ k: 'lib', id: preview.id });
                                 setPreview(null);
@@ -2611,13 +2847,20 @@ function StackPage({
     disabled?: boolean;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-    const [confirmDel, setConfirmDel] = useState(false);
-    useEffect(() => {
-        if (!confirmDel) return undefined;
-        const t = setTimeout(() => setConfirmDel(false), 3500);
-        return () => clearTimeout(t);
-    }, [confirmDel]);
+    const [size, setSize] = useState<{ w: number; h: number } | null>(() => {
+        const d = drawnPages.get(item);
+        return d && d.canvas.width ? { w: d.canvas.width, h: d.canvas.height } : null;
+    });
+    // drawn before (the editor moved to another page): shown again at once, no loader
+    useLayoutEffect(() => {
+        const d = drawnPages.get(item);
+        const cv = canvasRef.current;
+        if (!d || !cv || d.canvas === cv || !d.canvas.width) return;
+        cv.width = d.canvas.width;
+        cv.height = d.canvas.height;
+        cv.getContext('2d')?.drawImage(d.canvas, 0, 0);
+        drawnPages.set(item, { side: d.side, canvas: cv });
+    }, [item]);
     const locked = item.overlays.length > 0 && item.overlays.every((o) => o.locked);
 
     useEffect(() => {
@@ -2625,6 +2868,7 @@ function StackPage({
         (async () => {
             try {
                 const side = Math.round(Math.min(1600, width * Math.min(window.devicePixelRatio || 1, 2)));
+                if (drawnPages.get(item)?.side === side && drawnPages.get(item)?.canvas === canvasRef.current) return; // already shown
                 let out: HTMLCanvasElement;
                 if (item.type === 'image') {
                     out = renderEdit(await getBitmap(item.src), item.edit, side);
@@ -2647,6 +2891,7 @@ function StackPage({
                 cv.width = out.width;
                 cv.height = out.height;
                 cv.getContext('2d')?.drawImage(out, 0, 0);
+                drawnPages.set(item, { side, canvas: cv });
                 setSize({ w: out.width, h: out.height });
             } catch {
                 /* the page simply stays empty */
@@ -2687,7 +2932,7 @@ function StackPage({
                                 <Copy size={18} strokeWidth={1.75} aria-hidden="true" />
                             </button>
                             {pageCount > 1 && (
-                                <button type="button" className="pe-pb-btn pe-pb-danger" data-on={confirmDel} onClick={() => (confirmDel ? onOp('delete') : setConfirmDel(true))} disabled={disabled} aria-label={confirmDel ? 'Tap again to delete the page' : 'Delete page'} title={confirmDel ? 'Tap again to delete' : 'Delete page'}>
+                                <button type="button" className="pe-pb-btn pe-pb-danger" onClick={() => onOp('delete')} disabled={disabled} aria-label="Delete page" title="Delete page">
                                     <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
                                 </button>
                             )}
@@ -2728,8 +2973,26 @@ function BentoControls({ title, description, children }: { title: string; descri
  * The Library preview, after Apple's Quick Look: a fixed-size dark window with a title bar (close on the left, the
  * name, the main action on the right); the content adapts to the window.
  */
-function QuickLook({ item, onClose, onAdd }: { item: Lib; onClose: () => void; onAdd: () => void }) {
+function QuickLook({ item, onClose, onAdd, onEdit, nav }: { item: Lib; onClose: () => void; onAdd: () => void; onEdit?: (text: string) => void; nav?: { at: number; of: number; step: (d: -1 | 1) => void } }) {
     const name = item.kind === 'image' ? item.src.name || 'Picture' : item.name;
+    // a code / text item is edited right in the preview; the change is kept in Uploads (saved shortly after typing,
+    // when the preview closes, and before "Add to page")
+    const [draft, setDraft] = useState(() => (item.kind === 'text' ? (item.full ?? item.text).replace(/\r\n?/g, '\n').replace(/\t/g, '    ') : ''));
+    const saved = useRef(item.kind === 'text' ? item.full ?? item.text : '');
+    const draftRef = useRef(draft);
+    draftRef.current = draft;
+    const onEditRef = useRef(onEdit);
+    onEditRef.current = onEdit;
+    const flush = useCallback(() => {
+        if (item.kind !== 'text' || draftRef.current === saved.current) return;
+        saved.current = draftRef.current;
+        onEditRef.current?.(draftRef.current);
+    }, [item.kind]);
+    useEffect(() => {
+        const id = window.setTimeout(flush, 400);
+        return () => window.clearTimeout(id);
+    }, [draft, flush]);
+    useEffect(() => flush, [flush]);
     const file = item.kind === 'file' ? item.file : undefined;
     const type = file?.type ?? '';
     const [url, setUrl] = useState<string | null>(null);
@@ -2750,7 +3013,7 @@ function QuickLook({ item, onClose, onAdd }: { item: Lib; onClose: () => void; o
     const ext = (name.split('.').pop() ?? '').toUpperCase();
     let body: React.ReactNode;
     if (item.kind === 'image') body = <img className="ql-media" src={item.url} alt="" draggable={false} />;
-    else if (item.kind === 'text') body = <pre className={`ql-text${item.code ? ' ql-code' : ''}`}>{item.text}</pre>;
+    else if (item.kind === 'text') body = <CodeEdit text={draft} name={item.name} onChange={setDraft} />;
     else if (url && type.startsWith('video/')) body = <video className="ql-media" src={url} controls autoPlay playsInline />;
     else if (url && type.startsWith('audio/'))
         body = (
@@ -2762,7 +3025,7 @@ function QuickLook({ item, onClose, onAdd }: { item: Lib; onClose: () => void; o
         );
     else if (url && type.startsWith('image/')) body = <img className="ql-media" src={url} alt="" draggable={false} />;
     else if (url && type === 'application/pdf') body = <iframe className="ql-frame" src={url} title={name} />;
-    else if (fileText !== null) body = <pre className="ql-text ql-code">{fileText}</pre>;
+    else if (fileText !== null) body = <CodeView text={fileText} name={name} />;
     else
         body = (
             <div className="ql-file">
@@ -2786,10 +3049,104 @@ function QuickLook({ item, onClose, onAdd }: { item: Lib; onClose: () => void; o
                 <div className="ql-body">{body}</div>
             </div>
             <div className="ql-foot">
-                <button type="button" className="ql-action" onClick={onAdd}>
+                {nav && (
+                    <div className="ql-nav" role="group" aria-label="Selected items">
+                        <button type="button" className="ql-nav-btn" onClick={() => nav.step(-1)} aria-label="Previous" title="Previous (←)">
+                            <ChevronLeft size={20} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                        <span className="ql-nav-count">
+                            {nav.at} / {nav.of}
+                        </span>
+                        <button type="button" className="ql-nav-btn" onClick={() => nav.step(1)} aria-label="Next" title="Next (→)">
+                            <ChevronRight size={20} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                    </div>
+                )}
+                <button
+                    type="button"
+                    className="ql-action"
+                    onClick={() => {
+                        flush();
+                        onAdd();
+                    }}
+                >
                     Add to page
                 </button>
             </div>
+        </div>
+    );
+}
+
+/**
+ * The code / text in the preview, editable in place: a see-through text box over the coloured lines (the same
+ * colours and line numbers as the read-only view), so typing keeps the syntax colours.
+ */
+export function CodeEdit({ text, name, onChange, firstLine = 1 }: { text: string; name: string; onChange: (text: string) => void; firstLine?: number }) {
+    const lines = useMemo(() => codeLines(text, name), [text, name]);
+    const digits = Math.max(3, String(lines.length + firstLine - 1).length);
+    return (
+        <div className="ql-text ql-codeview ql-codeedit" style={{ ['--ql-ln' as string]: `${digits}ch` } as React.CSSProperties}>
+            <div className="ql-ce-layer" aria-hidden="true">
+                {lines.map((pieces, i) => (
+                    <div key={i} className="ql-line">
+                        <span className="ql-ln">{i + firstLine}</span>
+                        <span className="ql-lc">
+                            {pieces.length === 0
+                                ? '\u00a0'
+                                : pieces.map((p, k) => (
+                                      <span key={k} style={{ color: p.color, fontStyle: p.italic ? 'italic' : undefined }}>
+                                          {p.text}
+                                      </span>
+                                  ))}
+                        </span>
+                    </div>
+                ))}
+            </div>
+            <textarea
+                className="ql-ce-input"
+                value={text}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                aria-label={`Edit ${name}`}
+                onChange={(e) => onChange(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key !== 'Tab' || e.metaKey || e.ctrlKey || e.altKey) return;
+                    // Tab indents (four spaces) instead of leaving the box
+                    e.preventDefault();
+                    const el = e.currentTarget;
+                    const a = el.selectionStart;
+                    const b = el.selectionEnd;
+                    const next = text.slice(0, a) + '    ' + text.slice(b);
+                    onChange(next);
+                    requestAnimationFrame(() => el.setSelectionRange(a + 4, a + 4));
+                }}
+            />
+        </div>
+    );
+}
+
+/** A whole code / text file in the preview: line numbers and the same colours as the code pages; long lines wrap. */
+function CodeView({ text, name }: { text: string; name: string }) {
+    const lines = useMemo(() => codeLines(text, name), [text, name]);
+    return (
+        <div className="ql-text ql-codeview" role="document" aria-label={name}>
+            {lines.map((pieces, i) => (
+                <div key={i} className="ql-line">
+                    <span className="ql-ln" aria-hidden="true">
+                        {i + 1}
+                    </span>
+                    <span className="ql-lc">
+                        {pieces.length === 0
+                            ? '\u00a0'
+                            : pieces.map((p, k) => (
+                                  <span key={k} style={{ color: p.color, fontStyle: p.italic ? 'italic' : undefined }}>
+                                      {p.text}
+                                  </span>
+                              ))}
+                    </span>
+                </div>
+            ))}
         </div>
     );
 }

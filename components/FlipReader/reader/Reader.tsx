@@ -12,10 +12,12 @@ import { downloadBlob, exportMergedPdf } from '@/lib/flipreader/exportpdf';
 import { takePendingFiles } from '@/lib/flipreader/handoff';
 import { ACCEPT, getPageWords, loadFiles, loadPagesFromFiles } from '@/lib/flipreader/loaders';
 import { duplicateItem, imageItem, insertAt, moveItem, newId, removeAt, withItems } from '@/lib/flipreader/pages';
+import { codeTextToPages } from '@/lib/flipreader/codePages';
 import { pdfPageToBlob } from '@/lib/flipreader/thumbs';
 import { buildIndex, getIndex, Hit, SearchIndex } from '@/lib/flipreader/search';
 import type { BookDoc, ImageEdit, ImageItem, ImageSource, Overlay, PageItem, Source } from '@/lib/flipreader/types';
 import { CoverEditor } from './CoverEditor';
+import LiquidGlass from '@/components/FlipReader/ui/LiquidGlass';
 import { BlankPage, CoverBack, CoverFront } from './covers';
 import { ImageEditor } from './ImageEditor';
 import { PageEditor } from './PageEditor';
@@ -67,6 +69,24 @@ export default function Reader() {
     const [busy, setBusy] = useState<{ msg: string; p?: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);
+    // the dashed "drop files here" outline never stays behind: any drop or drag that ends anywhere clears it
+    useEffect(() => {
+        if (!dragOver) return undefined;
+        const clear = () => setDragOver(false);
+        const onLeave = (e: DragEvent) => {
+            if (!e.relatedTarget) clear(); // left the window
+        };
+        window.addEventListener('drop', clear, true);
+        window.addEventListener('dragend', clear, true);
+        window.addEventListener('dragleave', onLeave, true);
+        window.addEventListener('pointerdown', clear, true);
+        return () => {
+            window.removeEventListener('pointerdown', clear, true);
+            window.removeEventListener('drop', clear, true);
+            window.removeEventListener('dragend', clear, true);
+            window.removeEventListener('dragleave', onLeave, true);
+        };
+    }, [dragOver]);
 
     const [current, setCurrent] = useState(0);
     const [visible, setVisible] = useState<number[]>([0]);
@@ -467,6 +487,9 @@ export default function Reader() {
         docRef.current = next;
         if (focus !== undefined) focusRef.current = Math.min(Math.max(0, focus), Math.max(0, items.length - 1));
         setHighlight(null); // match positions refer to the old page list
+        // in the page editor, its page moves with the new list in the same render (not one render later, which briefly
+        // opened the editor on another page and reloaded it, e.g. after deleting a page above it)
+        if (annotating && focusRef.current !== null) setSel(focusRef.current);
         setDoc(next);
     };
 
@@ -481,7 +504,55 @@ export default function Reader() {
     }, [doc && doc.kind === 'pages' ? doc.rev : -1]);
 
     const pageDelete = () => editPages((items) => removeAt(items, sel), [], Math.min(sel, (docRef.current?.pageCount ?? 1) - 2));
+    /**
+     * A code / text page edited in the preview: drawn again from its text (keeping its line numbers, what was put on
+     * it and its place); if it no longer fits on one page, the rest goes on new pages right after it. All text removed:
+     * the page goes.
+     */
+    const pageSaveCode = async (index: number, text: string) => {
+        const it = docRef.current?.kind === 'pages' ? docRef.current.items[index] : undefined;
+        if (!it || it.type !== 'image' || !it.src.code) return;
+        const code = it.src.code;
+        const id = it.id;
+        if (!text.trim()) {
+            editPages((items) => items.filter((x) => x.id !== id), [], index < sel ? sel - 1 : sel);
+            return;
+        }
+        const srcs = await codeTextToPages(text, code.name, code.firstLine);
+        const [first, ...rest] = srcs;
+        const added = rest.map((src) => imageItem(src));
+        editPages(
+            (items) => {
+                const at = items.findIndex((x) => x.id === id);
+                if (at < 0) return items;
+                const next = items.slice();
+                next.splice(at, 1, { ...imageItem(first), id, overlays: it.overlays, hidden: it.hidden }, ...added);
+                return next;
+            },
+            srcs,
+            index < sel ? sel + added.length : sel
+        );
+    };
+    /** several pages at once (picked together in the pages strip, or dragged out of it): one step to undo */
+    const pageDeleteMany = (indices: number[]) => {
+        const gone = new Set(indices);
+        if (!gone.size) return;
+        const before = indices.filter((i) => i < sel).length;
+        editPages((items) => items.filter((_, i) => !gone.has(i)), [], sel - before);
+    };
     const pageMove = (dir: -1 | 1) => editPages((items) => moveItem(items, sel, dir), [], sel + dir);
+    /** pages tray: a page dragged to any place */
+    const pageReorder = (from: number, to: number) =>
+        editPages(
+            (items) => {
+                const next = items.slice();
+                const [it] = next.splice(from, 1);
+                next.splice(Math.max(0, Math.min(next.length, to)), 0, it);
+                return next;
+            },
+            [],
+            to
+        );
     const pageDuplicate = () => editPages((items) => insertAt(items, sel + 1, [duplicateItem(items[sel])]), [], sel + 1);
     const pageEditApply = (edit: ImageEdit) => {
         editPages((items) => items.map((it, i) => (i === sel && it.type === 'image' ? { ...it, edit } : it)), [], sel);
@@ -528,6 +599,22 @@ export default function Reader() {
             },
             blank ? [...extraPages, blank] : extraPages,
             at
+        );
+    };
+
+    /** From the page editor: code / text files become pages (as many as they need) right after this page, in the window. */
+    const pageAnnotateInsertPages = (overlays: Overlay[], extraPages: ImageSource[] = [], srcs: ImageSource[]) => {
+        if (srcs.length === 0) return;
+        const at = sel + 1 + extraPages.length;
+        editPages(
+            (items) => {
+                const next = withAnnotation(items, overlays, extraPages);
+                const added = srcs.map((src) => imageItem(src));
+                addToWindow(added.map((a) => a.id));
+                return insertAt(next, at, added);
+            },
+            [...extraPages, ...srcs],
+            sel // the editor stays on its page (no reload of the window); the new pages show up after it
         );
     };
 
@@ -908,6 +995,9 @@ export default function Reader() {
                 if (zoomScale > 1.01) wakeZoomBtn();
             }}
             onDragOver={(e) => {
+                // the dashed "drop files here" outline only for files from the computer, not for a page dragged in
+                // the pages strip (dragged out to delete it)
+                if (!e.dataTransfer.types.includes('Files')) return;
                 e.preventDefault();
                 setDragOver(true);
             }}
@@ -1031,7 +1121,11 @@ export default function Reader() {
             )}
 
             {skipHud && (
-                <div className="rd-hud" data-side={skipHud.dir === 1 ? 'right' : 'left'} role="status">
+                <div className="rd-hud rd-hud-glass" data-side={skipHud.dir === 1 ? 'right' : 'left'} role="status">
+                    {/* the same liquid glass as the controls bar */}
+                    <span className="rd-hud-lg" aria-hidden="true">
+                        <LiquidGlass width="100%" height="100%" radius={26} blur={4} />
+                    </span>
                     <span aria-hidden="true">{skipHud.dir === 1 ? <ChevronsRight size={18} strokeWidth={1.75} /> : <ChevronsLeft size={18} strokeWidth={1.75} />}</span>
                     <span>{skipHud.label}</span>
                 </div>
@@ -1137,7 +1231,10 @@ export default function Reader() {
                     onConvert={() => void pageConvert()}
                     onDuplicate={pageDuplicate}
                     onMove={pageMove}
+                    onReorder={pageReorder}
                     onDelete={pageDelete}
+                    onDeleteMany={pageDeleteMany}
+                    onSaveCode={(i, text) => void pageSaveCode(i, text)}
                     onUndo={undoPages}
                     canUndo={undoCount > 0}
                     onExport={() => void pageExport()}
@@ -1156,7 +1253,9 @@ export default function Reader() {
             )}
 
             {annotating && pagesDoc?.items[sel] && (
-                <PageEditor key={pagesDoc.items[sel].id} item={pagesDoc.items[sel]} onApply={pageAnnotateApply} onCancel={pageAnnotateCancel} pageNo={sel + 1} pageCount={pagesDoc.items.length} onGo={pageAnnotateGo} onDeletePage={pageAnnotateDelete} onInsertPage={pageAnnotateInsert} onHidePage={pageAnnotateHide} windowPages={pagesDoc.items.map((item, index) => ({ item, index })).filter((w) => annotIds.includes(w.item.id))} onWindowOp={pageWindowOp} bookRatio={pagesDoc.ratio} onReplacePage={pageAnnotateReplace} />
+                // one editor for the whole session: moving to another page (or deleting one) changes its page, the
+                // editor and its panels stay as they are (no reload)
+                <PageEditor key="page-editor" item={pagesDoc.items[sel]} onApply={pageAnnotateApply} onCancel={pageAnnotateCancel} pageNo={sel + 1} pageCount={pagesDoc.items.length} onGo={pageAnnotateGo} onDeletePage={pageAnnotateDelete} onInsertPage={pageAnnotateInsert} onInsertPages={pageAnnotateInsertPages} onHidePage={pageAnnotateHide} windowPages={pagesDoc.items.map((item, index) => ({ item, index })).filter((w) => annotIds.includes(w.item.id))} onWindowOp={pageWindowOp} bookRatio={pagesDoc.ratio} onReplacePage={pageAnnotateReplace} />
             )}
 
             {editing && doc && (

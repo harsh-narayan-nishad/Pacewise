@@ -131,6 +131,10 @@ export const storage = {
     backendTracking.trackTime("doc", slug, title, ms, newVisit);
     if (newVisit) backendTracking.trackCount("docsRead");
   },
+  /** Reading time from the flip book (no session to finish) into a day's reading minutes; `day` is YYYY-MM-DD. */
+  addReadingTime(ms: number, day?: string): void {
+    session().daily.addReadingMs(ms, day);
+  },
   recordTestTime(ms: number): DailyActivity {
     return session().daily.recordTestTime(ms);
   },

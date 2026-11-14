@@ -1,6 +1,7 @@
 import { fileToImageSource, isImageFile } from './imageops';
 import { docRatio, imageItem, newId, pdfItems } from './pages';
 import { paginate } from './paginate';
+import { codeFileToPages, isCodeFile } from './codePages';
 import type { Block, BookDoc, PageItem, PagesDoc, PdfSource, Source } from './types';
 
 export type ProgressFn = (message: string, fraction?: number) => void;
@@ -9,11 +10,19 @@ let counter = 0;
 const stripExt = (name: string) => name.replace(/\.[^.]+$/, '');
 const keyOf = (file: File) => `${file.name}|${file.size}|${file.lastModified}`;
 
+const CODE_ACCEPT =
+    '.c,.h,.cc,.cpp,.cxx,.hpp,.cs,.java,.kt,.scala,.go,.rs,.swift,.py,.rb,.php,.pl,.lua,.r,.dart,.js,.jsx,.mjs,.cjs,.ts,.tsx,.vue,.svelte,.html,.htm,.css,.scss,.less,.json,.xml,.yml,.yaml,.toml,.ini,.env,.sql,.sh,.bash,.zsh,.ps1,.bat,.gradle,.tex,.graphql,.proto,.log,.csv';
+
 export const ACCEPT =
-    '.pdf,.epub,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,application/pdf,application/epub+zip,text/plain,text/markdown,image/*';
+    '.pdf,.epub,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,application/pdf,application/epub+zip,text/plain,text/markdown,image/*,' +
+    // code files open too: each becomes pages with line numbers and colours
+    CODE_ACCEPT;
 
 /** Files that can be inserted as extra pages: images and PDFs. */
-export const ACCEPT_PAGES = '.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,application/pdf,image/*';
+export const ACCEPT_PAGES =
+    '.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,application/pdf,image/*,' +
+    // code and text files become pages too
+    '.c,.h,.cc,.cpp,.cxx,.hpp,.cs,.java,.kt,.scala,.go,.rs,.swift,.py,.rb,.php,.pl,.lua,.r,.dart,.js,.jsx,.mjs,.cjs,.ts,.tsx,.vue,.svelte,.html,.htm,.css,.scss,.less,.json,.xml,.yml,.yaml,.toml,.ini,.env,.sql,.sh,.bash,.zsh,.ps1,.bat,.gradle,.tex,.graphql,.proto,.md,.txt,.log,.csv,text/*';
 
 const MB = 1024 * 1024;
 const LIMITS = { pdf: 300 * MB, epub: 80 * MB, text: 20 * MB } as const;
@@ -94,6 +103,12 @@ export async function loadPagesFromFiles(files: File[], onProgress: ProgressFn):
                 const src = await fileToImageSource(file);
                 sources.push(src);
                 items.push(imageItem(src));
+            } else if (isCodeFile(file)) {
+                // a code or text file: laid out on as many pages as it needs
+                for (const src of await codeFileToPages(file)) {
+                    sources.push(src);
+                    items.push(imageItem(src));
+                }
             } else {
                 warnings.push(`"${file.name}" is not an image or PDF.`);
             }
@@ -124,7 +139,9 @@ export interface LoadedBook {
 export async function loadFiles(files: File[], onProgress: ProgressFn): Promise<LoadedBook> {
     if (files.length === 0) throw new Error('No file was chosen.');
 
-    const texts = files.filter((f) => isEpubFile(f) || isTextFile(f));
+    // code files (C++, Java, Python, TSX …) are laid out as code pages, not reflowed like a .txt / .md book
+    const isCode = (f: File) => isCodeFile(f) && !/\.(txt|md|markdown)$/i.test(f.name);
+    const texts = files.filter((f) => isEpubFile(f) || (isTextFile(f) && !isCode(f)));
     if (texts.length > 0) {
         if (files.length > 1) {
             throw new Error('Text and EPUB books open on their own. Choose images and PDFs together, or one text file.');
